@@ -340,14 +340,13 @@
   .tg-avatar {
     width: 36px; height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--amber), var(--rust));
+    background: var(--ink);
+    border: 1px solid rgba(232, 184, 111, 0.35);
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--ink);
-    letter-spacing: 0.02em;
+    overflow: hidden;
+    flex-shrink: 0;
   }
+  .tg-avatar svg { width: 100%; height: 100%; display: block; }
   .tg-title { flex: 1; }
   .tg-name {
     font-size: 14px;
@@ -1442,7 +1441,16 @@
       <div class="reveal">
         <div class="tg-mock">
           <div class="tg-head">
-            <div class="tg-avatar">RG</div>
+            <div class="tg-avatar" aria-hidden="true">
+              <svg viewBox="0 0 36 36">
+                <path d="M8 8 L28 8 L28 22 Q28 31 18 34 Q8 31 8 22 Z"
+                      fill="rgba(232,184,111,0.10)"
+                      stroke="#e8b86f" stroke-width="1.8"
+                      stroke-linejoin="round" stroke-linecap="round"/>
+                <line x1="12" y1="20" x2="24" y2="20"
+                      stroke="#e8b86f" stroke-width="2.6" stroke-linecap="round"/>
+              </svg>
+            </div>
             <div class="tg-title">
               <div class="tg-name">RiskGuard Bot</div>
               <div class="tg-status"><span class="online-dot"></span>guard online · watching your account</div>
