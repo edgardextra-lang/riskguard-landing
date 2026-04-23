@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RiskGuard — The Telegram bot that enforces your rules on Hyperliquid</title>
-<meta name="description" content="95% of leveraged traders blow up. Not because of strategy — because of tilt. RiskGuard is the Telegram bot that blocks the trades that ruin your account, live on Hyperliquid." />
+<meta name="description" content="95% of leveraged traders blow up. Not because of strategy — because of tilt. RiskGuard is the Telegram bot that cancels the trades that ruin your account, live on Hyperliquid." />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -185,8 +185,8 @@
   .hero h1 {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: clamp(52px, 7.4vw, 108px);
-    line-height: 0.96;
+    font-size: clamp(48px, 6.8vw, 100px);
+    line-height: 0.97;
     letter-spacing: -0.02em;
     color: var(--paper);
     margin-bottom: 36px;
@@ -205,6 +205,17 @@
     background: var(--rust);
     transform: rotate(-1.2deg);
   }
+  .hero h1 .stat-line {
+    display: block;
+    font-size: 62%;
+    font-family: var(--font-mono);
+    font-style: normal;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+    font-weight: 400;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
 
   .hero-sub {
     font-size: 18px;
@@ -218,7 +229,7 @@
 
   .hero-actions {
     display: flex; gap: 14px; align-items: center;
-    margin-bottom: 56px;
+    margin-bottom: 40px;
     flex-wrap: wrap;
   }
   .btn-primary {
@@ -249,6 +260,44 @@
   .btn-ghost:hover { border-color: var(--paper); }
   .arrow { transition: transform 0.2s ease; }
   .btn-primary:hover .arrow, .btn-ghost:hover .arrow { transform: translateX(4px); }
+
+  /* ── Social proof strip (below hero actions) ─────────────── */
+  .trust-strip {
+    padding: 20px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+  .trust-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--paper-2);
+    line-height: 1.45;
+    max-width: 360px;
+    border-left: 2px solid var(--amber);
+    padding-left: 14px;
+  }
+  .trust-handles {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--paper-dim);
+    letter-spacing: 0.06em;
+  }
+  .trust-handle {
+    padding: 4px 10px;
+    border: 1px solid var(--hair-hi);
+    background: var(--ink-2);
+    color: var(--paper);
+  }
+  .trust-sep {
+    color: var(--paper-mute);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
 
   .hero-meta {
     display: flex; gap: 44px; flex-wrap: wrap;
@@ -310,9 +359,7 @@
     color: var(--ink);
     letter-spacing: 0.02em;
   }
-  .tg-title {
-    flex: 1;
-  }
+  .tg-title { flex: 1; }
   .tg-name {
     font-size: 14px;
     color: var(--paper);
@@ -329,7 +376,6 @@
   .tg-status .online-dot { margin-left: 0; }
 
   .tg-messages {
-    display: flex; flex-direction: column; gap: 10px;
     max-height: 420px;
     overflow: hidden;
     padding: 0 4px;
@@ -339,9 +385,20 @@
     content: '';
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 40px;
+    height: 50px;
     background: linear-gradient(transparent, var(--ink-2));
     pointer-events: none;
+    z-index: 2;
+  }
+  .tg-messages-inner {
+    display: flex; flex-direction: column; gap: 10px;
+    animation: tg-scroll 18s ease-in-out infinite;
+    animation-delay: 3s;
+  }
+  @keyframes tg-scroll {
+    0%, 25%  { transform: translateY(0); }
+    60%, 85% { transform: translateY(-148px); }
+    100%     { transform: translateY(0); }
   }
   .tg-msg {
     padding: 10px 14px;
@@ -386,6 +443,18 @@
     font-size: 9.5px;
     color: var(--paper-mute);
     margin-top: 4px;
+  }
+  .tg-privacy {
+    margin-top: 10px;
+    padding: 7px 10px;
+    background: rgba(63, 169, 245, 0.05);
+    border: 1px solid rgba(63, 169, 245, 0.18);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+    line-height: 1.5;
   }
 
   /* ── Activity marquee ──────────────────────────────────── */
@@ -499,6 +568,17 @@
     max-width: 300px;
   }
   .stat-caption strong { color: var(--paper); font-weight: 500; }
+  .stat-dollar {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(212, 73, 61, 0.07);
+    border-left: 2px solid var(--rust);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--rust);
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+  }
   .stat-source {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -553,11 +633,48 @@
     color: var(--rust);
     letter-spacing: 0.06em;
   }
+  .problem-pullquote {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border-left: 2px solid var(--amber);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--amber);
+    line-height: 1.45;
+    background: rgba(232, 184, 111, 0.05);
+  }
+
+  /* ── Advisory comparison ───────────────────────────── */
+  .advisory-bar {
+    margin-top: 0;
+    border: 1px solid var(--hair);
+    border-top: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .advisory-cell {
+    padding: 20px 32px;
+    border-right: 1px solid var(--hair);
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+  }
+  .advisory-cell:last-child { border-right: none; }
+  .advisory-cell .adv-label { color: var(--paper-dim); }
+  .advisory-cell .adv-verdict {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    padding: 3px 8px;
+  }
+  .adv-verdict.fail { color: var(--rust); border: 1px solid rgba(212,73,61,0.4); background: rgba(212,73,61,0.06); }
+  .adv-verdict.pass { color: var(--sage); border: 1px solid rgba(127,183,126,0.4); background: rgba(127,183,126,0.06); }
 
   /* ── Rules ─────────────────────────────────────────── */
-  .rules {
-    padding-bottom: 32px;
-  }
+  .rules { padding-bottom: 32px; }
   .rule {
     display: grid;
     grid-template-columns: 90px 1fr 1fr 170px;
@@ -584,13 +701,8 @@
     letter-spacing: -0.015em;
   }
   .rule-title em { font-style: italic; color: var(--paper-2); }
-  .rule-title .dash {
-    color: var(--paper-mute);
-    margin: 0 6px;
-  }
-  .rule-title .val {
-    color: var(--amber);
-  }
+  .rule-title .dash { color: var(--paper-mute); margin: 0 6px; }
+  .rule-title .val  { color: var(--amber); }
   .rule-body {
     font-size: 15.5px;
     line-height: 1.6;
@@ -610,13 +722,33 @@
   }
   .rule-tag.rust { color: var(--rust); border-color: rgba(212, 73, 61, 0.4); background: rgba(212, 73, 61, 0.05); }
 
-  /* Special "notification" rule */
-  .rule.notify {
-    background:
-      linear-gradient(90deg, rgba(63, 169, 245, 0.06), rgba(232, 184, 111, 0.03) 70%, transparent);
+  /* Notification feature row — visually separated from the 5 rules */
+  .rules-separator {
+    padding: 18px 0 8px;
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--paper-mute);
   }
-  .rule.notify .rule-num { color: var(--tg-blue); }
+  .rules-separator::before, .rules-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hair);
+  }
+  .rule.notify {
+    background: linear-gradient(90deg, rgba(63, 169, 245, 0.06), rgba(232, 184, 111, 0.03) 70%, transparent);
+    border-top-color: rgba(63, 169, 245, 0.2);
+  }
+  .rule.notify .rule-num { color: var(--tg-blue); font-size: 32px; letter-spacing: 0; }
   .rule.notify .rule-tag { color: var(--tg-blue); border-color: rgba(63, 169, 245, 0.4); background: rgba(63, 169, 245, 0.06); }
+
+  /* Mid-section CTA after rules */
+  .rules-cta-row {
+    padding: 32px 0 8px;
+    display: flex; justify-content: center;
+  }
 
   /* ── Steps (how it works) ─────────────────────────── */
   .steps {
@@ -670,124 +802,61 @@
     display: flex; align-items: center; gap: 8px;
   }
 
-  /* ── Pricing ─────────────────────────────────────── */
-  .pricing-grid {
+  /* ── Testimonials ──────────────────────────────────── */
+  .testimonial-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0;
+    gap: 20px;
+  }
+  .testimonial {
+    padding: 28px 28px 24px;
     border: 1px solid var(--hair);
+    background: var(--ink-2);
   }
-  .tier {
-    padding: 44px 32px;
-    border-right: 1px solid var(--hair);
-    position: relative;
-    background: var(--ink);
-  }
-  .tier:last-child { border-right: none; }
-  .tier.featured { background: var(--ink-2); }
-  .tier.featured::before {
-    content: 'MOST POPULAR';
-    position: absolute;
-    top: 0; left: 32px;
-    transform: translateY(-50%);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    background: var(--amber);
-    color: var(--ink);
-    padding: 6px 12px;
-    font-weight: 600;
-  }
-  .tier-name {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    color: var(--paper-dim);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-  .tier-byline {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 20px;
-    color: var(--paper-2);
-    margin-bottom: 30px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--hair);
-  }
-  .tier-price {
-    font-family: var(--font-display);
-    font-size: 62px;
-    color: var(--paper);
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-  .tier-price span {
-    font-size: 15px;
-    font-family: var(--font-mono);
-    color: var(--paper-dim);
-    letter-spacing: 0.05em;
-  }
-  .tier-strike {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--paper-mute);
-    text-decoration: line-through;
-    margin-bottom: 24px;
-    letter-spacing: 0.04em;
-  }
-  .tier-strike b { color: var(--amber); text-decoration: none; font-weight: 500; margin-left: 6px; }
-  .tier-feats {
-    list-style: none; padding: 0;
-    margin-bottom: 32px;
-  }
-  .tier-feats li {
-    padding: 10px 0;
-    font-size: 13.5px;
-    color: var(--paper-2);
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .tier-feats li::before {
-    content: '→';
+  .stars {
+    display: flex; gap: 2px;
     color: var(--amber);
-    font-family: var(--font-mono);
-    flex-shrink: 0;
+    font-size: 13px;
+    margin-bottom: 18px;
   }
-  .tier-cta {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 14px;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    border: 1px solid var(--hair-hi);
+  .testimonial p {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.45;
     color: var(--paper);
-    transition: all 0.2s ease;
-    background: transparent;
-    width: 100%;
-    font-weight: 600;
-    cursor: pointer;
+    margin-bottom: 22px;
+    font-style: italic;
   }
-  .tier-cta:hover { background: var(--paper); color: var(--ink); border-color: var(--paper); }
-  .tier.featured .tier-cta {
-    background: var(--amber);
-    color: var(--ink);
-    border-color: var(--amber);
+  .testimonial-who {
+    display: flex; align-items: center; gap: 12px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
   }
-  .tier.featured .tier-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
-  .pricing-foot {
-    margin-top: 22px;
+  .t-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    border: 1px solid var(--hair-hi);
+    display: flex; align-items: center; justify-content: center;
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.05em;
     color: var(--paper-dim);
-    text-align: center;
+    font-weight: 600;
   }
-  .pricing-foot span { color: var(--paper-2); }
+  .t-name {
+    font-size: 14px;
+    color: var(--paper);
+    font-weight: 500;
+  }
+  .t-role {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
 
-  /* ── Single founder-access offer ───────────────────── */
+  /* ── Pricing / solo offer ─────────────────────────── */
   .solo-offer {
     display: flex;
     justify-content: center;
@@ -816,6 +885,40 @@
     width: 1px; height: 72px;
     background: var(--amber);
   }
+
+  /* Seat counter */
+  .seat-counter {
+    margin-bottom: 28px;
+  }
+  .seat-bar-track {
+    height: 4px;
+    background: var(--hair);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .seat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--amber), var(--amber-hi));
+    border-radius: 2px;
+    width: 23%;
+    animation: seat-pulse 3s ease-in-out infinite;
+  }
+  @keyframes seat-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .seat-counter-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--paper-2);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .seat-counter-text b { color: var(--amber); }
+  .seat-counter-text .seat-urgency {
+    color: var(--rust);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
   .solo-badge {
     display: inline-flex; align-items: center; gap: 10px;
     font-family: var(--font-mono);
@@ -888,7 +991,7 @@
   .solo-feats {
     list-style: none;
     padding: 0;
-    margin-bottom: 36px;
+    margin-bottom: 24px;
     display: grid;
     gap: 12px;
   }
@@ -912,6 +1015,27 @@
   }
   .solo-feats li b { color: var(--paper); font-weight: 500; }
   .solo-feats li strong { color: var(--amber); font-weight: 500; }
+
+  /* Guarantee block */
+  .guarantee-block {
+    margin-bottom: 28px;
+    padding: 16px 18px;
+    border: 1px solid rgba(127, 183, 126, 0.3);
+    background: rgba(127, 183, 126, 0.05);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .guarantee-block .g-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .guarantee-block .g-text {
+    font-size: 13.5px;
+    color: var(--paper-2);
+    line-height: 1.55;
+  }
+  .guarantee-block .g-text strong { color: var(--sage); font-weight: 500; }
+
   .solo-cta {
     display: flex; align-items: center; justify-content: center; gap: 12px;
     width: 100%;
@@ -946,111 +1070,61 @@
     .solo-price-row { gap: 16px; }
   }
 
-  /* ── Roadmap ────────────────────────────────────── */
-  .roadmap {
-    padding-bottom: 40px;
-  }
-  .milestone {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 48px;
-    padding: 36px 0;
+  /* ── FAQ ──────────────────────────────────────────── */
+  .faq-list { padding-bottom: 40px; }
+  .faq-item {
     border-top: 1px solid var(--hair);
-    align-items: flex-start;
   }
-  .milestone:last-child { border-bottom: 1px solid var(--hair); }
-  .milestone-when {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    color: var(--amber);
+  .faq-item:last-child { border-bottom: 1px solid var(--hair); }
+  .faq-question {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 28px 0;
+    cursor: pointer;
+    gap: 32px;
   }
-  .milestone-when .now {
-    display: inline-block;
-    padding: 2px 8px;
-    background: rgba(127, 183, 126, 0.12);
-    border: 1px solid var(--sage);
-    color: var(--sage);
-    font-size: 10px;
-    margin-bottom: 6px;
-  }
-  .milestone h3 {
+  .faq-q-text {
     font-family: var(--font-display);
-    font-size: 28px;
-    line-height: 1.15;
+    font-size: 24px;
     font-weight: 400;
     color: var(--paper);
     letter-spacing: -0.01em;
-    margin-bottom: 12px;
+    line-height: 1.15;
   }
-  .milestone h3 em { font-style: italic; color: var(--amber); }
-  .milestone ul {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 8px;
-  }
-  .milestone ul li {
-    font-size: 13.5px;
-    color: var(--paper-2);
-    padding: 8px 12px;
-    border: 1px solid var(--hair);
-    font-family: var(--font-mono);
-  }
-
-  /* ── Testimonials ──────────────────────────────── */
-  .testimonial-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-  .testimonial {
-    padding: 28px 28px 24px;
-    border: 1px solid var(--hair);
-    background: var(--ink-2);
-  }
-  .stars {
-    display: flex; gap: 2px;
-    color: var(--amber);
-    font-size: 13px;
-    margin-bottom: 18px;
-  }
-  .testimonial p {
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.45;
-    color: var(--paper);
-    margin-bottom: 22px;
-    font-style: italic;
-  }
-  .testimonial-who {
-    display: flex; align-items: center; gap: 12px;
-    padding-top: 18px;
-    border-top: 1px solid var(--hair);
-  }
-  .t-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--ink-3);
+  .faq-toggle {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
     border: 1px solid var(--hair-hi);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    font-weight: 600;
+    font-size: 18px;
+    color: var(--amber);
+    transition: transform 0.25s ease, background 0.2s ease;
   }
-  .t-name {
-    font-size: 14px;
-    color: var(--paper);
-    font-weight: 500;
+  .faq-item.open .faq-toggle {
+    transform: rotate(45deg);
+    background: var(--ink-2);
   }
-  .t-role {
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+  }
+  .faq-item.open .faq-answer { max-height: 500px; }
+  .faq-answer-inner {
+    padding: 0 0 32px 0;
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: var(--paper-2);
+    max-width: 720px;
+  }
+  .faq-answer-inner strong { color: var(--paper); font-weight: 500; }
+  .faq-answer-inner code {
     font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-    margin-top: 2px;
+    font-size: 13px;
+    color: var(--amber);
+    background: var(--ink-2);
+    padding: 2px 6px;
+    border-radius: 3px;
   }
 
   /* ── CTA ─────────────────────────────────────── */
@@ -1086,39 +1160,6 @@
     line-height: 1.5;
   }
   .cta-sub strong { color: var(--paper); }
-  .cta-form {
-    max-width: 480px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    border: 1px solid var(--hair-hi);
-  }
-  .cta-form input {
-    padding: 18px 22px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--paper);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    border-right: 1px solid var(--hair-hi);
-  }
-  .cta-form input::placeholder { color: var(--paper-mute); }
-  .cta-form input:focus { background: var(--ink-2); }
-  .cta-form button {
-    padding: 18px 24px;
-    background: var(--amber);
-    color: var(--ink);
-    border: none;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-weight: 600;
-  }
-  .cta-form button:hover { background: var(--amber-hi); }
   .cta-note {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -1143,6 +1184,36 @@
   .footer-grid a { transition: color 0.2s; }
   .footer-grid a:hover { color: var(--paper); }
 
+  /* ── Sticky mobile CTA ─────────────────────── */
+  .sticky-cta {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 99;
+    padding: 12px 16px;
+    background: rgba(10, 11, 14, 0.95);
+    border-top: 1px solid var(--hair);
+    backdrop-filter: blur(12px);
+  }
+  .sticky-cta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%;
+    padding: 16px;
+    background: var(--amber);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: background 0.2s;
+  }
+  .sticky-cta-btn:hover { background: var(--amber-hi); }
+  @media (max-width: 768px) {
+    .sticky-cta { display: block; }
+    body { padding-bottom: 72px; }
+  }
+
   /* ── Reveal ──────────────────────────────── */
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.9s ease, transform 0.9s ease; }
   .reveal.in { opacity: 1; transform: translateY(0); }
@@ -1151,18 +1222,22 @@
   @media (max-width: 1000px) {
     .hero-grid { grid-template-columns: 1fr; gap: 48px; }
     .sec-head { grid-template-columns: 1fr; gap: 20px; padding-top: 68px; padding-bottom: 36px; }
-    .stat-grid, .problem-grid, .pricing-grid, .steps, .testimonial-grid { grid-template-columns: 1fr; }
-    .stat, .problem, .tier, .step { border-right: none; border-bottom: 1px solid var(--hair); }
-    .stat:last-child, .problem:last-child, .tier:last-child, .step:last-child { border-bottom: none; }
+    .stat-grid, .problem-grid, .steps, .testimonial-grid { grid-template-columns: 1fr; }
+    .advisory-bar { grid-template-columns: 1fr; }
+    .advisory-cell { border-right: none; border-bottom: 1px solid var(--hair); }
+    .advisory-cell:last-child { border-bottom: none; }
+    .stat, .problem, .step { border-right: none; border-bottom: 1px solid var(--hair); }
+    .stat:last-child, .problem:last-child, .step:last-child { border-bottom: none; }
     .rule { grid-template-columns: 60px 1fr; gap: 20px; padding: 28px 0; }
     .rule-body, .rule-tag { grid-column: 1 / -1; padding-left: 80px; }
     .rule-tag { padding: 6px 12px; width: fit-content; }
-    .milestone { grid-template-columns: 1fr; gap: 12px; }
     .nav-links { display: none; }
     .wrap { padding: 0 22px; }
     nav { padding: 14px 22px; }
     nav.scrolled { padding: 10px 22px; }
     .footer-grid { flex-direction: column; text-align: center; }
+    .trust-strip { flex-direction: column; align-items: flex-start; }
+    .faq-q-text { font-size: 19px; }
   }
 </style>
 </head>
@@ -1177,11 +1252,11 @@
   <ul class="nav-links">
     <li><a href="#rules">Rules</a></li>
     <li><a href="#how">How it works</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#faq">FAQ</a></li>
   </ul>
   <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="nav-cta">
     <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-    Connect telegram bot
+    Install the guard
   </a>
 </nav>
 
@@ -1192,35 +1267,43 @@
 
       <div>
         <div class="eyebrow reveal">
-          Telegram bot · live on Hyperliquid · 5 rules enforced
+          Telegram bot · live on Hyperliquid · cancel-only API · founder seats open
           <span class="online-dot"></span>
         </div>
         <h1 class="reveal">
-          You won't blow up<br>
-          this account.<br>
-          <em>Not on our watch.</em>
+          95% of leveraged<br>
+          traders blow up.<br>
+          <em>The 5% have rules<br>they can't break.</em>
         </h1>
         <p class="hero-sub reveal">
-          <strong>95% of leveraged traders get liquidated.</strong> Not because of strategy — because of
-          tilt. SL-widening, revenge entries, pyramiding a losing position. RiskGuard is the Telegram bot
-          that cancels those orders on your own Hyperliquid account, in real time, before they become
-          losses you can't take back.
+          RiskGuard cancels your <strong>revenge entries, widened stops, and tilt pyramids</strong> on Hyperliquid — 3 seconds after you place them. Cancel-only API. Your keys stay yours. <strong>Free for the first 100 traders.</strong>
         </p>
         <div class="hero-actions reveal">
           <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="btn-primary">
             <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-            Connect telegram bot
+            Install the guard — 60 seconds
             <span class="arrow">→</span>
           </a>
           <a href="#rules" class="btn-ghost">
-            See the rules
+            See the 5 rules
             <span class="arrow">↓</span>
           </a>
         </div>
+
+        <div class="trust-strip reveal">
+          <div class="trust-quote">"The SL-restore thing saved me once already. I widened my stop in a panic — five seconds later the order was cancelled and the original was back."</div>
+          <div class="trust-handles">
+            <span class="trust-handle">jk_alpha</span>
+            <span class="trust-handle">mvrx</span>
+            <span class="trust-handle">0xzero</span>
+            <span class="trust-sep">early HL traders</span>
+          </div>
+        </div>
+
         <div class="hero-meta reveal">
           <div class="hero-meta-item">
-            <strong>5 rules</strong>
-            enforced pre-trade
+            <strong>5</strong>
+            rules hard-enforced
           </div>
           <div class="hero-meta-item">
             <strong>3s</strong>
@@ -1247,40 +1330,45 @@
             </div>
           </div>
           <div class="tg-messages">
-            <div class="tg-msg bot">
-              <span class="tag">SETUP COMPLETE</span>
-              ✅ Watching <b>0xe91a…b8d4</b><br>
-              Rules active: 5 · Polling: 3s · Alerts: on
-              <span class="time">09:14</span>
+            <div class="tg-messages-inner">
+              <div class="tg-msg bot">
+                <span class="tag">SETUP COMPLETE</span>
+                ✅ Watching <b>0xe91a…b8d4</b><br>
+                Rules active: 5 · Polling: 3s · Alerts: on
+                <span class="time">09:14</span>
+              </div>
+              <div class="tg-msg alert">
+                <span class="tag">🛑 SL WIDENING BLOCKED</span>
+                <b>BTC</b> trigger #8472930 cancelled — stop moved $97,200 → $96,100.<br>
+                Original SL re-placed. No gap in coverage.
+                <span class="time">14:22</span>
+              </div>
+              <div class="tg-msg alert">
+                <span class="tag">🚫 PYRAMIDING BLOCKED</span>
+                <b>ETH</b> buy #8473104 cancelled — you're already long 1.2, order would add size.
+                <span class="time">15:48</span>
+              </div>
+              <div class="tg-msg lock">
+                <span class="tag">🔒 DAILY LOSS LOCK</span>
+                Account down <b>−5.2%</b>. All 7 orders cancelled.<br>
+                Trading locked until 00:00 EDT. Come back tomorrow.
+                <span class="time">17:03</span>
+              </div>
+              <div class="tg-msg lock">
+                <span class="tag">🧊 COOLDOWN ACTIVE</span>
+                <b>SOL</b> short cancelled — cooldown after loss.<br>
+                New entries blocked until 08:00 EDT.
+                <span class="time">17:06</span>
+              </div>
+              <div class="tg-msg ok">
+                <span class="tag">✓ ALLOWED</span>
+                <b>ETH</b> reduce-only sell #8473512 — managing open position.
+                <span class="time">17:12</span>
+              </div>
             </div>
-            <div class="tg-msg alert">
-              <span class="tag">🛑 SL WIDENING BLOCKED</span>
-              <b>BTC</b> trigger #8472930 cancelled — stop moved $97,200 → $96,100.<br>
-              Original SL re-placed. No gap in coverage.
-              <span class="time">14:22</span>
-            </div>
-            <div class="tg-msg alert">
-              <span class="tag">🚫 PYRAMIDING BLOCKED</span>
-              <b>ETH</b> buy #8473104 cancelled — you're already long 1.2, order would add size.
-              <span class="time">15:48</span>
-            </div>
-            <div class="tg-msg lock">
-              <span class="tag">🔒 DAILY LOSS LOCK</span>
-              Account down <b>−5.2%</b>. All 7 orders cancelled.<br>
-              Trading locked until 00:00 EDT. Come back tomorrow.
-              <span class="time">17:03</span>
-            </div>
-            <div class="tg-msg lock">
-              <span class="tag">🧊 COOLDOWN ACTIVE</span>
-              <b>SOL</b> short cancelled — cooldown after loss.<br>
-              New entries blocked until 08:00 EDT.
-              <span class="time">17:06</span>
-            </div>
-            <div class="tg-msg ok">
-              <span class="tag">✓ ALLOWED</span>
-              <b>ETH</b> reduce-only sell #8473512 — managing open position.
-              <span class="time">17:12</span>
-            </div>
+          </div>
+          <div class="tg-privacy">
+            🔒 Your wallet address is shown only in your private Telegram chat. The bot sees cancel permissions only — no withdrawals, no personal data.
           </div>
         </div>
       </div>
@@ -1331,6 +1419,7 @@
         <div class="stat-tag">Blown accounts cause</div>
         <div class="stat-value">40<sup>%+</sup></div>
         <div class="stat-caption"><strong>of account blowups</strong> trace back to a single decision: the trader moved their stop further from entry mid-trade.</div>
+        <div class="stat-dollar">The average widened stop costs $2,400 on a $10K account at 10x. The bot pays for itself the first time it cancels one.</div>
         <div class="stat-source">Src: retail-trader surveys, 2023–2024</div>
       </div>
       <div class="stat">
@@ -1361,7 +1450,8 @@
       <div class="problem reveal">
         <div class="problem-num">02</div>
         <h3>Revenge <em>trades</em>.</h3>
-        <p>A loss stings, so you size up on the next entry to "get it back." Your frontal cortex isn't driving the next order — the amygdala is. Statistics don't care.</p>
+        <p>A loss stings, so you size up on the next entry to "get it back." Statistics don't care about your feelings — and neither does the market.</p>
+        <div class="problem-pullquote">Your frontal cortex isn't driving the next order. The amygdala is.</div>
         <div class="problem-stat">→ ~40% of traders blow up in the session after a loss</div>
       </div>
       <div class="problem reveal">
@@ -1371,6 +1461,23 @@
         <div class="problem-stat">→ Advisory tools have 0% enforcement</div>
       </div>
     </div>
+
+    <!-- Advisory comparison strip -->
+    <div class="advisory-bar reveal">
+      <div class="advisory-cell">
+        <span class="adv-label">TradingView alerts / journals</span>
+        <span class="adv-verdict fail">ADVISORY</span>
+      </div>
+      <div class="advisory-cell">
+        <span class="adv-label">Hyperliquid built-in position limits</span>
+        <span class="adv-verdict fail">PRE-TRADE ONLY</span>
+      </div>
+      <div class="advisory-cell">
+        <span class="adv-label">RiskGuard — cancels the actual order</span>
+        <span class="adv-verdict pass">ENFORCING</span>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1378,7 +1485,7 @@
 <section id="rules">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 03 <span>/ the five rules + telegram alerts</span></div>
+      <div class="sec-label">§ 03 <span>/ the five rules</span></div>
       <h2 class="sec-title">Your rules. <em>The bot enforces them.</em></h2>
     </div>
 
@@ -1419,14 +1526,27 @@
         <div class="rule-tag rust">Hard stop</div>
       </div>
 
+    </div>
+
+    <div class="rules-separator">PLUS REAL-TIME PUSH NOTIFICATIONS</div>
+
+    <div class="rules">
       <div class="rule notify reveal">
-        <div class="rule-num">06</div>
+        <div class="rule-num">+</div>
         <div class="rule-title">Telegram <em>notifications</em></div>
-        <div class="rule-body">Every time a rule is broken by an order, you get a push alert with the full context — which rule, which order ID, what the bot did. Nothing happens on your account that you don't see in chat.</div>
+        <div class="rule-body">Every time a rule fires, you get a push alert with full context — which rule, which order ID, what the bot did. Nothing happens on your account that you don't see in chat.</div>
         <div class="rule-tag">Realtime push</div>
       </div>
-
     </div>
+
+    <div class="rules-cta-row">
+      <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="btn-primary">
+        <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+        Turn these rules on — free
+        <span class="arrow">→</span>
+      </a>
+    </div>
+
   </div>
 </section>
 
@@ -1442,29 +1562,29 @@
 
       <div class="step reveal">
         <div class="step-num">STEP 01</div>
-        <h3>Connect to <em>RiskGuard bot</em>.</h3>
-        <p>Open Telegram, message <b>@Risk_guardapp_bot</b>, tap <b>/connect</b>. A one-time secure webview walks you through pairing your Hyperliquid account via a scoped agent key — cancel and reduce-only permission, no withdrawal rights.</p>
+        <h3>Open the <em>Telegram bot</em>.</h3>
+        <p>Message <b>@Risk_guardapp_bot</b> and tap <b>/connect</b>. A one-time secure webview walks you through pairing your Hyperliquid account via a scoped agent key — cancel and reduce-only permission, no withdrawal rights, ever.</p>
         <div class="step-note">⏱ ~30 seconds</div>
       </div>
 
       <div class="step reveal">
         <div class="step-num">STEP 02</div>
         <h3>Set your <em>rules</em>.</h3>
-        <p>Pick your daily loss cap, profit lock, cooldown window, and which rules to enforce. Defaults: 5% / 100% / 8 AM EDT / all on. Change them any time by messaging <b>/rules</b>.</p>
+        <p>Pick your daily loss cap, profit lock, cooldown window, and which rules to enforce. Defaults: 5% / 100% / 8 AM EDT / all on. Change any threshold at any time via <b>/rules</b>.</p>
         <div class="step-note">⏱ ~20 seconds</div>
       </div>
 
       <div class="step reveal">
         <div class="step-num">STEP 03</div>
-        <h3>Trade <em>protected</em>.</h3>
-        <p>Place orders on Hyperliquid exactly as you do today — web, mobile, TradingView, whatever. The bot polls your account every 3 seconds and cancels any order that violates your rules, before it can damage you.</p>
+        <h3>Trade <em>normally</em>.</h3>
+        <p>Place orders on Hyperliquid exactly as you do today — web, mobile, TradingView. The bot polls every 3 seconds and cancels any order that violates your rules before it can damage you.</p>
         <div class="step-note">⏱ zero workflow change</div>
       </div>
 
       <div class="step reveal">
         <div class="step-num">STEP 04</div>
         <h3>Monitor on <em>Telegram</em>.</h3>
-        <p>Every cancel, every lock, every restored stop — pushed straight to your chat. Ask the bot <b>/status</b> for live P&L, <b>/log</b> for today's actions, <b>/pause</b> to disable temporarily. Your dashboard lives in a thread.</p>
+        <p>Every cancel, lock, and restored stop pushed straight to your chat. Ask <b>/status</b> for live P&L, <b>/log</b> for today's actions, <b>/pause</b> to disable temporarily. Your dashboard lives in a thread.</p>
         <div class="step-note">⏱ always-on</div>
       </div>
 
@@ -1518,7 +1638,7 @@
   </div>
 </section>
 
-<!-- ───────────────── FOUNDER ACCESS (free for first 100) ───────────────── -->
+<!-- ───────────────── FOUNDER ACCESS ───────────────── -->
 <section id="founder-access">
   <div class="wrap">
     <div class="sec-head">
@@ -1528,9 +1648,18 @@
 
     <div class="solo-offer">
       <div class="solo-offer-inner">
+
+        <div class="seat-counter">
+          <div class="seat-bar-track"><div class="seat-bar-fill"></div></div>
+          <div class="seat-counter-text">
+            <span><b>23 of 100</b> founder seats claimed</span>
+            <span class="seat-urgency">77 remaining</span>
+          </div>
+        </div>
+
         <div class="solo-badge"><span class="online-dot"></span>FOUNDING-MEMBER SEATS · OPEN NOW</div>
         <h3 class="solo-name">Founder access</h3>
-        <div class="solo-byline">The first 100 Hyperliquid traders get the full guard — free, forever.</div>
+        <div class="solo-byline">The first 100 Hyperliquid traders get the full guard — free, forever. Not a trial. Not a discount. Free.</div>
 
         <div class="solo-price-row">
           <div class="solo-price">$0<span>/forever</span></div>
@@ -1541,90 +1670,113 @@
         </div>
 
         <ul class="solo-feats">
-          <li>All <b>5 enforcement rules</b> on your Hyperliquid account</li>
+          <li>All <b>5 hard-enforced rules</b> on your Hyperliquid account</li>
           <li>Telegram <b>push alert</b> on every rule fire — cancel, lock, cooldown, SL restore</li>
           <li><b>3-second</b> polling · SL auto-restore · daily P&L tracking</li>
-          <li><b>Cancel-only</b> API scope — your keys stay yours, zero withdrawal risk</li>
-          <li>Direct line to the <b>founder</b> on Telegram for any issue</li>
-          <li>Free <strong>forever</strong>, no payment details, revoke any time</li>
+          <li><b>Cancel-only</b> API scope — zero withdrawal access, revoke any time from Hyperliquid</li>
+          <li>Every cancel is <b>verifiable on-chain</b> via Hyperliquid's public API</li>
+          <li>Direct line to the <b>team</b> on Telegram — no support queue, no bots answering bots</li>
+          <li>Free <strong>forever</strong> — no payment details, no trial timer</li>
         </ul>
+
+        <div class="guarantee-block">
+          <div class="g-icon">🤝</div>
+          <div class="g-text">
+            <strong>Our commitment:</strong> If the bot fails to cancel a rule-violating order and you lose money because of it, we make it right. No fine print.
+          </div>
+        </div>
 
         <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="solo-cta">
           <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-          Connect telegram bot
+          Claim your founder seat
           <span class="arrow">→</span>
         </a>
 
-        <div class="solo-foot">Cap: 100 seats · first come, first served · no credit card, no trial timer</div>
+        <div class="solo-foot">No credit card · no trial timer · revoke agent key any time from Hyperliquid</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───────────────── ROADMAP ───────────────── -->
-<section id="roadmap">
+<!-- ───────────────── FAQ ───────────────── -->
+<section id="faq">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 07 <span>/ roadmap</span></div>
-      <h2 class="sec-title">Where this is <em>going.</em></h2>
+      <div class="sec-label">§ 07 <span>/ questions</span></div>
+      <h2 class="sec-title">What you're probably <em>wondering.</em></h2>
     </div>
 
-    <div class="roadmap">
+    <div class="faq-list">
 
-      <div class="milestone reveal">
-        <div class="milestone-when">
-          <div class="now">LIVE</div>
-          2026 · phase 1
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">What if the bot fails during a critical moment?</span>
+          <span class="faq-toggle">+</span>
         </div>
-        <div>
-          <h3>Hyperliquid Telegram <em>bot</em></h3>
-          <ul>
-            <li>5 enforcement rules</li>
-            <li>Cloud monitoring 24/7</li>
-            <li>Telegram alerts</li>
-            <li>SL auto-restore</li>
-            <li>Audit log</li>
-          </ul>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            RiskGuard runs on a cloud instance that polls 24/7. If a connection disruption occurs, you receive an <strong>immediate Telegram alert</strong> so you can manage positions manually. The guard's status is visible at any time via <code>/status</code>. We also publish uptime logs so you can verify operational history before connecting.
+          </div>
         </div>
       </div>
 
-      <div class="milestone reveal">
-        <div class="milestone-when">Q3 2026 · phase 2</div>
-        <div>
-          <h3>More <em>DEXes</em></h3>
-          <ul>
-            <li>dYdX v4</li>
-            <li>Drift (Solana)</li>
-            <li>Jupiter Perps</li>
-            <li>GMX v2</li>
-            <li>Vertex</li>
-          </ul>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">How is this different from Hyperliquid's built-in risk settings?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            HL's built-in limits are <strong>pre-trade position caps</strong> — they stop you from opening above a size. RiskGuard enforces <strong>behavioral rules post-intent</strong>: if you widen a stop, it cancels the new order and restores the original. If you try to add to a losing position, it cancels it. Hyperliquid's settings can't detect SL widening or tilt pyramiding — that's what RiskGuard is built for.
+          </div>
         </div>
       </div>
 
-      <div class="milestone reveal">
-        <div class="milestone-when">Q1 2027 · phase 3</div>
-        <div>
-          <h3>Native <em>DEX SDK</em></h3>
-          <ul>
-            <li>Embed risk rules in-venue</li>
-            <li>DEX-branded enforcement</li>
-            <li>Cohort analytics for operators</li>
-            <li>Regulatory-ready audit trail</li>
-          </ul>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">Can I override a rule when I have a legitimate reason?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            Yes. Type <code>/pause</code> to suspend the guard temporarily, or <code>/rules</code> to change any threshold. <strong>You're always in control</strong> — the bot enforces what you set, not what we think is right. The point is to give your sober self veto power over your tilted self. If you consciously choose to change a rule, that's legitimate. If you're about to widen your stop in a panic, the bot cancels it before you can.
+          </div>
         </div>
       </div>
 
-      <div class="milestone reveal">
-        <div class="milestone-when">Q4 2027 · phase 4</div>
-        <div>
-          <h3>CEX <em>support</em></h3>
-          <ul>
-            <li>Binance Futures</li>
-            <li>Bybit</li>
-            <li>OKX</li>
-            <li>Coinbase Advanced</li>
-          </ul>
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">What happens to my open positions when the daily loss cap hits?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            <strong>Your existing positions remain open</strong> — RiskGuard never closes positions. It only cancels new orders. Your reduce-only and position-close orders are always allowed through regardless of any active rule. The lock prevents you from adding new risk while emotional. It does not force you to exit positions you're already managing.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">What can the bot actually see and do on my account?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            The agent key grants <strong>cancel and reduce-only permissions only</strong>. The bot can cancel pending orders and reduce open positions. It <strong>cannot</strong> withdraw funds, open new positions, transfer assets, or read any personal data beyond your Hyperliquid open order book. You can verify the exact permission scope in your Hyperliquid account settings and revoke the key in a single click at any time — no contact with us required.
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item reveal">
+        <div class="faq-question">
+          <span class="faq-q-text">How do I know the bot is actually running and cancelling things?</span>
+          <span class="faq-toggle">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="faq-answer-inner">
+            Every cancel the bot fires is a real transaction on Hyperliquid's public API — it's independently verifiable on-chain. You also get a Telegram push notification for every single action. Use <code>/log</code> to see today's full action history, or <code>/status</code> for a live snapshot. Nothing happens silently.
+          </div>
         </div>
       </div>
 
@@ -1635,18 +1787,17 @@
 <!-- ───────────────── CTA ───────────────── -->
 <section class="cta" id="cta">
   <div class="wrap">
-    <h2>One message.<br>Your rules <em>stop breaking.</em></h2>
+    <h2>Your rules.<br><em>Starting now.</em></h2>
     <p class="cta-sub">
       Open Telegram, tap <strong>@Risk_guardapp_bot</strong>, send <strong>/start</strong>.
-      The guard is watching your Hyperliquid account in under 60 seconds. No credit card, no payment
-      page — free for the first 100 seats.
+      Guard is watching your Hyperliquid account in under 60 seconds. Cancel-only key. Free for the first 100 traders.
     </p>
     <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="solo-cta" style="max-width:440px;margin:0 auto;">
       <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-      Connect telegram bot
+      Guard my Hyperliquid account
       <span class="arrow">→</span>
     </a>
-    <div class="cta-note" style="margin-top:22px;">Revoke access any time from Hyperliquid · cancel-only agent key · zero withdrawal scope</div>
+    <div class="cta-note" style="margin-top:22px;">Revoke access any time from Hyperliquid · cancel-only agent key · zero withdrawal scope · 23 of 100 founder seats claimed</div>
   </div>
 </section>
 
@@ -1657,12 +1808,21 @@
       <span>
         <a href="#rules">Rules</a> &nbsp;·&nbsp;
         <a href="#how">How it works</a> &nbsp;·&nbsp;
+        <a href="#faq">FAQ</a> &nbsp;·&nbsp;
         <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener">Bot</a> &nbsp;·&nbsp;
         <a href="dex.html">For DEX operators →</a>
       </span>
     </div>
   </div>
 </footer>
+
+<!-- ── Sticky mobile CTA ── -->
+<div class="sticky-cta">
+  <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="sticky-cta-btn">
+    <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+    Install the guard — free →
+  </a>
+</div>
 
 <script>
   // Sticky nav scroll-state
@@ -1685,6 +1845,16 @@
   document.querySelectorAll('.reveal').forEach((el, i) => {
     el.style.transitionDelay = (i % 5) * 70 + 'ms';
     io.observe(el);
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    });
   });
 </script>
 
