@@ -1,6 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#0a0b0e"/>
-  <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#e8b86f" stroke-width="1"/>
-  <rect x="6" y="6" width="20" height="20" fill="#e8b86f" opacity="0.18"/>
-  <rect x="11" y="11" width="10" height="10" fill="#e8b86f"/>
+  <!-- App-icon container, rounded corners -->
+  <rect width="32" height="32" rx="7" fill="#0a0b0e"/>
+  <!-- Shield: flat top, curved taper to pointed base -->
+  <path d="M7 6 L25 6 L25 18 Q25 26.5 16 30 Q7 26.5 7 18 Z"
+        fill="rgba(232,184,111,0.10)"
+        stroke="#e8b86f"
+        stroke-width="1.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+  <!-- Stop bar — the block/cancel mark -->
+  <line x1="11" y1="16.5" x2="21" y2="16.5"
+        stroke="#e8b86f"
+        stroke-width="2.5"
+        stroke-linecap="round"/>
 </svg>

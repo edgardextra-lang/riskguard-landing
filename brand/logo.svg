@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Background -->
+  <rect width="400" height="400" rx="72" fill="#0a0b0e"/>
+
+  <!-- Shield body -->
+  <path d="M88 80 L312 80 L312 228 Q312 320 200 352 Q88 320 88 228 Z"
+        fill="rgba(232,184,111,0.08)"
+        stroke="#e8b86f"
+        stroke-width="8"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+
+  <!-- Inner inset line (depth) -->
+  <path d="M108 98 L292 98 L292 224 Q292 304 200 332 Q108 304 108 224 Z"
+        fill="none"
+        stroke="rgba(232,184,111,0.18)"
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+
+  <!-- Price candle ticks above bar -->
+  <line x1="170" y1="170" x2="170" y2="192"
+        stroke="rgba(232,184,111,0.45)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="200" y1="158" x2="200" y2="192"
+        stroke="rgba(232,184,111,0.45)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="230" y1="174" x2="230" y2="192"
+        stroke="rgba(232,184,111,0.45)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Stop bar -->
+  <line x1="136" y1="210" x2="264" y2="210"
+        stroke="#e8b86f" stroke-width="18" stroke-linecap="round"/>
+</svg>
