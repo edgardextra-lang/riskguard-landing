@@ -3,17 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RiskGuard — Trader survival infrastructure for perp DEXes</title>
+<title>RiskGuard — The Telegram bot that enforces your rules on Hyperliquid</title>
+<meta name="description" content="95% of leveraged traders blow up. Not because of strategy — because of tilt. RiskGuard is the Telegram bot that blocks the trades that ruin your account, live on Hyperliquid." />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-  }
-}
-</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -31,6 +26,7 @@
     --amber-hi:   #f7d49a;
     --rust:       #d4493d;
     --sage:       #7fb77e;
+    --tg-blue:    #3fa9f5;
 
     --font-display: 'Instrument Serif', 'Times New Roman', serif;
     --font-body:    'Inter Tight', -apple-system, sans-serif;
@@ -43,18 +39,16 @@
     color: var(--paper);
     font-family: var(--font-body);
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.55;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  /* ── Subtle paper-grain texture for warmth ─────────────────────── */
   body::before {
     content: '';
     position: fixed; inset: 0;
     background-image:
-      radial-gradient(circle at 15% 85%, rgba(232, 184, 111, 0.04), transparent 40%),
+      radial-gradient(circle at 15% 85%, rgba(232, 184, 111, 0.05), transparent 40%),
       radial-gradient(circle at 85% 10%, rgba(212, 73, 61, 0.03), transparent 50%);
     pointer-events: none;
     z-index: 0;
@@ -65,21 +59,18 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.94 0 0 0 0 0.82 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 0;
-    opacity: 0.9;
+    opacity: 0.85;
   }
 
-  .wrap { position: relative; z-index: 1; max-width: 1360px; margin: 0 auto; padding: 0 40px; }
-
+  .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 40px; }
   a { color: inherit; text-decoration: none; }
 
-  /* ── Nav ───────────────────────────────────────────────────────── */
+  /* ── Nav ────────────────────────────────────────────────────── */
   nav {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     z-index: 100;
-    padding: 22px 40px;
+    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -92,11 +83,8 @@
   nav.scrolled {
     background: rgba(10, 11, 14, 0.88);
     border-bottom-color: var(--hair);
-    padding: 14px 40px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-  }
-  @media (max-width: 720px) {
-    nav.scrolled { padding: 12px 22px; }
+    padding: 12px 40px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   }
   .brand {
     font-family: var(--font-mono);
@@ -117,15 +105,12 @@
     background: var(--amber);
   }
   .brand-mark::before {
-    inset: 4px 4px 4px 4px;
-    background: var(--amber);
-    opacity: 0.18;
+    inset: 4px; opacity: 0.18;
   }
   .brand-mark::after {
     width: 7px; height: 7px;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--amber);
   }
   .brand-badge {
     font-size: 10px; letter-spacing: 0.22em;
@@ -134,69 +119,79 @@
     border-left: 1px solid var(--hair);
   }
   .nav-links {
-    display: flex; gap: 40px; align-items: center;
+    display: flex; gap: 34px; align-items: center;
     font-family: var(--font-mono);
     font-size: 12px;
     letter-spacing: 0.1em;
     color: var(--paper-dim);
+    list-style: none;
   }
   .nav-links a { transition: color 0.2s ease; }
   .nav-links a:hover { color: var(--paper); }
   .nav-cta {
     font-family: var(--font-mono);
     font-size: 12px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     color: var(--ink);
     background: var(--amber);
-    padding: 11px 20px;
+    padding: 10px 18px;
     border: 1px solid var(--amber);
     transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 8px;
     cursor: pointer;
   }
   .nav-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
+  .tg-icon {
+    width: 14px; height: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .tg-icon svg { width: 100%; height: 100%; }
 
-  /* ── Hero ──────────────────────────────────────────────────────── */
+  /* ── Hero ────────────────────────────────────────────────── */
   .hero {
-    padding: 180px 0 100px;
-    position: relative;
+    padding: 160px 0 90px;
     border-bottom: 1px solid var(--hair);
   }
   .hero-grid {
     display: grid;
     grid-template-columns: 7fr 5fr;
-    gap: 80px;
+    gap: 72px;
     align-items: flex-start;
   }
-
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 11px;
     letter-spacing: 0.25em;
     text-transform: uppercase;
     color: var(--amber);
-    margin-bottom: 36px;
+    margin-bottom: 32px;
     display: flex; align-items: center; gap: 14px;
   }
   .eyebrow::before {
     content: '';
     width: 32px; height: 1px;
     background: var(--amber);
-    display: inline-block;
   }
+  .online-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sage);
+    box-shadow: 0 0 8px rgba(127, 183, 126, 0.65);
+    animation: pulse 1.8s ease-in-out infinite;
+    margin-left: auto;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   .hero h1 {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: clamp(56px, 8.2vw, 124px);
-    line-height: 0.95;
+    font-size: clamp(52px, 7.4vw, 108px);
+    line-height: 0.96;
     letter-spacing: -0.02em;
     color: var(--paper);
-    margin-bottom: 48px;
+    margin-bottom: 36px;
   }
-  .hero h1 em {
-    font-style: italic;
-    color: var(--amber);
-  }
+  .hero h1 em { font-style: italic; color: var(--amber); }
   .hero h1 .strike {
     position: relative;
     color: var(--paper-dim);
@@ -205,205 +200,237 @@
   .hero h1 .strike::after {
     content: '';
     position: absolute;
-    top: 52%;
-    left: -4%;
-    right: -4%;
+    top: 52%; left: -4%; right: -4%;
     height: 3px;
     background: var(--rust);
     transform: rotate(-1.2deg);
   }
-  .hero h1 .bleed {
-    color: var(--rust);
-    font-style: italic;
-    position: relative;
-  }
-  .hero h1 .bleed::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 10%;
-    bottom: -2px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--rust), transparent);
-    animation: bleed-drip 3s ease-in-out infinite;
-  }
-  @keyframes bleed-drip {
-    0%, 100% { opacity: 0.5; transform: scaleX(1); transform-origin: left; }
-    50%      { opacity: 1;   transform: scaleX(0.7); }
-  }
-  .amber-ink { color: var(--amber); }
-  .rust-ink  { color: var(--rust); }
-
-  /* ── 3D canvas (ambient background) ─────────────────────────── */
-  #bg-3d {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 2.2s ease-out;
-  }
-  #bg-3d.in { opacity: 0.28; }
-  .wrap, nav, section, footer { position: relative; z-index: 2; }
 
   .hero-sub {
-    font-size: 19px;
-    line-height: 1.55;
+    font-size: 18px;
+    line-height: 1.6;
     color: var(--paper-2);
-    max-width: 560px;
-    margin-bottom: 44px;
+    max-width: 540px;
+    margin-bottom: 40px;
     font-weight: 300;
   }
-  .hero-sub strong {
-    color: var(--paper);
-    font-weight: 500;
-  }
+  .hero-sub strong { color: var(--paper); font-weight: 500; }
 
   .hero-actions {
-    display: flex; gap: 16px; align-items: center;
-    margin-bottom: 72px;
+    display: flex; gap: 14px; align-items: center;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
   }
   .btn-primary {
     display: inline-flex; align-items: center; gap: 10px;
     font-family: var(--font-mono);
     font-size: 13px;
-    letter-spacing: 0.08em;
-    padding: 16px 26px;
-    background: var(--paper);
+    letter-spacing: 0.06em;
+    padding: 15px 24px;
+    background: var(--amber);
     color: var(--ink);
-    border: 1px solid var(--paper);
+    border: 1px solid var(--amber);
     transition: all 0.2s ease;
     cursor: pointer;
+    font-weight: 600;
   }
-  .btn-primary:hover {
-    background: var(--amber);
-    border-color: var(--amber);
-  }
+  .btn-primary:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 10px;
     font-family: var(--font-mono);
     font-size: 13px;
-    letter-spacing: 0.08em;
-    padding: 16px 26px;
+    letter-spacing: 0.06em;
+    padding: 15px 24px;
     color: var(--paper);
     border: 1px solid var(--hair-hi);
-    transition: all 0.2s ease;
-    cursor: pointer;
     background: transparent;
+    transition: border-color 0.2s ease;
   }
   .btn-ghost:hover { border-color: var(--paper); }
-  .arrow { display: inline-block; transition: transform 0.2s ease; }
+  .arrow { transition: transform 0.2s ease; }
   .btn-primary:hover .arrow, .btn-ghost:hover .arrow { transform: translateX(4px); }
 
   .hero-meta {
-    display: flex; gap: 48px;
-    padding-top: 28px;
+    display: flex; gap: 44px; flex-wrap: wrap;
+    padding-top: 26px;
     border-top: 1px solid var(--hair);
   }
   .hero-meta-item {
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     color: var(--paper-dim);
   }
   .hero-meta-item strong {
     display: block;
     font-size: 22px;
-    letter-spacing: -0.01em;
     color: var(--paper);
     font-weight: 500;
-    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+    margin-bottom: 3px;
   }
 
-  /* ── Terminal card (hero right) ─────────────────────────────── */
-  .terminal {
+  /* ── Telegram chat mockup (hero right) ────────────────────── */
+  .tg-mock {
     background: var(--ink-2);
     border: 1px solid var(--hair);
+    border-radius: 18px;
+    padding: 14px 14px 18px;
     position: relative;
-    margin-top: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-  .terminal::before {
+  .tg-mock::before {
     content: '';
     position: absolute;
     top: -1px; left: -1px;
     width: 48px; height: 1px;
     background: var(--amber);
   }
-  .terminal::after {
+  .tg-mock::after {
     content: '';
     position: absolute;
     top: -1px; left: -1px;
     width: 1px; height: 48px;
     background: var(--amber);
   }
-  .terminal-bar {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 18px;
+  .tg-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px 14px;
     border-bottom: 1px solid var(--hair);
+    margin-bottom: 14px;
+  }
+  .tg-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber), var(--rust));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .tg-title {
+    flex: 1;
+  }
+  .tg-name {
+    font-size: 14px;
+    color: var(--paper);
+    font-weight: 500;
+  }
+  .tg-status {
     font-family: var(--font-mono);
     font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--paper-dim);
-    text-transform: uppercase;
+    color: var(--sage);
+    letter-spacing: 0.04em;
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 2px;
   }
-  .terminal-status {
-    display: flex; align-items: center; gap: 8px;
-  }
-  .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--sage);
-    box-shadow: 0 0 8px rgba(127, 183, 126, 0.6);
-    animation: pulse 1.8s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .tg-status .online-dot { margin-left: 0; }
 
-  .feed {
-    padding: 14px 0;
-    height: 388px;
+  .tg-messages {
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 420px;
     overflow: hidden;
+    padding: 0 4px;
     position: relative;
+  }
+  .tg-messages::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, var(--ink-2));
+    pointer-events: none;
+  }
+  .tg-msg {
+    padding: 10px 14px;
+    border-radius: 12px;
+    max-width: 92%;
+    font-size: 13px;
+    line-height: 1.5;
+    position: relative;
+  }
+  .tg-msg.bot {
+    background: var(--ink-3);
+    border: 1px solid var(--hair);
+    color: var(--paper-2);
+    border-top-left-radius: 4px;
+    align-self: flex-start;
+  }
+  .tg-msg.user {
+    background: var(--tg-blue);
+    color: #e9f5fe;
+    border-top-right-radius: 4px;
+    align-self: flex-end;
+    opacity: 0.85;
+  }
+  .tg-msg.alert { border-color: var(--rust); background: rgba(212, 73, 61, 0.08); color: var(--paper); }
+  .tg-msg.lock  { border-color: var(--amber); background: rgba(232, 184, 111, 0.06); color: var(--paper); }
+  .tg-msg.ok    { border-color: var(--sage); background: rgba(127, 183, 126, 0.06); color: var(--paper); }
+  .tg-msg b { color: var(--paper); font-weight: 600; }
+  .tg-msg .tag {
+    display: block;
     font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.8;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    margin-bottom: 4px;
+    opacity: 0.85;
   }
-  .feed-inner {
-    animation: scroll-feed 40s linear infinite;
-  }
-  @keyframes scroll-feed {
-    from { transform: translateY(0); }
-    to { transform: translateY(-50%); }
+  .tg-msg.alert .tag { color: var(--rust); }
+  .tg-msg.lock .tag  { color: var(--amber); }
+  .tg-msg.ok .tag    { color: var(--sage); }
+  .tg-msg .time {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--paper-mute);
+    margin-top: 4px;
   }
 
-  .feed-line {
-    padding: 6px 18px;
-    display: grid;
-    grid-template-columns: 62px 1fr auto;
-    gap: 14px;
-    align-items: baseline;
-    border-left: 2px solid transparent;
+  /* ── Activity marquee ──────────────────────────────────── */
+  .marquee {
+    border-top: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+    padding: 16px 0;
+    overflow: hidden;
+    white-space: nowrap;
   }
-  .feed-line.cancel { border-left-color: var(--rust); }
-  .feed-line.cancel .feed-tag { color: var(--rust); }
-  .feed-line.restore { border-left-color: var(--amber); }
-  .feed-line.restore .feed-tag { color: var(--amber); }
-  .feed-line.lock { border-left-color: var(--rust); background: rgba(212, 73, 61, 0.05); }
-  .feed-line.lock .feed-tag { color: var(--rust); }
-  .feed-line.info { border-left-color: var(--paper-mute); }
-  .feed-line.info .feed-tag { color: var(--paper-dim); }
-  .feed-line.ok { border-left-color: var(--sage); }
-  .feed-line.ok .feed-tag { color: var(--sage); }
+  .marquee-track {
+    display: inline-flex;
+    gap: 44px;
+    animation: marquee 48s linear infinite;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+  }
+  .marquee-item { display: inline-flex; align-items: center; gap: 10px; }
+  .marquee-item .ico { font-size: 14px; }
+  .marquee-item .tag { color: var(--amber); font-weight: 600; letter-spacing: 0.1em; font-size: 10.5px; }
+  .marquee-item.rust .tag { color: var(--rust); }
+  .marquee-item.sage .tag { color: var(--sage); }
+  .marquee-item b { color: var(--paper); font-weight: 600; }
+  .marquee-dot {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--paper-mute);
+    align-self: center;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
 
-  .feed-time { color: var(--paper-mute); font-size: 11px; }
-  .feed-tag { font-weight: 600; letter-spacing: 0.05em; font-size: 10.5px; text-transform: uppercase; }
-  .feed-msg { color: var(--paper-2); font-size: 12px; }
-  .feed-msg b { color: var(--paper); font-weight: 600; }
-
-  /* ── Section scaffolding ───────────────────────────────────────── */
+  /* ── Section scaffold ─────────────────────────────────── */
   section { position: relative; }
   .sec-head {
-    padding-top: 96px; padding-bottom: 64px;
+    padding-top: 88px;
+    padding-bottom: 56px;
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 60px;
+    gap: 48px;
     align-items: flex-end;
     border-top: 1px solid var(--hair);
   }
@@ -418,15 +445,15 @@
   .sec-title {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: clamp(42px, 5vw, 72px);
+    font-size: clamp(40px, 4.8vw, 68px);
     line-height: 1.02;
     letter-spacing: -0.02em;
     color: var(--paper);
-    max-width: 900px;
+    max-width: 820px;
   }
   .sec-title em { font-style: italic; color: var(--amber); }
 
-  /* ── Why DEXes care — big stat grid ──────────────────────────── */
+  /* ── Stats ─────────────────────────────────────────── */
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -435,9 +462,8 @@
     border-bottom: 1px solid var(--hair);
   }
   .stat {
-    padding: 56px 36px;
+    padding: 48px 32px;
     border-right: 1px solid var(--hair);
-    position: relative;
   }
   .stat:last-child { border-right: none; }
   .stat-tag {
@@ -446,17 +472,16 @@
     letter-spacing: 0.22em;
     color: var(--paper-dim);
     text-transform: uppercase;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
   .stat-value {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: clamp(64px, 8vw, 112px);
+    font-size: clamp(58px, 7.5vw, 104px);
     line-height: 0.92;
     letter-spacing: -0.03em;
     color: var(--paper);
-    margin-bottom: 24px;
-    position: relative;
+    margin-bottom: 20px;
   }
   .stat-value sup {
     font-size: 32%;
@@ -468,7 +493,7 @@
     letter-spacing: 0;
   }
   .stat-caption {
-    font-size: 14px;
+    font-size: 14.5px;
     color: var(--paper-2);
     line-height: 1.55;
     max-width: 300px;
@@ -479,18 +504,65 @@
     font-size: 10px;
     color: var(--paper-mute);
     letter-spacing: 0.06em;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
-  /* ── Rules section — numbered list ─────────────────────────── */
+  /* ── Problem cards ─────────────────────────────────── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--hair);
+    border-bottom: 0;
+  }
+  .problem {
+    padding: 40px 32px 36px;
+    border-right: 1px solid var(--hair);
+    background: var(--ink);
+  }
+  .problem:last-child { border-right: none; }
+  .problem-num {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 54px;
+    line-height: 1;
+    color: var(--rust);
+    margin-bottom: 16px;
+  }
+  .problem h3 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 400;
+    color: var(--paper);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  .problem h3 em { font-style: italic; color: var(--amber); }
+  .problem p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--paper-2);
+    margin-bottom: 18px;
+  }
+  .problem-stat {
+    padding-top: 16px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--rust);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Rules ─────────────────────────────────────────── */
   .rules {
-    padding-bottom: 40px;
+    padding-bottom: 32px;
   }
   .rule {
     display: grid;
-    grid-template-columns: 100px 1fr 1.2fr;
-    gap: 48px;
-    padding: 48px 0;
+    grid-template-columns: 90px 1fr 1fr 170px;
+    gap: 40px;
+    padding: 40px 0;
     border-top: 1px solid var(--hair);
     align-items: flex-start;
   }
@@ -498,523 +570,107 @@
   .rule-num {
     font-family: var(--font-display);
     font-style: italic;
-    font-size: 68px;
+    font-size: 64px;
     line-height: 1;
     color: var(--amber);
     letter-spacing: -0.02em;
   }
   .rule-title {
     font-family: var(--font-display);
-    font-size: 34px;
+    font-size: 32px;
     line-height: 1.1;
     font-weight: 400;
     color: var(--paper);
     letter-spacing: -0.015em;
   }
   .rule-title em { font-style: italic; color: var(--paper-2); }
+  .rule-title .dash {
+    color: var(--paper-mute);
+    margin: 0 6px;
+  }
+  .rule-title .val {
+    color: var(--amber);
+  }
   .rule-body {
-    font-size: 16px;
+    font-size: 15.5px;
     line-height: 1.6;
     color: var(--paper-2);
   }
-  .rule-body code {
+  .rule-tag {
+    justify-self: end;
     font-family: var(--font-mono);
-    font-size: 13px;
-    background: var(--ink-2);
-    padding: 2px 7px;
-    border: 1px solid var(--hair);
+    font-size: 10px;
+    letter-spacing: 0.16em;
     color: var(--amber);
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid rgba(232, 184, 111, 0.4);
+    background: rgba(232, 184, 111, 0.05);
+    white-space: nowrap;
   }
-  .rule-meta {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    margin-top: 16px;
-    letter-spacing: 0.06em;
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .rule-meta span { padding: 4px 10px; border: 1px solid var(--hair-hi); }
+  .rule-tag.rust { color: var(--rust); border-color: rgba(212, 73, 61, 0.4); background: rgba(212, 73, 61, 0.05); }
 
-  /* ── Economics / proof chart ──────────────────────────────── */
-  .econ-wrap {
-    border-top: 1px solid var(--hair);
-    padding-bottom: 100px;
+  /* Special "notification" rule */
+  .rule.notify {
     background:
-      radial-gradient(circle at 85% 60%, rgba(127, 183, 126, 0.05), transparent 55%);
+      linear-gradient(90deg, rgba(63, 169, 245, 0.06), rgba(232, 184, 111, 0.03) 70%, transparent);
   }
+  .rule.notify .rule-num { color: var(--tg-blue); }
+  .rule.notify .rule-tag { color: var(--tg-blue); border-color: rgba(63, 169, 245, 0.4); background: rgba(63, 169, 245, 0.06); }
 
-  .econ-stats {
+  /* ── Steps (how it works) ─────────────────────────── */
+  .steps {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1px;
     background: var(--hair);
     border: 1px solid var(--hair);
-    margin-bottom: 56px;
   }
-  .econ-stat {
-    padding: 42px 36px 40px;
+  .step {
+    padding: 40px 28px 36px;
     background: var(--ink);
-  }
-  .econ-stat-tag {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    color: var(--paper-dim);
-    text-transform: uppercase;
-    margin-bottom: 24px;
-  }
-  .econ-stat-val {
-    font-family: var(--font-display);
-    font-size: clamp(68px, 8vw, 108px);
-    line-height: 0.9;
-    letter-spacing: -0.03em;
-    color: var(--amber);
-    font-weight: 400;
-    margin-bottom: 20px;
-  }
-  .econ-stat-val .unit {
-    font-family: var(--font-mono);
-    font-size: 24px;
-    font-weight: 500;
-    color: var(--paper);
-    letter-spacing: 0;
-    margin-left: 4px;
-  }
-  .econ-stat-val.neutral { color: var(--paper); }
-  .econ-stat-val.neutral .inline {
-    font-style: italic;
-    font-size: 60%;
-    color: var(--amber);
-  }
-  .econ-stat-sub {
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--paper-2);
-    max-width: 260px;
-  }
-  .econ-stat-sub strong { color: var(--paper); font-weight: 500; }
-
-  /* Chart container */
-  .chart-card {
-    background: var(--ink-2);
-    border: 1px solid var(--hair);
-    position: relative;
-    margin-bottom: 48px;
-  }
-  .chart-card::before {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 1px; height: 48px;
-    background: var(--amber);
-  }
-  .chart-card::after {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 48px; height: 1px;
-    background: var(--amber);
-  }
-  .chart-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 20px;
-    padding: 24px 32px 20px;
-    border-bottom: 1px solid var(--hair);
-  }
-  .chart-title {
-    font-family: var(--font-display);
-    font-size: 22px;
-    color: var(--paper);
-    letter-spacing: -0.01em;
-  }
-  .chart-title em { font-style: italic; color: var(--amber); }
-  .chart-sub {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    letter-spacing: 0.06em;
-    margin-top: 6px;
-  }
-  .chart-legend {
-    display: flex;
-    gap: 28px;
-    align-items: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--paper-dim);
-  }
-  .chart-legend-item { display: flex; align-items: center; gap: 10px; }
-  .chart-legend-swatch {
-    width: 20px; height: 2px;
-    flex-shrink: 0;
-  }
-  .chart-legend-swatch.rg { background: var(--amber); box-shadow: 0 0 8px rgba(232, 184, 111, 0.5); }
-  .chart-legend-swatch.base { background: var(--rust); }
-
-  .econ-chart {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 480px;
-    padding: 28px 24px 18px;
-  }
-
-  .econ-line {
-    fill: none;
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    stroke-dasharray: 2400;
-    stroke-dashoffset: 2400;
-  }
-  .econ-line.rg   { stroke: var(--amber); filter: drop-shadow(0 0 6px rgba(232, 184, 111, 0.35)); }
-  .econ-line.base { stroke: var(--rust);  opacity: 0.85; }
-
-  .econ-area { fill-opacity: 0; }
-  .econ-area.rg   { fill: url(#rgGrad); }
-  .econ-area.base { fill: url(#baseGrad); }
-
-  .econ-point {
-    fill: var(--ink-2);
-    stroke-width: 2;
-    opacity: 0;
-  }
-  .econ-point.rg   { stroke: var(--amber); }
-  .econ-point.base { stroke: var(--rust); }
-
-  .econ-gridline { stroke: var(--hair); stroke-width: 1; }
-  .econ-axis-label {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    fill: var(--paper-dim);
-    letter-spacing: 0.1em;
-  }
-  .econ-tick { font-family: var(--font-mono); font-size: 10px; fill: var(--paper-mute); letter-spacing: 0.04em; }
-
-  .crossover-line {
-    stroke: var(--sage);
-    stroke-width: 1;
-    stroke-dasharray: 4 4;
-    opacity: 0;
-  }
-  .crossover-badge {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    fill: var(--sage);
-    opacity: 0;
-  }
-  .end-bracket {
-    stroke: var(--amber);
-    stroke-width: 1.5;
-    fill: none;
-    opacity: 0;
-  }
-  .end-label {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    fill: var(--amber);
-    opacity: 0;
-  }
-  .end-label-sub {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    fill: var(--paper-2);
-    letter-spacing: 0.08em;
-    opacity: 0;
-  }
-
-  /* Reveal → animate chart */
-  .chart-card.reveal.in .econ-line.base { animation: draw 2s 0.3s ease-out forwards; }
-  .chart-card.reveal.in .econ-line.rg   { animation: draw 2.2s 0.7s ease-out forwards; }
-  .chart-card.reveal.in .econ-area      { animation: fade-in 1s 2.5s ease-out forwards; }
-  .chart-card.reveal.in .econ-point     { animation: fade-in 0.3s 2.7s ease-out forwards; }
-  .chart-card.reveal.in .crossover-line,
-  .chart-card.reveal.in .crossover-badge { animation: fade-in 0.8s 3.0s ease-out forwards; }
-  .chart-card.reveal.in .end-bracket,
-  .chart-card.reveal.in .end-label,
-  .chart-card.reveal.in .end-label-sub { animation: fade-in 0.8s 3.3s ease-out forwards; }
-
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .econ-area { transition: fill-opacity 0s; }
-  .chart-card.reveal.in .econ-area.rg   { fill-opacity: 0.12; }
-  .chart-card.reveal.in .econ-area.base { fill-opacity: 0.08; }
-
-  /* Liquidation-revenue counterargument block */
-  .liq-counter {
-    margin: 48px 0;
-    padding: 36px 36px 32px;
-    border: 1px solid var(--hair);
-    background:
-      linear-gradient(90deg, rgba(212, 73, 61, 0.04) 0%, rgba(232, 184, 111, 0.06) 100%);
     position: relative;
   }
-  .liq-counter::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 4px; height: 100%;
-    background: var(--rust);
-    opacity: 0.6;
-  }
-  .liq-counter-head { margin-bottom: 32px; }
-  .liq-counter-kicker {
-    display: inline-block;
+  .step-num {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.22em;
-    color: var(--rust);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    padding: 4px 10px;
-    border: 1px solid rgba(212, 73, 61, 0.4);
-  }
-  .liq-counter-head h3 {
-    font-family: var(--font-display);
-    font-size: clamp(30px, 4vw, 42px);
-    line-height: 1.1;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.02em;
-  }
-  .liq-counter-head h3 em { font-style: italic; color: var(--amber); }
-  .liq-counter-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-    margin-bottom: 24px;
-  }
-  .liq-stat {
-    padding: 22px 24px;
-    background: var(--ink);
-    border: 1px solid var(--hair);
-  }
-  .liq-stat-val {
-    font-family: var(--font-display);
-    font-size: 56px;
-    line-height: 0.95;
-    font-weight: 400;
     color: var(--amber);
-    letter-spacing: -0.03em;
-    margin-bottom: 14px;
+    margin-bottom: 28px;
+    display: flex; align-items: center; gap: 10px;
   }
-  .liq-stat-val span {
-    font-family: var(--font-mono);
-    font-size: 18px;
-    color: var(--paper);
-    letter-spacing: 0;
-    margin-left: 2px;
-    font-weight: 500;
+  .step-num::before {
+    content: '';
+    width: 18px; height: 1px;
+    background: var(--amber);
   }
-  .liq-stat-label {
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: var(--paper-2);
-    margin-bottom: 14px;
-  }
-  .liq-stat-src {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    color: var(--paper-mute);
-    padding-top: 12px;
-    border-top: 1px solid var(--hair);
-  }
-  .liq-stat-src a { color: var(--paper-dim); border-bottom: 1px solid var(--hair-hi); }
-  .liq-stat-src a:hover { color: var(--paper); }
-  .liq-counter-note {
+  .step h3 {
     font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.5;
-    color: var(--paper);
-    font-style: italic;
-    max-width: 820px;
-    padding-top: 16px;
-    border-top: 1px solid var(--hair);
-  }
-  .liq-counter-note em { color: var(--amber); font-style: italic; }
-
-  /* Assumption table */
-  .assumptions {
-    display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    gap: 48px;
-    padding: 32px 0 0;
-    border-top: 1px solid var(--hair);
-  }
-  .assumptions h4 {
-    font-family: var(--font-display);
-    font-size: 28px;
+    font-size: 26px;
     line-height: 1.15;
     font-weight: 400;
     color: var(--paper);
     letter-spacing: -0.01em;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
-  .assumptions h4 em { font-style: italic; color: var(--amber); }
-  .assumptions-intro {
-    font-size: 15px;
+  .step h3 em { font-style: italic; color: var(--amber); }
+  .step p {
+    font-size: 14px;
     line-height: 1.6;
     color: var(--paper-2);
-    margin-bottom: 20px;
   }
-  .assumptions-intro strong { color: var(--paper); font-weight: 500; }
-  .assumptions-caveat {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    color: var(--paper-dim);
-    line-height: 1.7;
-    padding: 14px 16px;
-    border: 1px solid var(--hair);
-    background: var(--ink);
-  }
-  .assumption-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-  }
-  .assumption-table th {
-    text-align: left;
-    padding: 10px 14px;
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--paper-dim);
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--hair-hi);
-    font-weight: 500;
-  }
-  .assumption-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--hair);
-    color: var(--paper-2);
-    vertical-align: top;
-  }
-  .assumption-table td:first-child { color: var(--paper); font-weight: 500; }
-  .assumption-table td:nth-child(2) { color: var(--amber); }
-  .assumption-table td:last-child { color: var(--paper-mute); font-size: 11.5px; }
-  .assumption-table td a { color: var(--paper-dim); border-bottom: 1px solid var(--hair-hi); }
-  .assumption-table td a:hover { color: var(--paper); }
-  .tag {
-    display: inline-block;
-    padding: 1px 7px;
-    font-size: 9.5px;
-    letter-spacing: 0.12em;
-    border: 1px solid var(--hair-hi);
-    color: var(--paper-dim);
-    text-transform: uppercase;
-  }
-  .tag.est  { color: var(--rust);  border-color: rgba(212, 73, 61, 0.4); }
-  .tag.src  { color: var(--sage);  border-color: rgba(127, 183, 126, 0.35); }
-
-  /* ── Integration (code) section ────────────────────────────── */
-  .integrate {
-    padding: 96px 0;
+  .step-note {
+    margin-top: 16px;
+    padding-top: 14px;
     border-top: 1px solid var(--hair);
-    display: grid;
-    grid-template-columns: 5fr 7fr;
-    gap: 80px;
-    align-items: flex-start;
-  }
-  .integrate-copy h3 {
-    font-family: var(--font-display);
-    font-size: 52px;
-    line-height: 1.02;
-    letter-spacing: -0.02em;
-    font-weight: 400;
-    color: var(--paper);
-    margin-bottom: 28px;
-  }
-  .integrate-copy h3 em { font-style: italic; color: var(--amber); }
-  .integrate-copy p {
-    font-size: 16px;
-    line-height: 1.65;
-    color: var(--paper-2);
-    margin-bottom: 18px;
-  }
-  .integrate-list {
-    list-style: none;
-    margin-top: 28px;
-    padding: 0;
-  }
-  .integrate-list li {
-    padding: 14px 0;
-    border-top: 1px solid var(--hair);
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    font-size: 14px;
-    color: var(--paper-2);
-  }
-  .integrate-list li:last-child { border-bottom: 1px solid var(--hair); }
-  .integrate-list .tick {
-    width: 18px; height: 18px;
-    border: 1px solid var(--amber);
-    color: var(--amber);
     font-family: var(--font-mono);
-    font-size: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .code-block {
-    background: var(--ink-2);
-    border: 1px solid var(--hair);
-    position: relative;
-  }
-  .code-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--hair);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-  }
-  .code-tab {
-    padding: 14px 20px;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
     color: var(--paper-dim);
-    border-right: 1px solid var(--hair);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
   }
-  .code-tab.active {
-    color: var(--amber);
-    background: rgba(232, 184, 111, 0.06);
-    border-bottom: 2px solid var(--amber);
-    padding-bottom: 12px;
-  }
-  .code-tab:hover:not(.active) { color: var(--paper); }
-  .code-body {
-    padding: 28px 28px 32px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--paper-2);
-    overflow-x: auto;
-  }
-  .code-body pre { margin: 0; }
-  .kw { color: var(--amber); }
-  .str { color: var(--sage); }
-  .com { color: var(--paper-mute); font-style: italic; }
-  .fn { color: var(--paper); }
-  .num { color: #e8a87c; }
-  .prop { color: var(--paper); }
 
-  /* ── Pricing ───────────────────────────────────────────────── */
+  /* ── Pricing ─────────────────────────────────────── */
   .pricing-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1022,7 +678,7 @@
     border: 1px solid var(--hair);
   }
   .tier {
-    padding: 44px 36px;
+    padding: 44px 32px;
     border-right: 1px solid var(--hair);
     position: relative;
     background: var(--ink);
@@ -1030,9 +686,9 @@
   .tier:last-child { border-right: none; }
   .tier.featured { background: var(--ink-2); }
   .tier.featured::before {
-    content: 'RECOMMENDED ENTRY POINT';
+    content: 'MOST POPULAR';
     position: absolute;
-    top: 0; left: 36px;
+    top: 0; left: 32px;
     transform: translateY(-50%);
     font-family: var(--font-mono);
     font-size: 10px;
@@ -1048,30 +704,23 @@
     letter-spacing: 0.2em;
     color: var(--paper-dim);
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-  .tier-bucket {
+  .tier-byline {
     font-family: var(--font-display);
-    font-size: 36px;
-    color: var(--paper);
-    margin-bottom: 8px;
     font-style: italic;
-  }
-  .tier-volume {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-    margin-bottom: 32px;
+    font-size: 20px;
+    color: var(--paper-2);
+    margin-bottom: 30px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--hair);
   }
   .tier-price {
     font-family: var(--font-display);
-    font-size: 56px;
+    font-size: 62px;
     color: var(--paper);
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   .tier-price span {
     font-size: 15px;
@@ -1079,24 +728,22 @@
     color: var(--paper-dim);
     letter-spacing: 0.05em;
   }
-  .tier-price.range {
-    font-size: 38px;
-    letter-spacing: -0.01em;
-  }
-  .tier-desc {
-    font-size: 13px;
-    color: var(--paper-dim);
-    margin-bottom: 30px;
+  .tier-strike {
     font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--paper-mute);
+    text-decoration: line-through;
+    margin-bottom: 24px;
     letter-spacing: 0.04em;
   }
+  .tier-strike b { color: var(--amber); text-decoration: none; font-weight: 500; margin-left: 6px; }
   .tier-feats {
     list-style: none; padding: 0;
     margin-bottom: 32px;
   }
   .tier-feats li {
     padding: 10px 0;
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--paper-2);
     display: flex;
     gap: 12px;
@@ -1109,18 +756,19 @@
     flex-shrink: 0;
   }
   .tier-cta {
-    display: block;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 14px;
     text-align: center;
     font-family: var(--font-mono);
     font-size: 12px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     border: 1px solid var(--hair-hi);
     color: var(--paper);
     transition: all 0.2s ease;
-    cursor: pointer;
     background: transparent;
     width: 100%;
+    font-weight: 600;
+    cursor: pointer;
   }
   .tier-cta:hover { background: var(--paper); color: var(--ink); border-color: var(--paper); }
   .tier.featured .tier-cta {
@@ -1129,35 +777,126 @@
     border-color: var(--amber);
   }
   .tier.featured .tier-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
-
-  /* ── FAQ / honesty section ─────────────────────────────────── */
-  .faq { padding-bottom: 80px; }
-  .faq-item {
-    display: grid;
-    grid-template-columns: 1fr 1.6fr;
-    gap: 60px;
-    padding: 40px 0;
-    border-top: 1px solid var(--hair);
+  .pricing-foot {
+    margin-top: 22px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--paper-dim);
+    text-align: center;
   }
-  .faq-item:last-child { border-bottom: 1px solid var(--hair); }
-  .faq-q {
+  .pricing-foot span { color: var(--paper-2); }
+
+  /* ── Roadmap ────────────────────────────────────── */
+  .roadmap {
+    padding-bottom: 40px;
+  }
+  .milestone {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 48px;
+    padding: 36px 0;
+    border-top: 1px solid var(--hair);
+    align-items: flex-start;
+  }
+  .milestone:last-child { border-bottom: 1px solid var(--hair); }
+  .milestone-when {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--amber);
+  }
+  .milestone-when .now {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(127, 183, 126, 0.12);
+    border: 1px solid var(--sage);
+    color: var(--sage);
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .milestone h3 {
     font-family: var(--font-display);
-    font-size: 26px;
-    line-height: 1.2;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 400;
     color: var(--paper);
     letter-spacing: -0.01em;
+    margin-bottom: 12px;
   }
-  .faq-q em { font-style: italic; color: var(--amber); }
-  .faq-a {
-    font-size: 15.5px;
-    line-height: 1.65;
+  .milestone h3 em { font-style: italic; color: var(--amber); }
+  .milestone ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+  .milestone ul li {
+    font-size: 13.5px;
     color: var(--paper-2);
+    padding: 8px 12px;
+    border: 1px solid var(--hair);
+    font-family: var(--font-mono);
   }
-  .faq-a strong { color: var(--paper); font-weight: 500; }
 
-  /* ── CTA footer ────────────────────────────────────────────── */
+  /* ── Testimonials ──────────────────────────────── */
+  .testimonial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .testimonial {
+    padding: 28px 28px 24px;
+    border: 1px solid var(--hair);
+    background: var(--ink-2);
+  }
+  .stars {
+    display: flex; gap: 2px;
+    color: var(--amber);
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .testimonial p {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.45;
+    color: var(--paper);
+    margin-bottom: 22px;
+    font-style: italic;
+  }
+  .testimonial-who {
+    display: flex; align-items: center; gap: 12px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
+  }
+  .t-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    border: 1px solid var(--hair-hi);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    font-weight: 600;
+  }
+  .t-name {
+    font-size: 14px;
+    color: var(--paper);
+    font-weight: 500;
+  }
+  .t-role {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  /* ── CTA ─────────────────────────────────────── */
   .cta {
-    padding: 140px 0 120px;
+    padding: 130px 0 110px;
     border-top: 1px solid var(--hair);
     text-align: center;
     position: relative;
@@ -1172,21 +911,22 @@
   }
   .cta h2 {
     font-family: var(--font-display);
-    font-size: clamp(64px, 9vw, 140px);
-    line-height: 0.95;
+    font-size: clamp(56px, 8.5vw, 128px);
+    line-height: 0.96;
     font-weight: 400;
     letter-spacing: -0.03em;
     color: var(--paper);
-    margin-bottom: 36px;
+    margin-bottom: 28px;
   }
   .cta h2 em { font-style: italic; color: var(--amber); }
   .cta-sub {
-    font-size: 18px;
+    font-size: 17px;
     color: var(--paper-2);
     max-width: 560px;
-    margin: 0 auto 48px;
+    margin: 0 auto 44px;
     line-height: 1.5;
   }
+  .cta-sub strong { color: var(--paper); }
   .cta-form {
     max-width: 480px;
     margin: 0 auto;
@@ -1202,126 +942,89 @@
     color: var(--paper);
     font-family: var(--font-mono);
     font-size: 13px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     border-right: 1px solid var(--hair-hi);
   }
   .cta-form input::placeholder { color: var(--paper-mute); }
   .cta-form input:focus { background: var(--ink-2); }
   .cta-form button {
-    padding: 18px 26px;
+    padding: 18px 24px;
     background: var(--amber);
     color: var(--ink);
     border: none;
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 0.1em;
     cursor: pointer;
     transition: background 0.2s;
     font-weight: 600;
   }
   .cta-form button:hover { background: var(--amber-hi); }
+  .cta-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    margin-top: 18px;
+    letter-spacing: 0.04em;
+  }
 
-  /* ── Footer ───────────────────────────────────────────────── */
+  /* ── Footer ────────────────────────────────── */
   footer {
     border-top: 1px solid var(--hair);
-    padding: 40px 0;
+    padding: 36px 0;
   }
   .footer-grid {
     display: flex; justify-content: space-between; align-items: center;
+    gap: 24px;
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--paper-dim);
   }
   .footer-grid a { transition: color 0.2s; }
   .footer-grid a:hover { color: var(--paper); }
 
-  /* ── Marquee of DEXes ─────────────────────────────────────── */
-  .marquee {
-    border-top: 1px solid var(--hair);
-    border-bottom: 1px solid var(--hair);
-    padding: 22px 0;
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
-  }
-  .marquee-track {
-    display: inline-flex;
-    gap: 72px;
-    animation: marquee 32s linear infinite;
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 30px;
-    color: var(--paper-dim);
-    letter-spacing: -0.01em;
-  }
-  .marquee-track span.acc { color: var(--amber); }
-  .marquee-dot {
-    display: inline-block;
-    width: 5px; height: 5px;
-    background: var(--paper-mute);
-    border-radius: 50%;
-    margin: 0 4px;
-    align-self: center;
-    position: relative;
-    top: -7px;
-  }
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-
-  /* ── Reveal animations ───────────────────────────────────── */
-  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 1s ease, transform 1s ease; }
+  /* ── Reveal ──────────────────────────────── */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.9s ease, transform 0.9s ease; }
   .reveal.in { opacity: 1; transform: translateY(0); }
 
-  /* ── Responsive ─────────────────────────────────────────── */
+  /* ── Responsive ──────────────────────────── */
   @media (max-width: 1000px) {
     .hero-grid { grid-template-columns: 1fr; gap: 48px; }
-    .sec-head { grid-template-columns: 1fr; gap: 24px; padding-top: 72px; padding-bottom: 40px; }
-    .stat-grid { grid-template-columns: 1fr; }
-    .stat { border-right: none; border-bottom: 1px solid var(--hair); }
-    .stat:last-child { border-bottom: none; }
-    .rule { grid-template-columns: 60px 1fr; gap: 28px; }
-    .rule-body { grid-column: 1 / -1; padding-left: 88px; }
-    .integrate { grid-template-columns: 1fr; gap: 40px; padding: 64px 0; }
-    .integrate-copy h3 { font-size: 38px; }
-    .econ-stats { grid-template-columns: 1fr; }
-    .liq-counter-grid { grid-template-columns: 1fr; gap: 16px; }
-    .assumptions { grid-template-columns: 1fr; gap: 24px; }
-    .chart-head { padding: 20px 20px 16px; }
-    .chart-legend { gap: 18px; }
-    .pricing-grid { grid-template-columns: 1fr; }
-    .tier { border-right: none; border-bottom: 1px solid var(--hair); }
-    .tier:last-child { border-bottom: none; }
-    .faq-item { grid-template-columns: 1fr; gap: 16px; }
-    .footer-grid { flex-direction: column; gap: 16px; }
-    .hero-meta { flex-wrap: wrap; gap: 24px; }
+    .sec-head { grid-template-columns: 1fr; gap: 20px; padding-top: 68px; padding-bottom: 36px; }
+    .stat-grid, .problem-grid, .pricing-grid, .steps, .testimonial-grid { grid-template-columns: 1fr; }
+    .stat, .problem, .tier, .step { border-right: none; border-bottom: 1px solid var(--hair); }
+    .stat:last-child, .problem:last-child, .tier:last-child, .step:last-child { border-bottom: none; }
+    .rule { grid-template-columns: 60px 1fr; gap: 20px; padding: 28px 0; }
+    .rule-body, .rule-tag { grid-column: 1 / -1; padding-left: 80px; }
+    .rule-tag { padding: 6px 12px; width: fit-content; }
+    .milestone { grid-template-columns: 1fr; gap: 12px; }
     .nav-links { display: none; }
     .wrap { padding: 0 22px; }
-    nav { padding: 16px 22px; }
+    nav { padding: 14px 22px; }
+    nav.scrolled { padding: 10px 22px; }
+    .footer-grid { flex-direction: column; text-align: center; }
   }
 </style>
 </head>
 <body>
 
-<canvas id="bg-3d"></canvas>
-
 <nav>
   <a href="#" class="brand">
     <span class="brand-mark"></span>
     RISKGUARD
-    <span class="brand-badge">v2 / DEX SDK</span>
+    <span class="brand-badge">Hyperliquid · Telegram</span>
   </a>
   <ul class="nav-links">
-    <li><a href="#why">Why</a></li>
-    <li><a href="#economics">Economics</a></li>
     <li><a href="#rules">Rules</a></li>
-    <li><a href="#integrate">Integrate</a></li>
+    <li><a href="#how">How it works</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#faq">Honest FAQ</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
   </ul>
-  <a href="#cta" class="nav-cta">Book pilot →</a>
+  <a href="#cta" class="nav-cta">
+    <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+    Join Waitlist
+  </a>
 </nav>
 
 <!-- ───────────────── HERO ───────────────── -->
@@ -1330,61 +1033,94 @@
     <div class="hero-grid">
 
       <div>
-        <div class="eyebrow reveal">Revenue infrastructure for perp DEXes · Hyperliquid-native</div>
+        <div class="eyebrow reveal">
+          Telegram bot · live on Hyperliquid · 5 rules enforced
+          <span class="online-dot"></span>
+        </div>
         <h1 class="reveal">
-          <em>$1.01M.</em><br>
-          Or <span class="strike">$660K</span><br>
-          if you let them<br>
-          <span class="bleed">bleed out.</span>
+          Stop trading<br>
+          against <em>yourself.</em>
         </h1>
         <p class="hero-sub reveal">
-          <strong>Same 1,000 traders. Twelve months apart.</strong>
-          The protected cohort earns your DEX <strong class="amber-ink">$1.01M</strong> in cumulative fees.
-          The unprotected one stops at <strong class="rust-ink">$660K</strong> — because 95% of them liquidate.
-          RiskGuard is the one-line SDK that closes the <strong>$353K gap</strong>. Tier-II license already subtracted.
+          <strong>95% of leveraged traders get liquidated.</strong> Not because of strategy — because of
+          tilt. SL-widening, revenge entries, pyramiding a losing position. RiskGuard is the Telegram bot
+          that cancels those orders on your own Hyperliquid account, in real time, before they become
+          losses you can't take back.
         </p>
         <div class="hero-actions reveal">
           <a href="#cta" class="btn-primary">
-            Book a 30-day pilot
+            <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+            Connect Telegram bot
             <span class="arrow">→</span>
           </a>
-          <a href="#economics" class="btn-ghost">
-            See the math
+          <a href="#pricing" class="btn-ghost">
+            See pricing
             <span class="arrow">↓</span>
           </a>
         </div>
         <div class="hero-meta reveal">
           <div class="hero-meta-item">
-            <strong>+$353K</strong>
-            incremental Y1 fees / 1K traders
+            <strong>5 rules</strong>
+            enforced pre-trade
           </div>
           <div class="hero-meta-item">
-            <strong>Month 3½</strong>
-            cumulative break-even
+            <strong>3s</strong>
+            polling interval
           </div>
           <div class="hero-meta-item">
-            <strong>3.1×</strong>
-            account lifetime extension
+            <strong>0 custody</strong>
+            cancel-only API scope
           </div>
           <div class="hero-meta-item">
-            <strong>&lt; 48 hrs</strong>
-            to first risk-managed trade
+            <strong>24/7</strong>
+            cloud-monitored
           </div>
         </div>
       </div>
 
       <div class="reveal">
-        <div class="terminal">
-          <div class="terminal-bar">
-            <span>risk_guard.py · LIVE</span>
-            <span class="terminal-status">
-              <span class="dot"></span>
-              CONNECTED · HL MAINNET
-            </span>
+        <div class="tg-mock">
+          <div class="tg-head">
+            <div class="tg-avatar">RG</div>
+            <div class="tg-title">
+              <div class="tg-name">RiskGuard Bot</div>
+              <div class="tg-status"><span class="online-dot"></span>guard online · watching your account</div>
+            </div>
           </div>
-          <div class="feed">
-            <div class="feed-inner" id="feed-inner">
-              <!-- Populated by JS -->
+          <div class="tg-messages">
+            <div class="tg-msg bot">
+              <span class="tag">SETUP COMPLETE</span>
+              ✅ Watching <b>0xe91a…b8d4</b><br>
+              Rules active: 5 · Polling: 3s · Alerts: on
+              <span class="time">09:14</span>
+            </div>
+            <div class="tg-msg alert">
+              <span class="tag">🛑 SL WIDENING BLOCKED</span>
+              <b>BTC</b> trigger #8472930 cancelled — stop moved $97,200 → $96,100.<br>
+              Original SL re-placed. No gap in coverage.
+              <span class="time">14:22</span>
+            </div>
+            <div class="tg-msg alert">
+              <span class="tag">🚫 PYRAMIDING BLOCKED</span>
+              <b>ETH</b> buy #8473104 cancelled — you're already long 1.2, order would add size.
+              <span class="time">15:48</span>
+            </div>
+            <div class="tg-msg lock">
+              <span class="tag">🔒 DAILY LOSS LOCK</span>
+              Account down <b>−5.2%</b>. All 7 orders cancelled.<br>
+              Trading locked until 00:00 EDT. Come back tomorrow.
+              <span class="time">17:03</span>
+            </div>
+            <div class="tg-msg lock">
+              <span class="tag">🧊 COOLDOWN ACTIVE</span>
+              <b>SOL</b> short cancelled — cooldown after loss.<br>
+              New entries blocked until 08:00 EDT.
+              <span class="time">17:06</span>
+            </div>
+            <div class="tg-msg ok">
+              <span class="tag">✓ ALLOWED</span>
+              <b>ETH</b> reduce-only sell #8473512 — managing open position.
+              <span class="time">17:12</span>
             </div>
           </div>
         </div>
@@ -1394,334 +1130,88 @@
   </div>
 </section>
 
-<!-- ───────────────── DEX MARQUEE ───────────────── -->
+<!-- ───────────────── MARQUEE ───────────────── -->
 <div class="marquee">
   <div class="marquee-track">
-    <span>Hyperliquid</span><span class="marquee-dot"></span>
-    <span class="acc">dYdX</span><span class="marquee-dot"></span>
-    <span>Drift</span><span class="marquee-dot"></span>
-    <span>Jupiter Perps</span><span class="marquee-dot"></span>
-    <span class="acc">Paradex</span><span class="marquee-dot"></span>
-    <span>Vertex</span><span class="marquee-dot"></span>
-    <span>GMX</span><span class="marquee-dot"></span>
-    <span class="acc">Aster</span><span class="marquee-dot"></span>
-    <span>Apex</span><span class="marquee-dot"></span>
-    <span>Orderly</span><span class="marquee-dot"></span>
-    <span class="acc">Perennial</span><span class="marquee-dot"></span>
-    <span>Lighter</span><span class="marquee-dot"></span>
-    <span>Aevo</span><span class="marquee-dot"></span>
-    <span class="acc">GRVT</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>BTC</b> SL widened</span><span class="marquee-dot"></span>
+    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">RESTORED</span> <b>BTC</b> original SL replaced</span><span class="marquee-dot"></span>
+    <span class="marquee-item rust"><span class="ico">🚫</span><span class="tag">BLOCKED</span> <b>ETH</b> pyramid entry</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">LOCKED</span> daily loss cap hit</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🧊</span><span class="tag">COOLDOWN</span> revenge trade stopped</span><span class="marquee-dot"></span>
+    <span class="marquee-item rust"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>SOL</b> flip order blocked</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">📲</span><span class="tag">ALERT SENT</span> Telegram notification</span><span class="marquee-dot"></span>
+    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">PASSED</span> reduce-only order allowed</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">PROFIT LOCK</span> day gains protected</span><span class="marquee-dot"></span>
     <!-- duplicate for seamless loop -->
-    <span>Hyperliquid</span><span class="marquee-dot"></span>
-    <span class="acc">dYdX</span><span class="marquee-dot"></span>
-    <span>Drift</span><span class="marquee-dot"></span>
-    <span>Jupiter Perps</span><span class="marquee-dot"></span>
-    <span class="acc">Paradex</span><span class="marquee-dot"></span>
-    <span>Vertex</span><span class="marquee-dot"></span>
-    <span>GMX</span><span class="marquee-dot"></span>
-    <span class="acc">Aster</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>BTC</b> SL widened</span><span class="marquee-dot"></span>
+    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">RESTORED</span> <b>BTC</b> original SL replaced</span><span class="marquee-dot"></span>
+    <span class="marquee-item rust"><span class="ico">🚫</span><span class="tag">BLOCKED</span> <b>ETH</b> pyramid entry</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">LOCKED</span> daily loss cap hit</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">🧊</span><span class="tag">COOLDOWN</span> revenge trade stopped</span><span class="marquee-dot"></span>
+    <span class="marquee-item rust"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>SOL</b> flip order blocked</span><span class="marquee-dot"></span>
+    <span class="marquee-item"><span class="ico">📲</span><span class="tag">ALERT SENT</span> Telegram notification</span>
   </div>
 </div>
 
-<!-- ───────────────── WHY DEXES CARE ───────────────── -->
-<section id="why">
+<!-- ───────────────── STATS ───────────────── -->
+<section id="problem">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 01 <span>/ the asymmetry</span></div>
-      <h2 class="sec-title">
-        Your platform loses when a trader blows up.<br>
-        <em>They just don't come back.</em>
-      </h2>
+      <div class="sec-label">§ 01 <span>/ the cost of no rules</span></div>
+      <h2 class="sec-title">Emotion is the real market killer. <em>Not the market.</em></h2>
     </div>
 
     <div class="stat-grid">
       <div class="stat">
-        <div class="stat-tag">Trader outcome</div>
+        <div class="stat-tag">Leveraged account outcome</div>
         <div class="stat-value">95.2<sup>%</sup></div>
-        <div class="stat-caption"><strong>of leveraged accounts</strong> are liquidated within their lifetime. The survivors are the only customers you have twelve months from now.</div>
-        <div class="stat-source">Src: CCAF, 2020-2023 dataset</div>
+        <div class="stat-caption"><strong>of leveraged crypto accounts</strong> are liquidated within their lifetime. The survivors are the ones with rules they don't break.</div>
+        <div class="stat-source">Src: CCAF 2020–2023</div>
       </div>
       <div class="stat">
-        <div class="stat-tag">Market momentum</div>
-        <div class="stat-value">26<sup>%</sup></div>
-        <div class="stat-caption"><strong>of global perpetual futures volume</strong> now clears on DEXes — up from 2.7% two years ago. Retention is the new battleground.</div>
-        <div class="stat-source">Src: CoinGecko / Cointelegraph 2025</div>
+        <div class="stat-tag">Blown accounts cause</div>
+        <div class="stat-value">40<sup>%+</sup></div>
+        <div class="stat-caption"><strong>of account blowups</strong> trace back to a single decision: the trader moved their stop further from entry mid-trade.</div>
+        <div class="stat-source">Src: retail-trader surveys, 2023–2024</div>
       </div>
       <div class="stat">
-        <div class="stat-tag">What exists today</div>
-        <div class="stat-value">0</div>
-        <div class="stat-caption"><strong>perp DEXes</strong> offer pre-trade risk enforcement to their traders. Liquidation is the only safety valve. We think that's a mistake.</div>
-        <div class="stat-source">Src: competitive audit Q1 2026</div>
+        <div class="stat-tag">What the guard does</div>
+        <div class="stat-value">3<sup>s</sup></div>
+        <div class="stat-caption"><strong>between rule checks.</strong> RiskGuard polls your Hyperliquid account every 3 seconds and cancels violations before they become losses.</div>
+        <div class="stat-source">Src: live production instance</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───────────────── ECONOMICS / PROOF CHART ───────────────── -->
-<section id="economics" class="econ-wrap">
+<!-- ───────────────── PROBLEM ───────────────── -->
+<section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 02 <span>/ the economics</span></div>
-      <h2 class="sec-title">
-        More survivors. More volume.<br>
-        More fees — <em>for you.</em>
-      </h2>
+      <div class="sec-label">§ 02 <span>/ the three self-sabotages</span></div>
+      <h2 class="sec-title">You know exactly how you blow up. <em>You do it anyway.</em></h2>
     </div>
 
-    <!-- Headline stats -->
-    <div class="econ-stats">
-      <div class="econ-stat reveal">
-        <div class="econ-stat-tag">Y1 cumulative fees</div>
-        <div class="econ-stat-val">+53<span class="unit">%</span></div>
-        <div class="econ-stat-sub">per 1,000-trader cohort vs. the unprotected baseline. <strong>+$353K</strong> in additional DEX fees over 12 months.</div>
+    <div class="problem-grid">
+      <div class="problem reveal">
+        <div class="problem-num">01</div>
+        <h3>Moving the <em>stop</em>.</h3>
+        <p>Price runs against you, you widen the SL "just this once." One trade later it doesn't come back. The single most destructive habit in retail trading — and the hardest to stop manually.</p>
+        <div class="problem-stat">→ Cause of 40%+ of retail account blowups</div>
       </div>
-      <div class="econ-stat reveal">
-        <div class="econ-stat-tag">Break-even point</div>
-        <div class="econ-stat-val neutral">M<span class="inline">3½</span></div>
-        <div class="econ-stat-sub">month the protected cohort's <strong>cumulative</strong> fees overtake the unprotected one. Every month after is pure incremental revenue.</div>
+      <div class="problem reveal">
+        <div class="problem-num">02</div>
+        <h3>Revenge <em>trades</em>.</h3>
+        <p>A loss stings, so you size up on the next entry to "get it back." Your frontal cortex isn't driving the next order — the amygdala is. Statistics don't care.</p>
+        <div class="problem-stat">→ ~40% of traders blow up in the session after a loss</div>
       </div>
-      <div class="econ-stat reveal">
-        <div class="econ-stat-tag">Account lifetime</div>
-        <div class="econ-stat-val">3.1<span class="unit">×</span></div>
-        <div class="econ-stat-sub">median survival multiplier under rule-enforced risk controls vs. the liquidation-only baseline. <strong>More at-bats per trader.</strong></div>
-      </div>
-    </div>
-
-    <!-- The chart -->
-    <div class="chart-card reveal">
-      <div class="chart-head">
-        <div>
-          <div class="chart-title">12-month cumulative fees · <em>1,000-trader cohort</em></div>
-          <div class="chart-sub">USD · $2K avg account · ~$15K daily volume / active trader · 0.06% DEX fee · <strong style="color:var(--paper);">liquidation revenue included in baseline</strong></div>
-        </div>
-        <div class="chart-legend">
-          <div class="chart-legend-item"><span class="chart-legend-swatch rg"></span>WITH RISKGUARD</div>
-          <div class="chart-legend-item"><span class="chart-legend-swatch base"></span>WITHOUT (STATUS QUO)</div>
-        </div>
-      </div>
-
-      <svg class="econ-chart" viewBox="0 0 920 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="rgGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#e8b86f" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="#e8b86f" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#d4493d" stop-opacity="0.22"/>
-            <stop offset="100%" stop-color="#d4493d" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-
-        <g>
-          <line class="econ-gridline" x1="80" y1="360" x2="860" y2="360"/>
-          <line class="econ-gridline" x1="80" y1="302" x2="860" y2="302"/>
-          <line class="econ-gridline" x1="80" y1="244" x2="860" y2="244"/>
-          <line class="econ-gridline" x1="80" y1="185" x2="860" y2="185"/>
-          <line class="econ-gridline" x1="80" y1="127" x2="860" y2="127"/>
-          <line class="econ-gridline" x1="80" y1="69"  x2="860" y2="69"/>
-        </g>
-
-        <g>
-          <text class="econ-tick" x="72" y="363" text-anchor="end">$0</text>
-          <text class="econ-tick" x="72" y="305" text-anchor="end">$200K</text>
-          <text class="econ-tick" x="72" y="247" text-anchor="end">$400K</text>
-          <text class="econ-tick" x="72" y="188" text-anchor="end">$600K</text>
-          <text class="econ-tick" x="72" y="130" text-anchor="end">$800K</text>
-          <text class="econ-tick" x="72" y="72"  text-anchor="end">$1M</text>
-        </g>
-
-        <g>
-          <text class="econ-tick" x="80"  y="382" text-anchor="middle">M0</text>
-          <text class="econ-tick" x="145" y="382" text-anchor="middle">M1</text>
-          <text class="econ-tick" x="210" y="382" text-anchor="middle">M2</text>
-          <text class="econ-tick" x="275" y="382" text-anchor="middle">M3</text>
-          <text class="econ-tick" x="340" y="382" text-anchor="middle">M4</text>
-          <text class="econ-tick" x="405" y="382" text-anchor="middle">M5</text>
-          <text class="econ-tick" x="470" y="382" text-anchor="middle">M6</text>
-          <text class="econ-tick" x="535" y="382" text-anchor="middle">M7</text>
-          <text class="econ-tick" x="600" y="382" text-anchor="middle">M8</text>
-          <text class="econ-tick" x="665" y="382" text-anchor="middle">M9</text>
-          <text class="econ-tick" x="730" y="382" text-anchor="middle">M10</text>
-          <text class="econ-tick" x="795" y="382" text-anchor="middle">M11</text>
-          <text class="econ-tick" x="860" y="382" text-anchor="middle">M12</text>
-        </g>
-
-        <text class="econ-axis-label" x="30" y="200" text-anchor="middle" transform="rotate(-90 30 200)">CUMULATIVE FEES (USD)</text>
-        <text class="econ-axis-label" x="470" y="410" text-anchor="middle">MONTHS AFTER PILOT START</text>
-
-        <polygon class="econ-area base"
-          points="80,360 145,302 210,261 275,233 340,213 405,199 470,189 535,182 600,177 665,174 730,172 795,170 860,168 860,360 80,360"/>
-        <polyline class="econ-line base"
-          points="80,360 145,302 210,261 275,233 340,213 405,199 470,189 535,182 600,177 665,174 730,172 795,170 860,168"/>
-
-        <polygon class="econ-area rg"
-          points="80,360 145,316 210,278 275,244 340,215 405,188 470,165 535,145 600,127 665,112 730,98 795,85 860,65 860,360 80,360"/>
-        <polyline class="econ-line rg"
-          points="80,360 145,316 210,278 275,244 340,215 405,188 470,165 535,145 600,127 665,112 730,98 795,85 860,65"/>
-
-        <g>
-          <circle class="econ-point base" cx="80"  cy="360" r="3.5"/>
-          <circle class="econ-point base" cx="145" cy="302" r="3.5"/>
-          <circle class="econ-point base" cx="210" cy="261" r="3.5"/>
-          <circle class="econ-point base" cx="275" cy="233" r="3.5"/>
-          <circle class="econ-point base" cx="340" cy="213" r="3.5"/>
-          <circle class="econ-point base" cx="405" cy="199" r="3.5"/>
-          <circle class="econ-point base" cx="470" cy="189" r="3.5"/>
-          <circle class="econ-point base" cx="535" cy="182" r="3.5"/>
-          <circle class="econ-point base" cx="600" cy="177" r="3.5"/>
-          <circle class="econ-point base" cx="665" cy="174" r="3.5"/>
-          <circle class="econ-point base" cx="730" cy="172" r="3.5"/>
-          <circle class="econ-point base" cx="795" cy="170" r="3.5"/>
-          <circle class="econ-point base" cx="860" cy="168" r="4.5"/>
-        </g>
-        <g>
-          <circle class="econ-point rg" cx="80"  cy="360" r="3.5"/>
-          <circle class="econ-point rg" cx="145" cy="316" r="3.5"/>
-          <circle class="econ-point rg" cx="210" cy="278" r="3.5"/>
-          <circle class="econ-point rg" cx="275" cy="244" r="3.5"/>
-          <circle class="econ-point rg" cx="340" cy="215" r="3.5"/>
-          <circle class="econ-point rg" cx="405" cy="188" r="3.5"/>
-          <circle class="econ-point rg" cx="470" cy="165" r="3.5"/>
-          <circle class="econ-point rg" cx="535" cy="145" r="3.5"/>
-          <circle class="econ-point rg" cx="600" cy="127" r="3.5"/>
-          <circle class="econ-point rg" cx="665" cy="112" r="3.5"/>
-          <circle class="econ-point rg" cx="730" cy="98"  r="3.5"/>
-          <circle class="econ-point rg" cx="795" cy="85"  r="3.5"/>
-          <circle class="econ-point rg" cx="860" cy="65"  r="5"/>
-        </g>
-
-        <line class="crossover-line" x1="285" y1="40" x2="285" y2="360"/>
-        <circle class="crossover-badge" cx="285" cy="215" r="5" fill="#7fb77e" stroke="#0a0b0e" stroke-width="2"/>
-        <g class="crossover-badge">
-          <rect x="295" y="46" width="128" height="42" fill="#0a0b0e" stroke="#7fb77e" stroke-width="1"/>
-          <text x="305" y="62" fill="#7fb77e">CROSSOVER</text>
-          <text x="305" y="78" fill="#d9d2c2" style="font-size: 10px; letter-spacing: 0.04em;">MONTH 3½</text>
-        </g>
-
-        <path class="end-bracket"
-          d="M 866 65 L 882 65 L 882 168 L 866 168"/>
-        <line class="end-bracket" x1="860" y1="65" x2="876" y2="65" stroke-dasharray="2 3"/>
-        <line class="end-bracket" x1="860" y1="168" x2="876" y2="168" stroke-dasharray="2 3"/>
-
-        <g>
-          <text class="end-label" x="890" y="110">+$353K</text>
-          <text class="end-label-sub" x="890" y="127">+53% Y1</text>
-        </g>
-
-        <text class="econ-tick" x="852" y="160" text-anchor="end" fill="#d4493d" style="font-size: 11px; font-weight: 600;">$660K</text>
-        <text class="econ-tick" x="852" y="57" text-anchor="end" fill="#e8b86f" style="font-size: 11px; font-weight: 600;">$1.01M</text>
-      </svg>
-    </div>
-
-    <!-- The liquidation revenue counterpoint -->
-    <div class="liq-counter reveal">
-      <div class="liq-counter-head">
-        <span class="liq-counter-kicker">The counterargument, taken seriously</span>
-        <h3>"But won't we lose <em>liquidation revenue?</em>"</h3>
-      </div>
-      <div class="liq-counter-grid">
-        <div class="liq-stat">
-          <div class="liq-stat-val">~2.3<span>%</span></div>
-          <div class="liq-stat-label">of Hyperliquid's $844M 2025 revenue came from liquidation capture (HLP vault yield).</div>
-          <div class="liq-stat-src"><a href="https://bingx.com/en/news/post/hyperliquid-ends-with-m-revenue-k-users-and-t-trading-volume" target="_blank">BingX · Hyperliquid 2025 recap</a></div>
-        </div>
-        <div class="liq-stat">
-          <div class="liq-stat-val">0<span>%</span></div>
-          <div class="liq-stat-label">of <strong style="color:var(--paper);">dYdX</strong> liquidation fees go to the protocol. 100% funds the insurance pool (which lost $9M in a single 2023 attack).</div>
-          <div class="liq-stat-src"><a href="https://docs.dydx.exchange/users-governance/functionalities" target="_blank">dYdX docs</a> · <a href="https://theblock.co/post/263632/dydxs-insurance-fund-lost-9-million-as-a-result-of-targeted-attack-ceo" target="_blank">The Block</a></div>
-        </div>
-        <div class="liq-stat">
-          <div class="liq-stat-val">8–12<span>×</span></div>
-          <div class="liq-stat-label">more lifetime fees from a surviving trader vs. one liquidated in month 2. Trading fees are <strong style="color:var(--paper);">70–85%</strong> of DEX revenue — liquidations are a rounding error on the way to the real number.</div>
-          <div class="liq-stat-src"><a href="https://bridgewise.com/blog/investment-strategies-tools/boost-user-engagement-trading-platforms/" target="_blank">Bridgewise · retention economics</a></div>
-        </div>
-      </div>
-      <p class="liq-counter-note">
-        Liquidation revenue is mostly a <em>rumor</em> DEX founders tell themselves — the real numbers show it's ≤3% of platform revenue and often flows to LPs / insurance funds, not the protocol. Meanwhile, a trader who blows up in month 2 never pays the other 22 months of fees you just walked away from.
-      </p>
-    </div>
-
-    <!-- Assumption table — transparency -->
-    <div class="assumptions reveal">
-      <div>
-        <h4>Argue with every <em>number</em>.</h4>
-        <p class="assumptions-intro">
-          This is a model — not a reported figure from a customer cohort (we don't have one yet).
-          Every input below is either <strong>sourced</strong> or labeled <strong>estimate</strong>.
-          Each pilot re-runs the math on your actual trader data before renewal.
-        </p>
-        <div class="assumptions-caveat">
-          <strong style="color:var(--paper);">What changes the answer most?</strong><br>
-          Monthly survival delta is the dominant variable. If RG only extends survival from
-          70% to 80% monthly (not 88%), the Y1 delta falls to <strong style="color:var(--amber);">+21%</strong>.
-          We show the conservative band in every pilot proposal.
-        </div>
-      </div>
-      <div>
-        <table class="assumption-table">
-          <thead>
-            <tr>
-              <th>Input</th>
-              <th>Value</th>
-              <th>Source</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Cohort size</td>
-              <td>1,000 active perp traders</td>
-              <td><span class="tag est">est</span> model unit</td>
-            </tr>
-            <tr>
-              <td>Average DEX fee rate</td>
-              <td>0.060% per trade</td>
-              <td><span class="tag src">src</span> <a href="https://www.coingecko.com/learn/rise-of-perpetuals-and-perp-dexs" target="_blank">CoinGecko perp DEX avg</a></td>
-            </tr>
-            <tr>
-              <td>Daily volume / active trader</td>
-              <td>~$15,000</td>
-              <td><span class="tag est">est</span> $2K equity × ~7× turnover</td>
-            </tr>
-            <tr>
-              <td>Trading days / month</td>
-              <td>22</td>
-              <td><span class="tag est">est</span> std weekday count</td>
-            </tr>
-            <tr>
-              <td>Monthly ARPU — unprotected</td>
-              <td>~$198</td>
-              <td>derived (vol × days × fee)</td>
-            </tr>
-            <tr>
-              <td>Monthly ARPU — protected</td>
-              <td>~$150 (−25%)</td>
-              <td><span class="tag est">est</span> tilt-trade filter cost</td>
-            </tr>
-            <tr>
-              <td>Liquidation revenue share</td>
-              <td>~2.3% of total</td>
-              <td><span class="tag src">src</span> Hyperliquid '25 HLP / total fees</td>
-            </tr>
-            <tr>
-              <td>Monthly survival — unprotected</td>
-              <td>70%</td>
-              <td><span class="tag src">src</span> derived from <a href="https://www.bookmap.com/blog/liquidation-in-crypto-a-survival-guide-for-volatile-markets" target="_blank">CCAF 95.2% lifetime liq</a></td>
-            </tr>
-            <tr>
-              <td>Monthly survival — protected</td>
-              <td>88%</td>
-              <td><span class="tag est">est</span> prop-firm rule-enforced analogue</td>
-            </tr>
-            <tr>
-              <td>Annual RG cost (Tier II)</td>
-              <td>−$42K subtracted from delta</td>
-              <td>priced in · net shown: <strong style="color:var(--amber);">+$311K</strong></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="problem reveal">
+        <div class="problem-num">03</div>
+        <h3>No <em>hard limits</em>.</h3>
+        <p>Stops, alerts, journals, coaches — all advisory. The moment you're tilted, the advice is the first thing that goes. You need a system that cancels orders, not one that asks nicely.</p>
+        <div class="problem-stat">→ Advisory tools have 0% enforcement</div>
       </div>
     </div>
-
   </div>
 </section>
 
@@ -1729,203 +1219,139 @@
 <section id="rules">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 03 <span>/ the five rules</span></div>
-      <h2 class="sec-title">
-        Five guardrails that cancel orders <em>before</em> the order book sees them — not after the liquidation engine fires.
-      </h2>
+      <div class="sec-label">§ 03 <span>/ the five rules + telegram alerts</span></div>
+      <h2 class="sec-title">Your rules. <em>The bot enforces them.</em></h2>
     </div>
 
     <div class="rules">
 
       <div class="rule reveal">
         <div class="rule-num">01</div>
-        <div class="rule-title">Daily loss <em>kill-switch</em></div>
-        <div class="rule-body">
-          When the trader's intraday drawdown crosses a configurable threshold, every open order cancels and new entries are blocked until the next session. Existing positions can still be closed — never flipped.
-          <div class="rule-meta">
-            <span>default: −5%</span>
-            <span>resets: 00:00 local</span>
-            <span>granularity: per-account</span>
-          </div>
-        </div>
+        <div class="rule-title">Max Daily Loss <span class="dash">—</span> <span class="val">5%</span></div>
+        <div class="rule-body">Account drops 5%? All orders cancelled. Trading locked for the day. Come back tomorrow with a clear head.</div>
+        <div class="rule-tag rust">Hard stop</div>
       </div>
 
       <div class="rule reveal">
         <div class="rule-num">02</div>
-        <div class="rule-title">Daily profit <em>lock-in</em></div>
-        <div class="rule-body">
-          The asymmetric twin. When the trader is up significantly, we cancel all pending entries so they can't give it back chasing the next setup. The feature your highest-volume whales will thank you for.
-          <div class="rule-meta">
-            <span>default: +100%</span>
-            <span>opt-in per user</span>
-          </div>
-        </div>
+        <div class="rule-title">Max Daily Profit <span class="dash">—</span> <span class="val">100%</span></div>
+        <div class="rule-body">Doubled your account today? Locked. You won't give those gains back by overtrading a good day.</div>
+        <div class="rule-tag rust">Hard stop</div>
       </div>
 
       <div class="rule reveal">
         <div class="rule-num">03</div>
-        <div class="rule-title">Cooldown <em>after any loss</em></div>
-        <div class="rule-body">
-          Revenge trades destroy accounts. After any realized loss above a minimum threshold, new entries are blocked until <code>08:00 EDT</code> the following day. Risk-managing open positions stays unrestricted.
-          <div class="rule-meta">
-            <span>default: 1 loss → next session</span>
-            <span>min-loss threshold configurable</span>
-          </div>
-        </div>
+        <div class="rule-title">Loss Cooldown <span class="dash">—</span> <span class="val">Until 8 AM</span></div>
+        <div class="rule-body">Any meaningful loss triggers a cooldown until the next morning. No revenge trades. No tilt spirals. Period.</div>
+        <div class="rule-tag">Auto-enforced</div>
       </div>
 
       <div class="rule reveal">
         <div class="rule-num">04</div>
-        <div class="rule-title">No stop-loss <em>widening</em></div>
-        <div class="rule-body">
-          If a trader tries to move their stop further from entry — the single most destructive discretionary act in retail trading — RiskGuard cancels the widened stop and <strong>auto-restores the original</strong> in one round-trip. No gap in coverage.
-          <div class="rule-meta">
-            <span>on-chain restore</span>
-            <span>trigger + limit orders</span>
-            <span>TP/SL OCO aware</span>
-          </div>
-        </div>
+        <div class="rule-title">SL Discipline <span class="dash">—</span> <em>No Widening</em></div>
+        <div class="rule-body">You can tighten your stop. You cannot widen it. If you try, the guard cancels the new order and auto-restores the original.</div>
+        <div class="rule-tag">Cancel + auto-restore</div>
       </div>
 
       <div class="rule reveal">
         <div class="rule-num">05</div>
-        <div class="rule-title">No <em>pyramiding</em></div>
-        <div class="rule-body">
-          Any order that adds to an existing position — or exceeds it and would flip direction — is cancelled at the pre-trade layer. Traders size once and manage what they have. Less tilt, longer survival.
-          <div class="rule-meta">
-            <span>flip-detection included</span>
-            <span>reduce-only bypass</span>
-          </div>
-        </div>
+        <div class="rule-title">No Adding to <em>Positions</em></div>
+        <div class="rule-body">Manage the trade you have. No pyramiding, no averaging down. New orders in the same direction are instantly cancelled.</div>
+        <div class="rule-tag rust">Hard stop</div>
+      </div>
+
+      <div class="rule notify reveal">
+        <div class="rule-num">06</div>
+        <div class="rule-title">Telegram <em>notifications</em></div>
+        <div class="rule-body">Every time a rule is broken by an order, you get a push alert with the full context — which rule, which order ID, what the bot did. Nothing happens on your account that you don't see in chat.</div>
+        <div class="rule-tag">Realtime push</div>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- ───────────────── INTEGRATION ───────────────── -->
-<section id="integrate">
+<!-- ───────────────── HOW IT WORKS ───────────────── -->
+<section id="how">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 04 <span>/ integration</span></div>
-      <h2 class="sec-title">
-        Ship it in an afternoon.<br>
-        <em>Not a quarter.</em>
-      </h2>
+      <div class="sec-label">§ 04 <span>/ how it works</span></div>
+      <h2 class="sec-title">Up and running in <em>60 seconds.</em></h2>
     </div>
 
-    <div class="integrate">
-      <div class="integrate-copy reveal">
-        <h3>One <em>init call</em>. Your order pipeline now has guardrails.</h3>
-        <p>
-          RiskGuard runs as a sidecar service against your DEX's public API. You forward new orders through our pre-trade endpoint; we validate against the trader's rule set and either pass-through or reject with a structured reason code. Everything else — state, fills, position tracking — is polled server-side.
-        </p>
-        <p>
-          No smart contracts to deploy. No custodial trust required. The trader retains key control; we only cancel their own orders using a delegated signing key with strict scope.
-        </p>
-        <ul class="integrate-list">
-          <li><span class="tick">✓</span> Hyperliquid adapter shipping now · dYdX + Drift + GMX Q2</li>
-          <li><span class="tick">✓</span> REST + WebSocket · &lt;3s cancel-to-acknowledgement</li>
-          <li><span class="tick">✓</span> Webhooks to your backend on every rule fire</li>
-          <li><span class="tick">✓</span> Per-trader rule overrides via JSON or your admin UI</li>
-          <li><span class="tick">✓</span> Audit log exportable for MiCA / CFTC compliance</li>
-        </ul>
+    <div class="steps">
+
+      <div class="step reveal">
+        <div class="step-num">STEP 01</div>
+        <h3>Connect to <em>RiskGuard bot</em>.</h3>
+        <p>Open Telegram, message <b>@RiskGuardBot</b>, tap <b>/connect</b>. A one-time secure webview walks you through pairing your Hyperliquid account via a scoped agent key — cancel and reduce-only permission, no withdrawal rights.</p>
+        <div class="step-note">⏱ ~30 seconds</div>
       </div>
 
-      <div class="reveal">
-        <div class="code-block">
-          <div class="code-tabs">
-            <div class="code-tab active" data-tab="ts">typescript</div>
-            <div class="code-tab" data-tab="py">python</div>
-            <div class="code-tab" data-tab="curl">curl</div>
+      <div class="step reveal">
+        <div class="step-num">STEP 02</div>
+        <h3>Set your <em>rules</em>.</h3>
+        <p>Pick your daily loss cap, profit lock, cooldown window, and which rules to enforce. Defaults: 5% / 100% / 8 AM EDT / all on. Change them any time by messaging <b>/rules</b>.</p>
+        <div class="step-note">⏱ ~20 seconds</div>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">STEP 03</div>
+        <h3>Trade <em>protected</em>.</h3>
+        <p>Place orders on Hyperliquid exactly as you do today — web, mobile, TradingView, whatever. The bot polls your account every 3 seconds and cancels any order that violates your rules, before it can damage you.</p>
+        <div class="step-note">⏱ zero workflow change</div>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">STEP 04</div>
+        <h3>Monitor on <em>Telegram</em>.</h3>
+        <p>Every cancel, every lock, every restored stop — pushed straight to your chat. Ask the bot <b>/status</b> for live P&L, <b>/log</b> for today's actions, <b>/pause</b> to disable temporarily. Your dashboard lives in a thread.</p>
+        <div class="step-note">⏱ always-on</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── TESTIMONIALS ───────────────── -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-label">§ 05 <span>/ early traders</span></div>
+      <h2 class="sec-title">Built with Hyperliquid traders <em>actually using it.</em></h2>
+    </div>
+
+    <div class="testimonial-grid">
+      <div class="testimonial reveal">
+        <div class="stars">★★★★★</div>
+        <p>"The SL-restore thing saved me once already. I widened my stop in a panic, five seconds later the order was cancelled and the original was back. I would have blown the account."</p>
+        <div class="testimonial-who">
+          <div class="t-avatar">JK</div>
+          <div>
+            <div class="t-name">jk_alpha</div>
+            <div class="t-role">HL trader · 6 months</div>
           </div>
-          <div class="code-body" id="code-body">
-<pre id="code-ts"><span class="com">// 1. Install</span>
-<span class="com">// npm install @riskguard/sdk</span>
-
-<span class="kw">import</span> { <span class="fn">RiskGuard</span> } <span class="kw">from</span> <span class="str">'@riskguard/sdk'</span>;
-
-<span class="kw">const</span> <span class="prop">guard</span> = <span class="kw">new</span> <span class="fn">RiskGuard</span>({
-  <span class="prop">dex</span>: <span class="str">'hyperliquid'</span>,
-  <span class="prop">apiKey</span>: <span class="fn">process</span>.<span class="prop">env</span>.<span class="prop">RG_API_KEY</span>,
-  <span class="prop">rules</span>: {
-    <span class="prop">maxDailyLossPct</span>:      <span class="num">5.0</span>,
-    <span class="prop">maxDailyProfitPct</span>:   <span class="num">100.0</span>,
-    <span class="prop">cooldownAfterLoss</span>:   <span class="kw">true</span>,
-    <span class="prop">noSLWidening</span>:        <span class="kw">true</span>,
-    <span class="prop">noAddingToPosition</span>:  <span class="kw">true</span>,
-  },
-});
-
-<span class="com">// 2. Intercept orders before your matching engine</span>
-<span class="kw">async function</span> <span class="fn">placeOrder</span>(<span class="prop">user</span>, <span class="prop">order</span>) {
-  <span class="kw">const</span> <span class="prop">check</span> = <span class="kw">await</span> <span class="prop">guard</span>.<span class="fn">preTrade</span>(<span class="prop">user</span>, <span class="prop">order</span>);
-
-  <span class="kw">if</span> (!<span class="prop">check</span>.<span class="prop">ok</span>) {
-    <span class="kw">return</span> { <span class="prop">rejected</span>: <span class="kw">true</span>, <span class="prop">reason</span>: <span class="prop">check</span>.<span class="prop">rule</span> };
-  }
-
-  <span class="kw">return</span> <span class="fn">dex</span>.<span class="fn">submit</span>(<span class="prop">order</span>);
-}
-
-<span class="com">// 3. Receive webhook on every rule fire</span>
-<span class="com">// POST /riskguard/webhook</span>
-<span class="com">//   { event: "daily_loss_lock", user, details }</span></pre>
-
-<pre id="code-py" style="display:none"><span class="com"># 1. Install</span>
-<span class="com"># pip install riskguard-sdk</span>
-
-<span class="kw">from</span> <span class="prop">riskguard</span> <span class="kw">import</span> <span class="fn">RiskGuard</span>
-
-<span class="prop">guard</span> = <span class="fn">RiskGuard</span>(
-    <span class="prop">dex</span>=<span class="str">"hyperliquid"</span>,
-    <span class="prop">api_key</span>=<span class="prop">os</span>.<span class="prop">environ</span>[<span class="str">"RG_API_KEY"</span>],
-    <span class="prop">rules</span>={
-        <span class="str">"max_daily_loss_pct"</span>:      <span class="num">5.0</span>,
-        <span class="str">"max_daily_profit_pct"</span>:   <span class="num">100.0</span>,
-        <span class="str">"cooldown_after_loss"</span>:    <span class="kw">True</span>,
-        <span class="str">"no_sl_widening"</span>:         <span class="kw">True</span>,
-        <span class="str">"no_adding_to_position"</span>:  <span class="kw">True</span>,
-    },
-)
-
-<span class="com"># 2. Intercept orders before your matching engine</span>
-<span class="kw">async def</span> <span class="fn">place_order</span>(<span class="prop">user</span>, <span class="prop">order</span>):
-    <span class="prop">check</span> = <span class="kw">await</span> <span class="prop">guard</span>.<span class="fn">pre_trade</span>(<span class="prop">user</span>, <span class="prop">order</span>)
-
-    <span class="kw">if not</span> <span class="prop">check</span>.<span class="prop">ok</span>:
-        <span class="kw">return</span> { <span class="str">"rejected"</span>: <span class="kw">True</span>, <span class="str">"reason"</span>: <span class="prop">check</span>.<span class="prop">rule</span> }
-
-    <span class="kw">return</span> <span class="kw">await</span> <span class="prop">dex</span>.<span class="fn">submit</span>(<span class="prop">order</span>)
-
-<span class="com"># 3. Webhook handler</span>
-<span class="com"># @app.post("/riskguard/webhook")</span>
-<span class="com"># def on_rule_fire(event): ...</span></pre>
-
-<pre id="code-curl" style="display:none"><span class="com"># Pre-trade check — sub-50ms P99</span>
-<span class="fn">curl</span> <span class="str">https://api.riskguard.xyz/v1/pretrade</span> \
-  <span class="kw">-H</span> <span class="str">"Authorization: Bearer $RG_API_KEY"</span> \
-  <span class="kw">-H</span> <span class="str">"Content-Type: application/json"</span> \
-  <span class="kw">-d</span> <span class="str">'{
-    "user":   "0xabc...def",
-    "dex":    "hyperliquid",
-    "order": {
-      "coin":   "BTC",
-      "side":   "A",
-      "sz":     0.45,
-      "px":     98400,
-      "type":   "trigger",
-      "reduce": false
-    }
-  }'</span>
-
-<span class="com"># Response</span>
-<span class="com"># {</span>
-<span class="com">#   "ok": false,</span>
-<span class="com">#   "rule": "no_sl_widening",</span>
-<span class="com">#   "reason": "Stop moved from 97200 → 96100 (looser)",</span>
-<span class="com">#   "restored_oid": 8472930172</span>
-<span class="com"># }</span></pre>
+        </div>
+      </div>
+      <div class="testimonial reveal">
+        <div class="stars">★★★★★</div>
+        <p>"Cooldown after loss is the killer feature. I can't tell myself 'one more trade' at 2 AM anymore — the bot just won't let the order through. The frustration is the point."</p>
+        <div class="testimonial-who">
+          <div class="t-avatar">MV</div>
+          <div>
+            <div class="t-name">mvrx</div>
+            <div class="t-role">HL trader · 14 months</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial reveal">
+        <div class="stars">★★★★★</div>
+        <p>"I've used every risk app. They're all advisory. This is the first one that actually cancels the order. Cancel-only permission means the keys never leave my custody either."</p>
+        <div class="testimonial-who">
+          <div class="t-avatar">0x</div>
+          <div>
+            <div class="t-name">0xzero</div>
+            <div class="t-role">HL trader · prop desk</div>
           </div>
         </div>
       </div>
@@ -1937,126 +1363,130 @@
 <section id="pricing">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 05 <span>/ pricing</span></div>
-      <h2 class="sec-title">
-        Priced as <em>infrastructure</em>, not a surveillance tool. Your bigger moat is worth more than our margin.
-      </h2>
+      <div class="sec-label">§ 06 <span>/ pricing</span></div>
+      <h2 class="sec-title">Less than <em>one bad session.</em> For a year of protection.</h2>
     </div>
 
     <div class="pricing-grid">
 
       <div class="tier">
-        <div class="tier-name">Tier III</div>
-        <div class="tier-bucket">Long tail</div>
-        <div class="tier-volume">&lt; $50B annual volume · launch-stage DEXes</div>
-        <div class="tier-price">$750<span>/mo</span></div>
-        <div class="tier-desc">Flat · or 0.0005% rev-share</div>
+        <div class="tier-name">Starter</div>
+        <div class="tier-byline">One account. All rules.</div>
+        <div class="tier-price">$14.50<span> /mo</span></div>
+        <div class="tier-strike">$29/mo <b>· 50% off forever (annual, waitlist)</b></div>
         <ul class="tier-feats">
-          <li>Hyperliquid adapter</li>
-          <li>All 5 core rules</li>
-          <li>Shared dashboard</li>
-          <li>Community Slack</li>
-          <li>Monthly rollup report</li>
+          <li>1 Hyperliquid account</li>
+          <li>All 5 enforcement rules</li>
+          <li>Telegram alerts on every fire</li>
+          <li>3-second polling interval</li>
+          <li>SL auto-restore</li>
         </ul>
-        <a href="#cta" class="tier-cta">Start pilot →</a>
+        <a href="#cta" class="tier-cta">Join waitlist →</a>
       </div>
 
       <div class="tier featured">
-        <div class="tier-name">Tier II</div>
-        <div class="tier-bucket">Mid-market</div>
-        <div class="tier-volume">$50B – $500B annual · Drift, Paradex, Vertex scale</div>
-        <div class="tier-price range">$2K–$5K<span> /mo</span></div>
-        <div class="tier-desc">Volume-indexed · annual contract</div>
+        <div class="tier-name">Pro</div>
+        <div class="tier-byline">Multi-account. Custom thresholds.</div>
+        <div class="tier-price">$29.50<span> /mo</span></div>
+        <div class="tier-strike">$59/mo <b>· 50% off forever (annual, waitlist)</b></div>
         <ul class="tier-feats">
-          <li>All adapters (HL, dYdX, Drift, GMX)</li>
-          <li>Custom rule engine + per-trader overrides</li>
-          <li>Private admin dashboard</li>
-          <li>Webhooks + audit log export</li>
-          <li>Dedicated engineer + Slack channel</li>
-          <li>99.9% uptime SLA</li>
+          <li>Up to 3 Hyperliquid accounts</li>
+          <li>Everything in Starter</li>
+          <li>Custom rule thresholds per account</li>
+          <li>Weekly performance digest</li>
+          <li>Priority Telegram support</li>
+          <li>Audit log export</li>
         </ul>
-        <a href="#cta" class="tier-cta">Talk to us →</a>
+        <a href="#cta" class="tier-cta">Join waitlist →</a>
       </div>
 
       <div class="tier">
-        <div class="tier-name">Tier I</div>
-        <div class="tier-bucket">Hyperscale</div>
-        <div class="tier-volume">&gt; $500B annual · Hyperliquid, Aster, Lighter class</div>
-        <div class="tier-price range">$10K+<span> /mo</span></div>
-        <div class="tier-desc">Enterprise · co-branded · SOC 2</div>
+        <div class="tier-name">Elite</div>
+        <div class="tier-byline">Unlimited. For prop desks.</div>
+        <div class="tier-price">$64.50<span> /mo</span></div>
+        <div class="tier-strike">$129/mo <b>· 50% off forever (annual, waitlist)</b></div>
         <ul class="tier-feats">
-          <li>Everything in Tier II</li>
-          <li>Co-engineered rule extensions</li>
-          <li>White-labeled for your traders</li>
-          <li>On-call eng + weekly review</li>
-          <li>SOC 2 Type II + pen-test reports</li>
-          <li>MiCA / CFTC compliance package</li>
+          <li>Unlimited accounts</li>
+          <li>Everything in Pro</li>
+          <li>Custom rules (API access)</li>
+          <li>Team dashboard & shared alerts</li>
+          <li>Dedicated onboarding call</li>
+          <li>Direct founder line</li>
         </ul>
-        <a href="#cta" class="tier-cta">Enterprise →</a>
+        <a href="#cta" class="tier-cta">Join waitlist →</a>
       </div>
 
+    </div>
+    <div class="pricing-foot">
+      Cancel-only API permission · <span>keys never leave your machine</span> · cancel any time
     </div>
   </div>
 </section>
 
-<!-- ───────────────── HONEST FAQ ───────────────── -->
-<section id="faq">
+<!-- ───────────────── ROADMAP ───────────────── -->
+<section id="roadmap">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 06 <span>/ honest answers</span></div>
-      <h2 class="sec-title">
-        The questions a <em>skeptical</em> DEX founder would actually ask.
-      </h2>
+      <div class="sec-label">§ 07 <span>/ roadmap</span></div>
+      <h2 class="sec-title">Where this is <em>going.</em></h2>
     </div>
 
-    <div class="faq">
+    <div class="roadmap">
 
-      <div class="faq-item">
-        <div class="faq-q">Won't this just <em>reduce our volume?</em></div>
-        <div class="faq-a">
-          Short-term: yes. You'll see a few percent fewer tilt-trades. Mid-term: no, because the traders you keep are compounding. <strong>A trader who survives month one places 10× more lifetime orders than one who blows up in week two.</strong> Our pilot structure is explicitly designed around 90-day cohort volume, not daily snapshots. If the data doesn't move, you don't renew.
+      <div class="milestone reveal">
+        <div class="milestone-when">
+          <div class="now">LIVE</div>
+          2026 · phase 1
+        </div>
+        <div>
+          <h3>Hyperliquid Telegram <em>bot</em></h3>
+          <ul>
+            <li>5 enforcement rules</li>
+            <li>Cloud monitoring 24/7</li>
+            <li>Telegram alerts</li>
+            <li>SL auto-restore</li>
+            <li>Audit log</li>
+          </ul>
         </div>
       </div>
 
-      <div class="faq-item">
-        <div class="faq-q">What if <em>Hyperliquid</em> just builds this themselves?</div>
-        <div class="faq-a">
-          They might — and we'd cheer. But Hyperliquid isn't going to build configurable guardrails for every DEX downstream of them, and they're not going to white-label for your platform. We're not competing with Hyperliquid's liquidation engine; we sit <strong>one layer above</strong>, where your traders already want a seatbelt. If Hyperliquid ships an SDK that makes us obsolete in three years, we'll have already shipped to the other twenty.
+      <div class="milestone reveal">
+        <div class="milestone-when">Q3 2026 · phase 2</div>
+        <div>
+          <h3>More <em>DEXes</em></h3>
+          <ul>
+            <li>dYdX v4</li>
+            <li>Drift (Solana)</li>
+            <li>Jupiter Perps</li>
+            <li>GMX v2</li>
+            <li>Vertex</li>
+          </ul>
         </div>
       </div>
 
-      <div class="faq-item">
-        <div class="faq-q">Is this <em>regulated</em>?</div>
-        <div class="faq-a">
-          Not today. But the CFTC's 2026 perpetuals framework will almost certainly require position limits and loss controls on US-facing venues, and MiCA already does in the EU. Platforms that have guardrails in place become the compliant choice by default. We're shipping the audit trail most regulators are going to demand within 18 months. Integrating now puts you ahead of the rulemaking, not chasing it.
+      <div class="milestone reveal">
+        <div class="milestone-when">Q1 2027 · phase 3</div>
+        <div>
+          <h3>Native <em>DEX SDK</em></h3>
+          <ul>
+            <li>Embed risk rules in-venue</li>
+            <li>DEX-branded enforcement</li>
+            <li>Cohort analytics for operators</li>
+            <li>Regulatory-ready audit trail</li>
+          </ul>
         </div>
       </div>
 
-      <div class="faq-item">
-        <div class="faq-q">How is this <em>not</em> just a stop-loss?</div>
-        <div class="faq-a">
-          A stop-loss is a single trader-set order that can be cancelled, moved, or ignored. RiskGuard is a <strong>platform-enforced policy</strong> that runs server-side and cancels the trader's attempts to undo their own discipline. The SL-widening rule is the canonical example: a trader moves their stop further from entry (the classic tilt move) — we cancel the widened order and restore the original in one round-trip. A regular stop-loss has no immune system. We are the immune system.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q">What's the <em>real</em> integration time?</div>
-        <div class="faq-a">
-          On our side: under 48 hours to running pilot. The RiskGuard daemon is already live on Hyperliquid mainnet. The SDK is a thin REST wrapper around the engine — your backend POSTs each new order to <code>/v1/pretrade</code>, we return <code>{ ok: true | false, rule, reason }</code>, you pass through or reject. <strong>Median integration on a motivated engineer's side: one afternoon.</strong> Full production rollout with your admin dashboard and webhook wiring: three to five business days. Call us on a Monday, risk-managed cohort live by Thursday.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q">Who owns the <em>trader's keys?</em></div>
-        <div class="faq-a">
-          The trader. Always. RiskGuard operates via a scoped delegated signing key that can <strong>only cancel orders and place reduce-only stops</strong> on the trader's own account. It cannot open new positions, transfer funds, or access funding. Standard Hyperliquid agent-wallet pattern; security model is identical to the Hyperliquid UI itself.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q">What's the <em>honest</em> MRR of this business today?</div>
-        <div class="faq-a">
-          Zero. We're pre-revenue, running the core engine on Hyperliquid mainnet against live trader accounts, validating the pitch by talking to DEX founders before we ship the SDK itself. We'd rather you know that than find out after signing. If you're a Tier-II DEX and you'd use this, we'll ship it for you in four weeks — and the first pilot gets six months at cost.
+      <div class="milestone reveal">
+        <div class="milestone-when">Q4 2027 · phase 4</div>
+        <div>
+          <h3>CEX <em>support</em></h3>
+          <ul>
+            <li>Binance Futures</li>
+            <li>Bybit</li>
+            <li>OKX</li>
+            <li>Coinbase Advanced</li>
+          </ul>
         </div>
       </div>
 
@@ -2067,87 +1497,34 @@
 <!-- ───────────────── CTA ───────────────── -->
 <section class="cta" id="cta">
   <div class="wrap">
-    <h2>Keep your traders<br><em>alive.</em></h2>
+    <h2>Lock in <em>50% off</em><br>forever.</h2>
     <p class="cta-sub">
-      Drop a work email. We'll book a 30-minute call and walk through the Hyperliquid demo live.
-      If we're not obviously useful by minute ten, we'll say so and save you the follow-up.
+      Early access opens soon. Waitlist members get founding-member pricing — <strong>50% off forever on the annual plan</strong>. No credit card required until launch.
     </p>
-    <form class="cta-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='SENT ✓'; setTimeout(()=>this.querySelector('button').textContent='REQUEST DEMO →', 2000);">
-      <input type="email" placeholder="founder@yourdex.xyz" required>
-      <button type="submit">REQUEST DEMO →</button>
+    <form class="cta-form" onsubmit="event.preventDefault(); const b=this.querySelector('button'); b.textContent='YOU\'RE IN ✓'; setTimeout(()=>b.textContent='JOIN WAITLIST →', 2400);">
+      <input type="email" placeholder="your@email.xyz" required>
+      <button type="submit">JOIN WAITLIST →</button>
     </form>
+    <div class="cta-note">Your founding-member discount is locked in. Cancel any time after launch.</div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
     <div class="footer-grid">
-      <span>RISKGUARD · TRADER SURVIVAL INFRASTRUCTURE · 2026</span>
+      <span>RISKGUARD · HYPERLIQUID TELEGRAM BOT · 2026</span>
       <span>
-        <a href="#">Docs</a> &nbsp;·&nbsp;
-        <a href="#">GitHub</a> &nbsp;·&nbsp;
-        <a href="#">Security</a> &nbsp;·&nbsp;
-        <a href="mailto:founders@riskguard.xyz">founders@riskguard.xyz</a>
+        <a href="#pricing">Pricing</a> &nbsp;·&nbsp;
+        <a href="#cta">Waitlist</a> &nbsp;·&nbsp;
+        <a href="#rules">Rules</a> &nbsp;·&nbsp;
+        <a href="dex.html">For DEX operators →</a>
       </span>
     </div>
   </div>
 </footer>
 
 <script>
-  // ── Kill-feed generator ────────────────────────────────────────
-  const lines = [
-    { t: 'cancel',  tag: 'CANCELLED', msg: '<b>BTC</b> trigger order #8472930 — SL widened from $97,200 → $96,100' },
-    { t: 'restore', tag: 'RESTORED',  msg: '<b>BTC</b> SL re-placed @ $97,200 (original price preserved)' },
-    { t: 'info',    tag: 'POLL',      msg: 'account value $12,418.20 · day −1.84%' },
-    { t: 'cancel',  tag: 'CANCELLED', msg: '<b>ETH</b> buy #8473104 — adding to long position (size 1.2 > pos 0)' },
-    { t: 'info',    tag: 'POLL',      msg: 'open positions: 2 · open orders: 5' },
-    { t: 'cancel',  tag: 'CANCELLED', msg: '<b>SOL</b> sell #8473219 — position flip attempt blocked' },
-    { t: 'lock',    tag: 'DAILY LOCK',msg: '<b>0xe91a...b8d4</b> hit −5.2% · all 7 orders cancelled' },
-    { t: 'info',    tag: 'ALERT',     msg: 'Telegram notification sent — trading locked until 00:00 EDT' },
-    { t: 'info',    tag: 'POLL',      msg: 'account value $11,762.08 · day −5.24%' },
-    { t: 'cancel',  tag: 'COOLDOWN',  msg: '<b>HYPE</b> buy #8473401 — cooldown active until 08:00 EDT' },
-    { t: 'ok',      tag: 'PASS',      msg: '<b>ETH</b> reduce-only sell #8473512 — allowed (managing open position)' },
-    { t: 'info',    tag: 'POLL',      msg: 'fills since last check: 3 · closedPnl: +$142.80' },
-    { t: 'restore', tag: 'RESTORED',  msg: '<b>BTC</b> SL re-placed @ $96,800 · no gap in coverage' },
-    { t: 'cancel',  tag: 'CANCELLED', msg: '<b>SOL</b> short entry #8473698 — daily loss lock active' },
-    { t: 'info',    tag: 'SYNC',      msg: 'state persisted · 1,248 events today · uptime 99.94%' },
-    { t: 'ok',      tag: 'NEW DAY',   msg: 'trading day rollover · daily lock cleared for 0xe91a...b8d4' },
-  ];
-
-  function now() {
-    const d = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-
-  const feed = document.getElementById('feed-inner');
-  // Render the list twice back-to-back for a seamless loop
-  const html = [...lines, ...lines].map(l => `
-    <div class="feed-line ${l.t}">
-      <span class="feed-time">${now()}</span>
-      <div>
-        <span class="feed-tag">${l.tag}</span>
-        <div class="feed-msg">${l.msg}</div>
-      </div>
-    </div>
-  `).join('');
-  feed.innerHTML = html;
-
-  // ── Reveal on scroll ─────────────────────────────────────────
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('in');
-        io.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal').forEach((el, i) => {
-    el.style.transitionDelay = (i % 4) * 80 + 'ms';
-    io.observe(el);
-  });
-
-  // ── Sticky nav scroll-state ──────────────────────────────────
+  // Sticky nav scroll-state
   const navEl = document.querySelector('nav');
   let lastScrolled = false;
   window.addEventListener('scroll', () => {
@@ -2158,147 +1535,16 @@
     }
   }, { passive: true });
 
-  // ── Code tab switcher ────────────────────────────────────────
-  document.querySelectorAll('.code-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      ['ts', 'py', 'curl'].forEach(lang => {
-        const el = document.getElementById('code-' + lang);
-        if (el) el.style.display = (lang === tab.dataset.tab) ? 'block' : 'none';
-      });
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
     });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = (i % 5) * 70 + 'ms';
+    io.observe(el);
   });
-</script>
-
-<!-- ─── 3D BACKGROUND — ambient particle drift ──────────────────────── -->
-<script type="module">
-  import * as THREE from 'three';
-
-  const canvas = document.getElementById('bg-3d');
-  if (!canvas) { throw new Error('canvas missing'); }
-
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.setClearColor(0x000000, 0);
-
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x0a0b0e, 0.002);
-
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-  camera.position.set(0, 0, 520);
-
-  // Minimal palette
-  const C_IVORY = new THREE.Color(0xf4efe6);
-  const C_AMBER = new THREE.Color(0xe8b86f);
-
-  // Single particle field — quiet, distant
-  const COUNT = reduceMotion ? 120 : 320;
-  const positions = new Float32Array(COUNT * 3);
-  const colors    = new Float32Array(COUNT * 3);
-  const sizes     = new Float32Array(COUNT);
-  const drift     = new Float32Array(COUNT);
-
-  for (let i = 0; i < COUNT; i++) {
-    // soft cloud in z-space behind content
-    const r = 200 + Math.pow(Math.random(), 0.7) * 500;
-    const theta = Math.random() * Math.PI * 2;
-    positions[i*3]   = Math.cos(theta) * r;
-    positions[i*3+1] = (Math.random() - 0.5) * 380;
-    positions[i*3+2] = Math.sin(theta) * r - 100;
-
-    const amber = Math.random() < 0.32;
-    const c = amber ? C_AMBER : C_IVORY;
-    colors[i*3]   = c.r;
-    colors[i*3+1] = c.g;
-    colors[i*3+2] = c.b;
-
-    sizes[i] = amber ? 1.6 + Math.random() * 0.8 : 0.9 + Math.random() * 0.7;
-    drift[i] = 0.003 + Math.random() * 0.006;
-  }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-  geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
-
-  const mat = new THREE.ShaderMaterial({
-    vertexShader: `
-      attribute float size;
-      varying vec3 vColor;
-      void main() {
-        vColor = color;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = size * (340.0 / -mv.z);
-        gl_Position = projectionMatrix * mv;
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vColor;
-      void main() {
-        vec2 p = gl_PointCoord - 0.5;
-        float r = length(p);
-        if (r > 0.5) discard;
-        float a = smoothstep(0.5, 0.05, r) * 0.8;
-        gl_FragColor = vec4(vColor, a);
-      }
-    `,
-    vertexColors: true,
-    transparent: true,
-    depthWrite: false,
-  });
-
-  scene.add(new THREE.Points(geo, mat));
-
-  // Subtle mouse parallax only — no scroll coupling
-  let mx = 0, my = 0;
-  window.addEventListener('mousemove', (e) => {
-    mx = (e.clientX / window.innerWidth - 0.5);
-    my = (e.clientY / window.innerHeight - 0.5);
-  }, { passive: true });
-
-  function resize() {
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  const clock = new THREE.Clock();
-  const posAttr = geo.attributes.position;
-
-  function animate() {
-    requestAnimationFrame(animate);
-    const dt = Math.min(clock.getDelta(), 0.1);
-    const t  = clock.elapsedTime;
-
-    if (!reduceMotion) {
-      // gentle rotational drift — barely perceptible
-      for (let i = 0; i < COUNT; i++) {
-        const x = positions[i*3];
-        const z = positions[i*3+2] + 100;
-        const r = Math.sqrt(x*x + z*z);
-        const theta = Math.atan2(z, x) + dt * drift[i];
-        positions[i*3]   = Math.cos(theta) * r;
-        positions[i*3+2] = Math.sin(theta) * r - 100;
-      }
-      posAttr.needsUpdate = true;
-    }
-
-    // tiny parallax
-    camera.position.x += (mx * 14 - camera.position.x) * 0.02;
-    camera.position.y += (-my * 10 - camera.position.y) * 0.02;
-    camera.lookAt(0, 0, 0);
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Fade in, then the CSS transition handles opacity
-  requestAnimationFrame(() => canvas.classList.add('in'));
 </script>
 
 </body>
