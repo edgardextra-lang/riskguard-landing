@@ -1241,6 +1241,157 @@
     .trust-strip { flex-direction: column; align-items: flex-start; }
     .faq-q-text { font-size: 19px; }
   }
+
+  /* ── Mobile (≤640px) ─────────────────────── */
+  @media (max-width: 640px) {
+    /* Nav — collapse badge + tighten CTA so it fits at 375px */
+    .brand-badge { display: none; }
+    .brand { font-size: 12px; gap: 10px; }
+    .brand-mark { width: 18px; height: 18px; }
+    .nav-cta { padding: 9px 12px; font-size: 10.5px; gap: 6px; }
+
+    /* Hero */
+    .hero { padding: 108px 0 60px; }
+    .hero-grid { gap: 36px; }
+    .eyebrow { font-size: 10px; letter-spacing: 0.16em; margin-bottom: 22px; line-height: 1.4; flex-wrap: wrap; }
+    .eyebrow::before { width: 20px; }
+    .hero h1 { font-size: clamp(40px, 10.6vw, 56px); line-height: 1; margin-bottom: 24px; }
+    .hero-sub { font-size: 15.5px; margin-bottom: 26px; line-height: 1.55; }
+    .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 28px; }
+    .btn-primary, .btn-ghost { justify-content: center; font-size: 12px; padding: 14px 18px; letter-spacing: 0.05em; }
+
+    /* Trust strip */
+    .trust-strip { gap: 14px; margin-bottom: 24px; padding-top: 16px; }
+    .trust-quote { font-size: 16px; max-width: 100%; padding-left: 14px; border-left-width: 2px; line-height: 1.45; }
+    .trust-handles { font-size: 10px; gap: 6px; }
+    .trust-handle { padding: 3px 8px; }
+
+    /* Hero meta */
+    .hero-meta { gap: 18px 28px; padding-top: 20px; }
+    .hero-meta-item { font-size: 10px; }
+    .hero-meta-item strong { font-size: 17px; margin-bottom: 2px; }
+
+    /* Telegram mock */
+    .tg-mock { padding: 10px 10px 14px; border-radius: 14px; }
+    .tg-head { padding: 6px 8px 12px; margin-bottom: 12px; }
+    .tg-avatar { width: 32px; height: 32px; font-size: 12px; }
+    .tg-messages { max-height: 360px; }
+    .tg-messages-inner { gap: 8px; }
+    .tg-msg { font-size: 12.5px; padding: 9px 12px; }
+    .tg-msg .tag { font-size: 9.5px; }
+    .tg-privacy { font-size: 9.5px; padding: 6px 9px; margin-top: 8px; }
+
+    /* Section heads */
+    .sec-head { padding-top: 52px; padding-bottom: 26px; gap: 14px; }
+    .sec-label { font-size: 10px; letter-spacing: 0.18em; }
+    .sec-title { font-size: clamp(30px, 7.8vw, 42px); line-height: 1.05; }
+
+    /* Stats */
+    .stat { padding: 32px 22px; }
+    .stat-tag { font-size: 9.5px; letter-spacing: 0.18em; margin-bottom: 18px; }
+    .stat-value { font-size: 56px; margin-bottom: 16px; }
+    .stat-caption { font-size: 14px; }
+    .stat-dollar { font-size: 10.5px; padding: 7px 10px; }
+
+    /* Problem cards */
+    .problem { padding: 30px 22px 26px; }
+    .problem-num { font-size: 42px; margin-bottom: 12px; }
+    .problem h3 { font-size: 23px; margin-bottom: 12px; }
+    .problem p { font-size: 14px; margin-bottom: 14px; }
+    .problem-pullquote { font-size: 13px; padding: 8px 12px; margin-top: 12px; }
+    .problem-stat { font-size: 10.5px; }
+
+    /* Advisory */
+    .advisory-cell { padding: 14px 22px; font-size: 11px; }
+    .advisory-cell .adv-verdict { font-size: 9.5px; letter-spacing: 0.12em; }
+
+    /* Rules */
+    .rule { grid-template-columns: 46px 1fr; gap: 14px; padding: 24px 0; }
+    .rule-num { font-size: 46px; line-height: 0.95; }
+    .rule-title { font-size: 22px; line-height: 1.15; }
+    .rule-body, .rule-tag { padding-left: 60px; }
+    .rule-body { font-size: 14px; }
+    .rules-separator { font-size: 9.5px; letter-spacing: 0.18em; padding: 14px 0 6px; gap: 10px; }
+    .rule.notify .rule-num { font-size: 26px; }
+    .rules-cta-row { padding: 24px 0 4px; }
+
+    /* Steps */
+    .step { padding: 32px 22px 28px; }
+    .step-num { margin-bottom: 20px; font-size: 10.5px; }
+    .step h3 { font-size: 22px; margin-bottom: 12px; }
+    .step p { font-size: 13.5px; }
+
+    /* Testimonials */
+    .testimonial { padding: 22px 22px 20px; }
+    .testimonial p { font-size: 16px; margin-bottom: 18px; }
+    .testimonial-who { padding-top: 14px; }
+
+    /* Offer */
+    .solo-offer-inner { padding: 28px 22px 24px; }
+    .seat-counter { margin-bottom: 22px; }
+    .seat-counter-text { flex-direction: column; align-items: flex-start; gap: 4px; font-size: 10.5px; }
+    .solo-badge { font-size: 9.5px; padding: 5px 10px; margin-bottom: 20px; }
+    .solo-name { font-size: 32px; }
+    .solo-byline { font-size: 15px; margin-bottom: 22px; padding-bottom: 20px; }
+    .solo-price { font-size: 52px; }
+    .solo-price span { font-size: 14px; }
+    .solo-price-row { gap: 12px; margin-bottom: 22px; }
+    .solo-feats { margin-bottom: 20px; gap: 8px; }
+    .solo-feats li { font-size: 13.5px; padding: 8px 0; gap: 10px; }
+    .guarantee-block { padding: 12px 14px; gap: 10px; margin-bottom: 22px; }
+    .guarantee-block .g-icon { font-size: 18px; }
+    .guarantee-block .g-text { font-size: 12.5px; line-height: 1.5; }
+    .solo-cta { padding: 16px; font-size: 12.5px; letter-spacing: 0.08em; }
+
+    /* FAQ */
+    .faq-question { padding: 22px 0; gap: 14px; }
+    .faq-q-text { font-size: 17px; }
+    .faq-answer-inner { font-size: 14.5px; padding-bottom: 24px; line-height: 1.65; }
+    .faq-toggle { width: 26px; height: 26px; font-size: 16px; }
+
+    /* Final CTA */
+    .cta { padding: 72px 0 60px; }
+    .cta h2 { font-size: clamp(42px, 11vw, 68px); margin-bottom: 20px; }
+    .cta-sub { font-size: 15.5px; margin-bottom: 32px; }
+
+    /* Footer */
+    footer { padding: 28px 0; }
+    .footer-grid { font-size: 10.5px; gap: 10px; }
+
+    /* Marquee */
+    .marquee { padding: 12px 0; }
+    .marquee-track { font-size: 11px; gap: 28px; }
+    .marquee-item .tag { font-size: 9.5px; }
+
+    /* Sticky CTA */
+    .sticky-cta { padding: 10px 14px; }
+    .sticky-cta-btn { padding: 14px; font-size: 12.5px; letter-spacing: 0.06em; }
+  }
+
+  /* ── Tiny phones (≤380px, iPhone SE etc.) ── */
+  @media (max-width: 380px) {
+    .wrap { padding: 0 16px; }
+    nav { padding: 12px 16px; }
+    nav.scrolled { padding: 9px 16px; }
+    .nav-cta { padding: 8px 10px; font-size: 10px; }
+    .nav-cta .tg-icon { display: none; }
+    .hero h1 { font-size: 38px; }
+    .sec-title { font-size: 28px; }
+    .stat-value { font-size: 48px; }
+    .solo-name { font-size: 28px; }
+    .solo-price { font-size: 46px; }
+    .cta h2 { font-size: 40px; }
+  }
+
+  /* ── Reduced motion — respect user preference ── */
+  @media (prefers-reduced-motion: reduce) {
+    .tg-messages-inner,
+    .marquee-track,
+    .seat-bar-fill,
+    .online-dot { animation: none !important; }
+    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
 </style>
 </head>
 <body>
