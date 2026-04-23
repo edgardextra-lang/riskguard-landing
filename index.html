@@ -787,6 +787,165 @@
   }
   .pricing-foot span { color: var(--paper-2); }
 
+  /* ── Single founder-access offer ───────────────────── */
+  .solo-offer {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0 8px;
+  }
+  .solo-offer-inner {
+    max-width: 680px;
+    width: 100%;
+    padding: 48px 44px 40px;
+    background: var(--ink-2);
+    border: 1px solid var(--hair);
+    position: relative;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 1px rgba(232, 184, 111, 0.3);
+  }
+  .solo-offer-inner::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 72px; height: 1px;
+    background: var(--amber);
+  }
+  .solo-offer-inner::after {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 1px; height: 72px;
+    background: var(--amber);
+  }
+  .solo-badge {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--sage);
+    margin-bottom: 24px;
+    padding: 6px 12px;
+    border: 1px solid rgba(127, 183, 126, 0.4);
+    background: rgba(127, 183, 126, 0.06);
+    text-transform: uppercase;
+  }
+  .solo-badge .online-dot { margin: 0; background: var(--sage); box-shadow: 0 0 8px rgba(127, 183, 126, 0.6); }
+  .solo-name {
+    font-family: var(--font-display);
+    font-size: 46px;
+    line-height: 1;
+    font-weight: 400;
+    color: var(--paper);
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .solo-byline {
+    font-size: 16px;
+    color: var(--paper-2);
+    line-height: 1.55;
+    margin-bottom: 32px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .solo-price-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .solo-price {
+    font-family: var(--font-display);
+    font-size: 88px;
+    color: var(--amber);
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+  }
+  .solo-price span {
+    font-size: 18px;
+    font-family: var(--font-mono);
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .solo-vs {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 12px;
+  }
+  .solo-vs-strike {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--paper-mute);
+    text-decoration: line-through;
+    letter-spacing: 0.04em;
+  }
+  .solo-vs-lock {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+  }
+  .solo-feats {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 36px;
+    display: grid;
+    gap: 12px;
+  }
+  .solo-feats li {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--paper-2);
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--hair);
+  }
+  .solo-feats li:last-child { border-bottom: none; }
+  .solo-feats li::before {
+    content: '✓';
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .solo-feats li b { color: var(--paper); font-weight: 500; }
+  .solo-feats li strong { color: var(--amber); font-weight: 500; }
+  .solo-cta {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    width: 100%;
+    padding: 20px;
+    background: var(--amber);
+    color: var(--ink);
+    border: 1px solid var(--amber);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .solo-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
+  .solo-cta .arrow { transition: transform 0.2s ease; }
+  .solo-cta:hover .arrow { transform: translateX(4px); }
+  .solo-cta .tg-icon { width: 16px; height: 16px; }
+  .solo-foot {
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  @media (max-width: 720px) {
+    .solo-offer-inner { padding: 32px 24px 28px; }
+    .solo-name { font-size: 36px; }
+    .solo-price { font-size: 64px; }
+    .solo-price-row { gap: 16px; }
+  }
+
   /* ── Roadmap ────────────────────────────────────── */
   .roadmap {
     padding-bottom: 40px;
@@ -1018,12 +1177,11 @@
   <ul class="nav-links">
     <li><a href="#rules">Rules</a></li>
     <li><a href="#how">How it works</a></li>
-    <li><a href="#pricing">Pricing</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
   </ul>
-  <a href="#cta" class="nav-cta">
+  <a href="https://t.me/RiskGuardBot" target="_blank" rel="noopener" class="nav-cta">
     <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-    Join Waitlist
+    Connect telegram bot
   </a>
 </nav>
 
@@ -1038,8 +1196,9 @@
           <span class="online-dot"></span>
         </div>
         <h1 class="reveal">
-          Stop trading<br>
-          against <em>yourself.</em>
+          You won't blow up<br>
+          this account.<br>
+          <em>Not on our watch.</em>
         </h1>
         <p class="hero-sub reveal">
           <strong>95% of leveraged traders get liquidated.</strong> Not because of strategy — because of
@@ -1048,13 +1207,13 @@
           losses you can't take back.
         </p>
         <div class="hero-actions reveal">
-          <a href="#cta" class="btn-primary">
+          <a href="https://t.me/RiskGuardBot" target="_blank" rel="noopener" class="btn-primary">
             <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-            Connect Telegram bot
+            Connect telegram bot
             <span class="arrow">→</span>
           </a>
-          <a href="#pricing" class="btn-ghost">
-            See pricing
+          <a href="#rules" class="btn-ghost">
+            See the rules
             <span class="arrow">↓</span>
           </a>
         </div>
@@ -1359,66 +1518,45 @@
   </div>
 </section>
 
-<!-- ───────────────── PRICING ───────────────── -->
-<section id="pricing">
+<!-- ───────────────── FOUNDER ACCESS (free for first 100) ───────────────── -->
+<section id="founder-access">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 06 <span>/ pricing</span></div>
-      <h2 class="sec-title">Less than <em>one bad session.</em> For a year of protection.</h2>
+      <div class="sec-label">§ 06 <span>/ founder access</span></div>
+      <h2 class="sec-title">Free for the first <em>100 traders.</em> No catch.</h2>
     </div>
 
-    <div class="pricing-grid">
+    <div class="solo-offer">
+      <div class="solo-offer-inner">
+        <div class="solo-badge"><span class="online-dot"></span>FOUNDING-MEMBER SEATS · OPEN NOW</div>
+        <h3 class="solo-name">Founder access</h3>
+        <div class="solo-byline">The first 100 Hyperliquid traders get the full guard — free, forever.</div>
 
-      <div class="tier">
-        <div class="tier-name">Starter</div>
-        <div class="tier-byline">One account. All rules.</div>
-        <div class="tier-price">$14.50<span> /mo</span></div>
-        <div class="tier-strike">$29/mo <b>· 50% off forever (annual, waitlist)</b></div>
-        <ul class="tier-feats">
-          <li>1 Hyperliquid account</li>
-          <li>All 5 enforcement rules</li>
-          <li>Telegram alerts on every fire</li>
-          <li>3-second polling interval</li>
-          <li>SL auto-restore</li>
+        <div class="solo-price-row">
+          <div class="solo-price">$0<span>/forever</span></div>
+          <div class="solo-vs">
+            <div class="solo-vs-strike">$29/mo at launch</div>
+            <div class="solo-vs-lock">Locked in for founders</div>
+          </div>
+        </div>
+
+        <ul class="solo-feats">
+          <li>All <b>5 enforcement rules</b> on your Hyperliquid account</li>
+          <li>Telegram <b>push alert</b> on every rule fire — cancel, lock, cooldown, SL restore</li>
+          <li><b>3-second</b> polling · SL auto-restore · daily P&L tracking</li>
+          <li><b>Cancel-only</b> API scope — your keys stay yours, zero withdrawal risk</li>
+          <li>Direct line to the <b>founder</b> on Telegram for any issue</li>
+          <li>Free <strong>forever</strong>, no payment details, revoke any time</li>
         </ul>
-        <a href="#cta" class="tier-cta">Join waitlist →</a>
-      </div>
 
-      <div class="tier featured">
-        <div class="tier-name">Pro</div>
-        <div class="tier-byline">Multi-account. Custom thresholds.</div>
-        <div class="tier-price">$29.50<span> /mo</span></div>
-        <div class="tier-strike">$59/mo <b>· 50% off forever (annual, waitlist)</b></div>
-        <ul class="tier-feats">
-          <li>Up to 3 Hyperliquid accounts</li>
-          <li>Everything in Starter</li>
-          <li>Custom rule thresholds per account</li>
-          <li>Weekly performance digest</li>
-          <li>Priority Telegram support</li>
-          <li>Audit log export</li>
-        </ul>
-        <a href="#cta" class="tier-cta">Join waitlist →</a>
-      </div>
+        <a href="https://t.me/RiskGuardBot" target="_blank" rel="noopener" class="solo-cta">
+          <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+          Connect telegram bot
+          <span class="arrow">→</span>
+        </a>
 
-      <div class="tier">
-        <div class="tier-name">Elite</div>
-        <div class="tier-byline">Unlimited. For prop desks.</div>
-        <div class="tier-price">$64.50<span> /mo</span></div>
-        <div class="tier-strike">$129/mo <b>· 50% off forever (annual, waitlist)</b></div>
-        <ul class="tier-feats">
-          <li>Unlimited accounts</li>
-          <li>Everything in Pro</li>
-          <li>Custom rules (API access)</li>
-          <li>Team dashboard & shared alerts</li>
-          <li>Dedicated onboarding call</li>
-          <li>Direct founder line</li>
-        </ul>
-        <a href="#cta" class="tier-cta">Join waitlist →</a>
+        <div class="solo-foot">Cap: 100 seats · first come, first served · no credit card, no trial timer</div>
       </div>
-
-    </div>
-    <div class="pricing-foot">
-      Cancel-only API permission · <span>keys never leave your machine</span> · cancel any time
     </div>
   </div>
 </section>
@@ -1497,15 +1635,18 @@
 <!-- ───────────────── CTA ───────────────── -->
 <section class="cta" id="cta">
   <div class="wrap">
-    <h2>Lock in <em>50% off</em><br>forever.</h2>
+    <h2>One message.<br>Your rules <em>stop breaking.</em></h2>
     <p class="cta-sub">
-      Early access opens soon. Waitlist members get founding-member pricing — <strong>50% off forever on the annual plan</strong>. No credit card required until launch.
+      Open Telegram, tap <strong>@RiskGuardBot</strong>, send <strong>/start</strong>.
+      The guard is watching your Hyperliquid account in under 60 seconds. No credit card, no payment
+      page — free for the first 100 seats.
     </p>
-    <form class="cta-form" onsubmit="event.preventDefault(); const b=this.querySelector('button'); b.textContent='YOU\'RE IN ✓'; setTimeout(()=>b.textContent='JOIN WAITLIST →', 2400);">
-      <input type="email" placeholder="your@email.xyz" required>
-      <button type="submit">JOIN WAITLIST →</button>
-    </form>
-    <div class="cta-note">Your founding-member discount is locked in. Cancel any time after launch.</div>
+    <a href="https://t.me/RiskGuardBot" target="_blank" rel="noopener" class="solo-cta" style="max-width:440px;margin:0 auto;">
+      <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
+      Connect telegram bot
+      <span class="arrow">→</span>
+    </a>
+    <div class="cta-note" style="margin-top:22px;">Revoke access any time from Hyperliquid · cancel-only agent key · zero withdrawal scope</div>
   </div>
 </section>
 
@@ -1514,9 +1655,9 @@
     <div class="footer-grid">
       <span>RISKGUARD · HYPERLIQUID TELEGRAM BOT · 2026</span>
       <span>
-        <a href="#pricing">Pricing</a> &nbsp;·&nbsp;
-        <a href="#cta">Waitlist</a> &nbsp;·&nbsp;
         <a href="#rules">Rules</a> &nbsp;·&nbsp;
+        <a href="#how">How it works</a> &nbsp;·&nbsp;
+        <a href="https://t.me/RiskGuardBot" target="_blank" rel="noopener">Bot</a> &nbsp;·&nbsp;
         <a href="dex.html">For DEX operators →</a>
       </span>
     </div>
