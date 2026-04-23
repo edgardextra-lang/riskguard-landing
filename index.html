@@ -97,22 +97,9 @@
     display: flex; align-items: center; gap: 14px;
   }
   .brand-mark {
-    width: 22px; height: 22px;
-    border: 1px solid var(--amber);
-    position: relative;
-  }
-  .brand-mark::before, .brand-mark::after {
-    content: '';
-    position: absolute;
-    background: var(--amber);
-  }
-  .brand-mark::before {
-    inset: 4px; opacity: 0.18;
-  }
-  .brand-mark::after {
-    width: 7px; height: 7px;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+    width: 24px; height: 24px;
+    display: block;
+    flex-shrink: 0;
   }
   .brand-badge {
     font-size: 10px; letter-spacing: 0.22em;
@@ -1397,8 +1384,19 @@
 <body>
 
 <nav>
-  <a href="#" class="brand">
-    <span class="brand-mark"></span>
+  <a href="#" class="brand" aria-label="RiskGuard home">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M7 6 L25 6 L25 18 Q25 26.5 16 30 Q7 26.5 7 18 Z"
+            fill="rgba(232,184,111,0.10)"
+            stroke="#e8b86f"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+            stroke-linecap="round"/>
+      <line x1="11" y1="16.5" x2="21" y2="16.5"
+            stroke="#e8b86f"
+            stroke-width="2.5"
+            stroke-linecap="round"/>
+    </svg>
     RISKGUARD
     <span class="brand-badge">Hyperliquid · Telegram</span>
   </a>
