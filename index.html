@@ -1173,36 +1173,6 @@
   .footer-grid a { transition: color 0.2s; }
   .footer-grid a:hover { color: var(--paper); }
 
-  /* ── Sticky mobile CTA ─────────────────────── */
-  .sticky-cta {
-    display: none;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 99;
-    padding: 12px 16px;
-    background: rgba(10, 11, 14, 0.95);
-    border-top: 1px solid var(--hair);
-    backdrop-filter: blur(12px);
-  }
-  .sticky-cta-btn {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    width: 100%;
-    padding: 16px;
-    background: var(--amber);
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    text-transform: uppercase;
-    transition: background 0.2s;
-  }
-  .sticky-cta-btn:hover { background: var(--amber-hi); }
-  @media (max-width: 768px) {
-    .sticky-cta { display: block; }
-    body { padding-bottom: 72px; }
-  }
-
   /* ── Reveal ──────────────────────────────── */
   .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.9s ease, transform 0.9s ease; }
   .reveal.in { opacity: 1; transform: translateY(0); }
@@ -1350,9 +1320,6 @@
     .marquee-track { font-size: 11px; gap: 28px; }
     .marquee-item .tag { font-size: 9.5px; }
 
-    /* Sticky CTA */
-    .sticky-cta { padding: 10px 14px; }
-    .sticky-cta-btn { padding: 14px; font-size: 12.5px; letter-spacing: 0.06em; }
   }
 
   /* ── Tiny phones (≤380px, iPhone SE etc.) ── */
@@ -1966,14 +1933,6 @@
     </div>
   </div>
 </footer>
-
-<!-- ── Sticky mobile CTA ── -->
-<div class="sticky-cta">
-  <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="sticky-cta-btn" data-umami-event="cta-sticky-install">
-    <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-    Install the guard — free →
-  </a>
-</div>
 
 <script>
   // Sticky nav scroll-state
