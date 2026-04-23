@@ -1188,8 +1188,9 @@
     .stat, .problem, .step { border-right: none; border-bottom: 1px solid var(--hair); }
     .stat:last-child, .problem:last-child, .step:last-child { border-bottom: none; }
     .rule { grid-template-columns: 60px 1fr; gap: 20px; padding: 28px 0; }
-    .rule-body, .rule-tag { grid-column: 1 / -1; padding-left: 80px; }
-    .rule-tag { padding: 6px 12px; width: fit-content; }
+    .rule-body, .rule-tag { grid-column: 1 / -1; }
+    .rule-body { padding-left: 80px; }
+    .rule-tag { padding: 6px 12px; width: fit-content; margin-left: 80px; justify-self: start; }
     .nav-links { display: none; }
     .wrap { padding: 0 22px; }
     nav { padding: 14px 22px; }
@@ -1266,8 +1267,8 @@
     .rule { grid-template-columns: 46px 1fr; gap: 14px; padding: 24px 0; }
     .rule-num { font-size: 46px; line-height: 0.95; }
     .rule-title { font-size: 22px; line-height: 1.15; }
-    .rule-body, .rule-tag { padding-left: 60px; }
-    .rule-body { font-size: 14px; }
+    .rule-body { padding-left: 60px; font-size: 14px; }
+    .rule-tag { margin-left: 60px; padding: 5px 10px; font-size: 9.5px; }
     .rules-separator { font-size: 9.5px; letter-spacing: 0.18em; padding: 14px 0 6px; gap: 10px; }
     .rule.notify .rule-num { font-size: 26px; }
     .rules-cta-row { padding: 24px 0 4px; }
