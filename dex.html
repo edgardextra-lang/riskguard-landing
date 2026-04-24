@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<!-- Umami analytics -->
+<script defer src="https://cloud.umami.is/script.js" data-website-id="8aa836b4-cdd4-42d1-b25f-20d76c8b3b5f"></script>
 <script type="importmap">
 {
   "imports": {
@@ -1221,6 +1223,189 @@
   }
   .cta-form button:hover { background: var(--amber-hi); }
 
+  /* ── Founder badge (hero) ─────────────────────────────────── */
+  .founder-badge {
+    margin-top: -32px;
+    margin-bottom: 52px;
+    padding: 20px 22px;
+    background: linear-gradient(135deg, rgba(232,184,111,0.06), rgba(212,73,61,0.03));
+    border: 1px solid rgba(232,184,111,0.25);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    max-width: 600px;
+  }
+  .founder-seats { display: grid; gap: 8px; }
+  .founder-bar {
+    height: 3px;
+    background: var(--hair);
+    overflow: hidden;
+  }
+  .founder-fill {
+    height: 100%;
+    width: 33%;
+    background: linear-gradient(90deg, var(--amber), var(--amber-hi));
+    animation: seat-pulse 3s ease-in-out infinite;
+  }
+  @keyframes seat-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.72; } }
+  .founder-text {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--paper-2);
+    flex-wrap: wrap;
+  }
+  .founder-text b { color: var(--amber); font-weight: 600; letter-spacing: 0.1em; }
+  .founder-text span { color: var(--paper-dim); font-size: 10.5px; letter-spacing: 0.04em; }
+  .founder-guarantee {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(232,184,111,0.18);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--paper-2);
+  }
+  .founder-guarantee .g-icon { flex-shrink: 0; font-size: 15px; }
+  .founder-guarantee strong { color: var(--sage); font-weight: 500; }
+
+  /* ── Hero trust strip ─────────────────────────────────────── */
+  .hero-trust {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hair);
+    display: flex; gap: 24px; flex-wrap: wrap; align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    letter-spacing: 0.04em;
+  }
+  .hero-trust-item { display: flex; gap: 8px; align-items: center; }
+  .hero-trust-item::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sage);
+    flex-shrink: 0;
+  }
+  .hero-trust-item.warm::before { background: var(--amber); }
+  .hero-trust-item b { color: var(--paper); font-weight: 500; letter-spacing: 0.06em; }
+
+  /* ── Founding pricing block ──────────────────────────────── */
+  .founding-rate {
+    margin-bottom: 36px;
+    padding: 32px 36px;
+    background: linear-gradient(135deg, rgba(232,184,111,0.08), rgba(127,183,126,0.04));
+    border: 1px solid rgba(232,184,111,0.35);
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 40px;
+    align-items: center;
+    position: relative;
+  }
+  .founding-rate::before {
+    content: 'FOUNDING · 2 OF 3 SEATS OPEN';
+    position: absolute;
+    top: -11px; left: 28px;
+    background: var(--ink);
+    padding: 0 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .founding-rate h3 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--paper);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin-bottom: 10px;
+  }
+  .founding-rate h3 em { font-style: italic; color: var(--amber); }
+  .founding-rate p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--paper-2);
+  }
+  .founding-rate-terms {
+    display: flex; flex-direction: column; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--paper-2);
+  }
+  .founding-rate-terms > div {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--hair);
+  }
+  .founding-rate-terms > div:last-child { border-bottom: none; }
+  .founding-rate-terms b { color: var(--amber); font-weight: 500; letter-spacing: 0.02em; }
+  @media (max-width: 720px) {
+    .founding-rate { grid-template-columns: 1fr; gap: 22px; padding: 28px 24px; }
+    .founding-rate h3 { font-size: 24px; }
+  }
+
+  /* ── Rebuilt CTA block ──────────────────────────────────── */
+  .cta-seats {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 24px;
+    padding: 6px 14px;
+    border: 1px solid rgba(212,73,61,0.4);
+    background: rgba(212,73,61,0.05);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    color: var(--rust);
+  }
+  .cta-seats-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--rust);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .cta-actions {
+    display: flex; gap: 12px; justify-content: center;
+    margin: 0 auto 32px;
+    flex-wrap: wrap;
+  }
+  .cta-btn-primary {
+    padding: 20px 36px;
+    background: var(--amber);
+    color: var(--ink);
+    border: 1px solid var(--amber);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .cta-btn-primary:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
+  .cta-btn-secondary {
+    padding: 20px 28px;
+    background: transparent;
+    color: var(--paper-2);
+    border: 1px solid var(--hair-hi);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .cta-btn-secondary:hover { color: var(--paper); border-color: var(--paper); }
+  .cta-guarantee {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 18px 22px;
+    background: rgba(127,183,126,0.05);
+    border: 1px solid rgba(127,183,126,0.25);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--paper-2);
+  }
+  .cta-guarantee strong { color: var(--sage); font-weight: 500; }
+
   /* ── Footer ───────────────────────────────────────────────── */
   footer {
     border-top: 1px solid var(--hair);
@@ -1321,7 +1506,7 @@
     <li><a href="#pricing">Pricing</a></li>
     <li><a href="#faq">Honest FAQ</a></li>
   </ul>
-  <a href="#cta" class="nav-cta">Book pilot →</a>
+  <a href="#cta" class="nav-cta" data-umami-event="dex-cta-nav-book-call">Book 30-min call →</a>
 </nav>
 
 <!-- ───────────────── HERO ───────────────── -->
@@ -1330,28 +1515,39 @@
     <div class="hero-grid">
 
       <div>
-        <div class="eyebrow reveal">Revenue infrastructure for perp DEXes · Hyperliquid-native</div>
+        <div class="eyebrow reveal">Trader-survival infrastructure · Hyperliquid-native · <span style="color:var(--rust);">2 of 3 founding seats open</span></div>
         <h1 class="reveal">
           <em>$1.01M.</em><br>
           Or <span class="strike">$660K</span><br>
-          if you let them<br>
+          when you let them<br>
           <span class="bleed">bleed out.</span>
         </h1>
         <p class="hero-sub reveal">
-          <strong>Same 1,000 traders. Twelve months apart.</strong>
-          The protected cohort earns your DEX <strong class="amber-ink">$1.01M</strong> in cumulative fees.
-          The unprotected one stops at <strong class="rust-ink">$660K</strong> — because 95% of them liquidate.
-          RiskGuard is the one-line SDK that closes the <strong>$353K gap</strong>. Tier-II license already subtracted.
+          <strong>Same 1,000 traders. 12 months apart.</strong> The protected cohort earns you <strong class="amber-ink">$1.01M</strong> in cumulative fees. The unprotected one caps at <strong class="rust-ink">$660K</strong> — because 95% of them liquidate. One SDK call closes the <strong>$353K gap</strong>, Tier-II license already netted out.
         </p>
         <div class="hero-actions reveal">
-          <a href="#cta" class="btn-primary">
-            Book a 30-day pilot
+          <a href="#cta" class="btn-primary" data-umami-event="dex-cta-hero-book-call">
+            Book 30-min pilot call
             <span class="arrow">→</span>
           </a>
-          <a href="#economics" class="btn-ghost">
+          <a href="#economics" class="btn-ghost" data-umami-event="dex-cta-hero-see-math">
             See the math
             <span class="arrow">↓</span>
           </a>
+        </div>
+
+        <div class="founder-badge reveal">
+          <div class="founder-seats">
+            <div class="founder-bar"><div class="founder-fill"></div></div>
+            <div class="founder-text">
+              <b>FOUNDING PILOT · 2 OF 3 SEATS OPEN</b>
+              <span>6mo at cost · rate locked for life · no renewal obligation</span>
+            </div>
+          </div>
+          <div class="founder-guarantee">
+            <span class="g-icon">🤝</span>
+            <span><strong>90-day pilot guarantee:</strong> if your cohort's cumulative fees don't move vs baseline, you walk — we delete the agent keys the same afternoon. Our downside, not yours.</span>
+          </div>
         </div>
         <div class="hero-meta reveal">
           <div class="hero-meta-item">
@@ -1370,6 +1566,12 @@
             <strong>&lt; 48 hrs</strong>
             to first risk-managed trade
           </div>
+        </div>
+
+        <div class="hero-trust reveal">
+          <div class="hero-trust-item"><b>Live on Hyperliquid mainnet</b> · managing real accounts</div>
+          <div class="hero-trust-item warm">In conversation with <b>8 DEX founding teams</b></div>
+          <div class="hero-trust-item"><b>SOC 2</b> engagement open · <b>MiCA/CFTC</b> audit trail shipping</div>
         </div>
       </div>
 
@@ -1943,6 +2145,22 @@
       </h2>
     </div>
 
+    <!-- Founding pilot offer — scarcity + terms -->
+    <div class="founding-rate reveal">
+      <div>
+        <h3>Founding-pilot rate. <em>First 3 DEXes only.</em></h3>
+        <p>Two seats remain. Take one and the economics shift entirely: you pay at cost for six months while we re-run the retention model against your actual trader data, rate locked for life once the pilot converts, and if month-90 cohort fees don't move you walk and we delete the agent keys that afternoon. The next three customers pay Tier II rate from day one.</p>
+      </div>
+      <div class="founding-rate-terms">
+        <div><b>$0</b> setup · Tier-II SDK, all adapters</div>
+        <div><b>At-cost</b> infra billing · months 1–6</div>
+        <div><b>Rate locked</b> for life on conversion</div>
+        <div><b>90-day walk</b> clause · full guarantee</div>
+        <div><b>Same-week</b> pilot start · call Monday, live Thursday</div>
+        <a href="#cta" class="tier-cta" style="margin-top:8px;" data-umami-event="dex-cta-pricing-claim-founding">Claim a founding seat →</a>
+      </div>
+    </div>
+
     <div class="pricing-grid">
 
       <div class="tier">
@@ -2056,7 +2274,7 @@
       <div class="faq-item">
         <div class="faq-q">What's the <em>honest</em> MRR of this business today?</div>
         <div class="faq-a">
-          Zero. We're pre-revenue, running the core engine on Hyperliquid mainnet against live trader accounts, validating the pitch by talking to DEX founders before we ship the SDK itself. We'd rather you know that than find out after signing. If you're a Tier-II DEX and you'd use this, we'll ship it for you in four weeks — and the first pilot gets six months at cost.
+          <strong>Zero — by design.</strong> We're pre-revenue because we're closing with design partners before a public launch, not because no one's buying. The core engine is live on Hyperliquid mainnet right now, managing real trader accounts. We've had pilot conversations with 8 DEX founding teams. The first three founding seats get 6 months at cost with the rate locked for life — because we want three customers to build with, not three hundred to explain to. If that sounds like the wrong tradeoff for your DEX, we're probably not the right fit yet.
         </div>
       </div>
 
@@ -2067,15 +2285,27 @@
 <!-- ───────────────── CTA ───────────────── -->
 <section class="cta" id="cta">
   <div class="wrap">
-    <h2>Keep your traders<br><em>alive.</em></h2>
+    <div class="cta-seats">
+      <span class="cta-seats-dot"></span>
+      FOUNDING PILOT · 2 OF 3 SEATS OPEN
+    </div>
+    <h2>30 minutes.<br>Your actual <em>numbers.</em><br>No pitch deck.</h2>
     <p class="cta-sub">
-      Drop a work email. We'll book a 30-minute call and walk through the Hyperliquid demo live.
-      If we're not obviously useful by minute ten, we'll say so and save you the follow-up.
+      We run the retention model on your real trader cohort on the call and walk through the Hyperliquid instance live. If you're not convinced by minute 10, we say so and save us both the follow-up. <strong>Pilot terms sent same day if there's a fit.</strong>
     </p>
-    <form class="cta-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='SENT ✓'; setTimeout(()=>this.querySelector('button').textContent='REQUEST DEMO →', 2000);">
-      <input type="email" placeholder="founder@yourdex.xyz" required>
-      <button type="submit">REQUEST DEMO →</button>
-    </form>
+    <div class="cta-actions">
+      <a href="mailto:founders@riskguard.xyz?subject=Founding%20pilot%20call%20-%20[your%20DEX]&body=Hi%20-%20we%27d%20like%20to%20book%20a%2030-min%20pilot%20call.%0A%0ADEX%3A%20%0AMonthly%20active%20traders%3A%20%0AAnnual%20perp%20volume%3A%20%0ABest%20times%20this%20week%3A"
+         class="cta-btn-primary" data-umami-event="dex-cta-final-book-call">
+        Book 30-min call →
+      </a>
+      <a href="mailto:founders@riskguard.xyz?subject=RiskGuard%20info%20request"
+         class="cta-btn-secondary" data-umami-event="dex-cta-final-email">
+        Or email founders@riskguard.xyz
+      </a>
+    </div>
+    <div class="cta-guarantee">
+      <strong>90-day pilot guarantee.</strong> If your cohort's cumulative fees don't move relative to baseline, you cancel at 90 days and we delete the agent keys the same afternoon. You keep every integration artifact. Our downside — not yours.
+    </div>
   </div>
 </section>
 
