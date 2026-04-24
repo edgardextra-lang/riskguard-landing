@@ -1223,6 +1223,136 @@
   }
   .cta-form button:hover { background: var(--amber-hi); }
 
+  /* ── Churn thesis strip (immediately below hero) ─────────── */
+  .churn-strip {
+    padding: 64px 0 56px;
+    border-bottom: 1px solid var(--hair);
+    background: linear-gradient(180deg, rgba(212,73,61,0.04), transparent 60%);
+  }
+  .churn-strip-head {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 48px;
+    align-items: flex-end;
+    margin-bottom: 32px;
+  }
+  .churn-kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--rust);
+    text-transform: uppercase;
+  }
+  .churn-kicker span { color: var(--paper-dim); }
+  .churn-title {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 4.2vw, 54px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--paper);
+    line-height: 1.05;
+    max-width: 780px;
+  }
+  .churn-title em { font-style: italic; color: var(--amber); }
+
+  .churn-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--hair);
+    background: var(--ink-2);
+  }
+  .churn-stat {
+    padding: 28px 24px 24px;
+    border-right: 1px solid var(--hair);
+    position: relative;
+  }
+  .churn-stat:last-child { border-right: none; }
+  .churn-stat-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .churn-stat-value {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 5.2vw, 64px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--rust);
+    margin-bottom: 14px;
+  }
+  .churn-stat-value sup {
+    font-size: 34%;
+    color: var(--amber);
+    vertical-align: super;
+    margin-left: 4px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .churn-stat-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--paper-2);
+    margin-bottom: 12px;
+  }
+  .churn-stat-desc strong { color: var(--paper); font-weight: 500; }
+  .churn-stat-src {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--paper-mute);
+    letter-spacing: 0.06em;
+  }
+  .churn-stat-src a { color: var(--paper-dim); transition: color 0.2s; border-bottom: 1px dotted var(--hair-hi); }
+  .churn-stat-src a:hover { color: var(--paper); border-bottom-color: var(--paper); }
+
+  .churn-thesis {
+    margin-top: 28px;
+    padding: 22px 26px;
+    background: linear-gradient(90deg, rgba(127,183,126,0.06), transparent 70%);
+    border: 1px solid rgba(127,183,126,0.28);
+    border-left: 3px solid var(--sage);
+    display: flex; align-items: center; gap: 22px;
+    flex-wrap: wrap;
+  }
+  .churn-thesis-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    color: var(--sage);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .churn-thesis-text {
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--paper-2);
+    flex: 1;
+    min-width: 260px;
+  }
+  .churn-thesis-text strong { color: var(--paper); font-weight: 500; }
+  .churn-thesis-text em { color: var(--amber); font-style: italic; }
+
+  @media (max-width: 900px) {
+    .churn-strip { padding: 44px 0 40px; }
+    .churn-strip-head { grid-template-columns: 1fr; gap: 14px; margin-bottom: 24px; }
+    .churn-grid { grid-template-columns: repeat(2, 1fr); }
+    .churn-stat:nth-child(2) { border-right: none; }
+    .churn-stat:nth-child(1), .churn-stat:nth-child(2) { border-bottom: 1px solid var(--hair); }
+    .churn-stat { padding: 22px 20px 20px; }
+  }
+  @media (max-width: 540px) {
+    .churn-grid { grid-template-columns: 1fr; }
+    .churn-stat { border-right: none !important; border-bottom: 1px solid var(--hair); }
+    .churn-stat:last-child { border-bottom: none; }
+    .churn-stat-value { font-size: 44px; }
+    .churn-thesis { padding: 16px 18px; gap: 12px; }
+    .churn-thesis-text { font-size: 14.5px; }
+  }
+
   /* ── Founder badge (hero) ─────────────────────────────────── */
   .founder-badge {
     margin-top: -32px;
@@ -1515,7 +1645,7 @@
     <div class="hero-grid">
 
       <div>
-        <div class="eyebrow reveal">Trader-survival infrastructure · Hyperliquid-native · <span style="color:var(--rust);">2 of 3 founding seats open</span></div>
+        <div class="eyebrow reveal">The anti-churn layer for perp DEXes · Hyperliquid-native · <span style="color:var(--rust);">2 of 3 founding seats open</span></div>
         <h1 class="reveal">
           <em>$1.01M.</em><br>
           Or <span class="strike">$660K</span><br>
@@ -1523,7 +1653,7 @@
           <span class="bleed">bleed out.</span>
         </h1>
         <p class="hero-sub reveal">
-          <strong>Same 1,000 traders. 12 months apart.</strong> The protected cohort earns you <strong class="amber-ink">$1.01M</strong> in cumulative fees. The unprotected one caps at <strong class="rust-ink">$660K</strong> — because 95% of them liquidate. One SDK call closes the <strong>$353K gap</strong>, Tier-II license already netted out.
+          <strong>Your DEX doesn't have an acquisition problem. It has a churn problem.</strong> Same 1,000 traders, 12 months apart — the protected cohort earns you <strong class="amber-ink">$1.01M</strong>, the unprotected one caps at <strong class="rust-ink">$660K</strong> because 95% of them liquidate. One SDK call keeps their accounts alive and closes the <strong>$353K gap</strong>. Tier-II license already netted out.
         </p>
         <div class="hero-actions reveal">
           <a href="#cta" class="btn-primary" data-umami-event="dex-cta-hero-book-call">
@@ -1592,6 +1722,50 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── CHURN THESIS STRIP ───────────────── -->
+<section class="churn-strip">
+  <div class="wrap">
+    <div class="churn-strip-head">
+      <div class="churn-kicker">§ 00 <span>/ the problem you haven't named</span></div>
+      <h2 class="churn-title">
+        Your DEX isn't acquisition-starved. <em>It's leaking traders faster than you can replace them.</em>
+      </h2>
+    </div>
+
+    <div class="churn-grid">
+      <div class="churn-stat reveal">
+        <div class="churn-stat-tag">Perp DEX market share · Sep→Oct 2025</div>
+        <div class="churn-stat-value">−60<sup>%</sup></div>
+        <div class="churn-stat-desc"><strong>Hyperliquid's dominance collapsed from ~70% to ~10%</strong> of daily perp volume in 30 days. Traders migrate to the next platform faster than you can earn them back.</div>
+        <div class="churn-stat-src">Src: <a href="https://www.21shares.com/en-us/insights/the-perpetual-dex-wars-hyperliquid-aster-and-lighter-in-focus" target="_blank" rel="noopener">21Shares 2025</a></div>
+      </div>
+      <div class="churn-stat reveal">
+        <div class="churn-stat-tag">Leveraged account outcome</div>
+        <div class="churn-stat-value">95<sup>%</sup></div>
+        <div class="churn-stat-desc"><strong>lifetime liquidation rate</strong> on leveraged crypto accounts. The 5% who survive are the only customers you still have next year — and they pay 8–12× more lifetime fees.</div>
+        <div class="churn-stat-src">Src: CCAF 2020–2023 · derived</div>
+      </div>
+      <div class="churn-stat reveal">
+        <div class="churn-stat-tag">50× leverage · average survival</div>
+        <div class="churn-stat-value">&lt; 2<sup>hrs</sup></div>
+        <div class="churn-stat-desc"><strong>median time to liquidation</strong> on a 50× position. Most of your "daily active traders" stop being customers before lunch — you fund their acquisition anyway.</div>
+        <div class="churn-stat-src">Src: <a href="https://blog.mexc.com/news/the-dark-side-of-crypto-leverage-trading-why-95-of-margin-traders-lose-money-and-how-10-billion-vanished-in-24-hours/" target="_blank" rel="noopener">MEXC 2025</a></div>
+      </div>
+      <div class="churn-stat reveal">
+        <div class="churn-stat-tag">Crypto trading apps · D7 retention</div>
+        <div class="churn-stat-value">24<sup>%</sup></div>
+        <div class="churn-stat-desc"><strong>of new users are still active by day 7.</strong> Three in four churn before their second trading session. Acquisition spend compounds; retention doesn't, unless you engineer for it.</div>
+        <div class="churn-stat-src">Src: <a href="https://www.adjust.com/blog/crypto-mobile-2022-series-part-5-stickiness-retention/" target="_blank" rel="noopener">Adjust</a></div>
+      </div>
+    </div>
+
+    <div class="churn-thesis reveal">
+      <span class="churn-thesis-label">RISKGUARD</span>
+      <span class="churn-thesis-text">We <strong>keep their accounts alive.</strong> Traders that survive place <em>8–12× more lifetime orders</em>, your fee curve compounds instead of resetting every 60 days, and you stop paying acquisition costs to rent customers from the liquidation engine.</span>
     </div>
   </div>
 </section>
