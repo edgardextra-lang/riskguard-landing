@@ -1223,6 +1223,160 @@
   }
   .cta-form button:hover { background: var(--amber-hi); }
 
+  /* ── Hero churn data card (right column) ─────────────────── */
+  .hero-churn-card {
+    background: var(--ink-2);
+    border: 1px solid var(--hair);
+    position: relative;
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .hero-churn-card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 48px; height: 1px;
+    background: var(--rust);
+  }
+  .hero-churn-card::after {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 1px; height: 48px;
+    background: var(--rust);
+  }
+  .hero-churn-head {
+    grid-column: 1 / -1;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--hair);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .hero-churn-head .lbl { color: var(--rust); font-weight: 600; }
+  .hero-churn-head .src { font-size: 9px; color: var(--paper-mute); letter-spacing: 0.12em; }
+  .hero-churn-tile {
+    padding: 22px 20px 20px;
+    border-right: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+  }
+  .hero-churn-tile:nth-child(even) { border-right: none; }
+  .hero-churn-tile:nth-last-child(-n+2):not(.hero-churn-foot) { border-bottom: none; }
+  .hero-churn-tile-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    line-height: 1.35;
+    min-height: 24px;
+  }
+  .hero-churn-tile-value {
+    font-family: var(--font-display);
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--rust);
+    margin-bottom: 10px;
+  }
+  .hero-churn-tile-value sup {
+    font-size: 34%;
+    color: var(--amber);
+    vertical-align: super;
+    margin-left: 3px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .hero-churn-tile-desc {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--paper-2);
+  }
+  .hero-churn-tile-desc b { color: var(--paper); font-weight: 500; }
+  .hero-churn-tile-src {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--paper-mute);
+    letter-spacing: 0.04em;
+  }
+  .hero-churn-tile-src a { color: var(--paper-dim); }
+  .hero-churn-tile-src a:hover { color: var(--paper); }
+  .hero-churn-foot {
+    grid-column: 1 / -1;
+    padding: 14px 18px;
+    border-top: 1px solid var(--hair);
+    background: rgba(127,183,126,0.05);
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    color: var(--sage);
+    text-transform: uppercase;
+  }
+  .hero-churn-foot::before {
+    content: '';
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--sage);
+    box-shadow: 0 0 6px rgba(127,183,126,0.55);
+  }
+  .hero-churn-foot b {
+    color: var(--paper);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    font-size: 12.5px;
+    margin-left: auto;
+  }
+
+  /* ── Math section sub + moved terminal wrapper ──────────── */
+  .math-sub {
+    max-width: 820px;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--paper-2);
+    margin: -20px 0 48px;
+    font-weight: 300;
+  }
+  .math-sub strong { color: var(--paper); font-weight: 500; }
+  .math-sub strong.amber-ink { color: var(--amber); }
+  .math-sub strong.rust-ink { color: var(--rust); }
+  .math-terminal {
+    margin-top: 56px;
+    max-width: 880px;
+  }
+  .math-terminal-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    color: var(--sage);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .math-terminal-label::before {
+    content: '';
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--sage);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  @media (max-width: 560px) {
+    .hero-churn-card { grid-template-columns: 1fr; }
+    .hero-churn-tile { border-right: none !important; border-bottom: 1px solid var(--hair); }
+    .hero-churn-tile:last-of-type { border-bottom: none; }
+    .hero-churn-tile-value { font-size: 36px; }
+    .hero-churn-foot b { font-size: 11px; }
+  }
+
   /* ── Churn thesis strip (immediately below hero) ─────────── */
   .churn-strip {
     padding: 64px 0 56px;
@@ -1647,13 +1801,13 @@
       <div>
         <div class="eyebrow reveal">The anti-churn layer for perp DEXes · Hyperliquid-native · <span style="color:var(--rust);">2 of 3 founding seats open</span></div>
         <h1 class="reveal">
-          <em>$1.01M.</em><br>
-          Or <span class="strike">$660K</span><br>
-          when you let them<br>
-          <span class="bleed">bleed out.</span>
+          Your DEX isn't<br>
+          acquisition-starved.<br>
+          <em>It's leaking traders</em><br>
+          <span class="bleed">faster than you<br>can replace them.</span>
         </h1>
         <p class="hero-sub reveal">
-          <strong>Your DEX doesn't have an acquisition problem. It has a churn problem.</strong> Same 1,000 traders, 12 months apart — the protected cohort earns you <strong class="amber-ink">$1.01M</strong>, the unprotected one caps at <strong class="rust-ink">$660K</strong> because 95% of them liquidate. One SDK call keeps their accounts alive and closes the <strong>$353K gap</strong>. Tier-II license already netted out.
+          <strong>Hyperliquid lost ~60% of perp market share in 30 days.</strong> Traders migrate the moment liquidation becomes the only safety net you offer. RiskGuard is the one-line SDK that keeps their accounts alive — longer lifetimes, compounding fees, no more renting users from the liquidation engine. <strong>See the 12-month math 👇.</strong>
         </p>
         <div class="hero-actions reveal">
           <a href="#cta" class="btn-primary" data-umami-event="dex-cta-hero-book-call">
@@ -1706,66 +1860,41 @@
       </div>
 
       <div class="reveal">
-        <div class="terminal">
-          <div class="terminal-bar">
-            <span>risk_guard.py · LIVE</span>
-            <span class="terminal-status">
-              <span class="dot"></span>
-              CONNECTED · HL MAINNET
-            </span>
+        <div class="hero-churn-card">
+          <div class="hero-churn-head">
+            <span class="lbl">THE CHURN PROBLEM</span>
+            <span class="src">sources verified · 2025 data</span>
           </div>
-          <div class="feed">
-            <div class="feed-inner" id="feed-inner">
-              <!-- Populated by JS -->
-            </div>
+          <div class="hero-churn-tile">
+            <div class="hero-churn-tile-tag">Perp DEX share · Sep→Oct 2025</div>
+            <div class="hero-churn-tile-value">−60<sup>%</sup></div>
+            <div class="hero-churn-tile-desc"><b>Hyperliquid collapsed from ~70% to ~10%</b> of daily perp volume in 30 days. Traders migrate at launch-day speed.
+            <span class="hero-churn-tile-src">Src: <a href="https://www.21shares.com/en-us/insights/the-perpetual-dex-wars-hyperliquid-aster-and-lighter-in-focus" target="_blank" rel="noopener">21Shares</a></span></div>
+          </div>
+          <div class="hero-churn-tile">
+            <div class="hero-churn-tile-tag">Leveraged account outcome</div>
+            <div class="hero-churn-tile-value">95<sup>%</sup></div>
+            <div class="hero-churn-tile-desc"><b>lifetime liquidation rate.</b> The 5% who survive are the only customers you still have next year — and they pay 8–12× more lifetime fees.
+            <span class="hero-churn-tile-src">Src: CCAF 2020–2023</span></div>
+          </div>
+          <div class="hero-churn-tile">
+            <div class="hero-churn-tile-tag">50× leverage · median survival</div>
+            <div class="hero-churn-tile-value">&lt; 2<sup>hrs</sup></div>
+            <div class="hero-churn-tile-desc">Most of your <b>"daily active traders"</b> stop being customers before lunch. You fund their acquisition anyway.
+            <span class="hero-churn-tile-src">Src: <a href="https://blog.mexc.com/news/the-dark-side-of-crypto-leverage-trading-why-95-of-margin-traders-lose-money-and-how-10-billion-vanished-in-24-hours/" target="_blank" rel="noopener">MEXC</a></span></div>
+          </div>
+          <div class="hero-churn-tile">
+            <div class="hero-churn-tile-tag">Crypto trading apps · day-7</div>
+            <div class="hero-churn-tile-value">24<sup>%</sup></div>
+            <div class="hero-churn-tile-desc"><b>Three in four users</b> churn before their second trading session. Acquisition spend compounds; retention doesn't — unless you engineer for it.
+            <span class="hero-churn-tile-src">Src: <a href="https://www.adjust.com/blog/crypto-mobile-2022-series-part-5-stickiness-retention/" target="_blank" rel="noopener">Adjust</a></span></div>
+          </div>
+          <div class="hero-churn-foot">
+            RISKGUARD <b>· we keep the other 75% alive</b>
           </div>
         </div>
       </div>
 
-    </div>
-  </div>
-</section>
-
-<!-- ───────────────── CHURN THESIS STRIP ───────────────── -->
-<section class="churn-strip">
-  <div class="wrap">
-    <div class="churn-strip-head">
-      <div class="churn-kicker">§ 00 <span>/ the problem you haven't named</span></div>
-      <h2 class="churn-title">
-        Your DEX isn't acquisition-starved. <em>It's leaking traders faster than you can replace them.</em>
-      </h2>
-    </div>
-
-    <div class="churn-grid">
-      <div class="churn-stat reveal">
-        <div class="churn-stat-tag">Perp DEX market share · Sep→Oct 2025</div>
-        <div class="churn-stat-value">−60<sup>%</sup></div>
-        <div class="churn-stat-desc"><strong>Hyperliquid's dominance collapsed from ~70% to ~10%</strong> of daily perp volume in 30 days. Traders migrate to the next platform faster than you can earn them back.</div>
-        <div class="churn-stat-src">Src: <a href="https://www.21shares.com/en-us/insights/the-perpetual-dex-wars-hyperliquid-aster-and-lighter-in-focus" target="_blank" rel="noopener">21Shares 2025</a></div>
-      </div>
-      <div class="churn-stat reveal">
-        <div class="churn-stat-tag">Leveraged account outcome</div>
-        <div class="churn-stat-value">95<sup>%</sup></div>
-        <div class="churn-stat-desc"><strong>lifetime liquidation rate</strong> on leveraged crypto accounts. The 5% who survive are the only customers you still have next year — and they pay 8–12× more lifetime fees.</div>
-        <div class="churn-stat-src">Src: CCAF 2020–2023 · derived</div>
-      </div>
-      <div class="churn-stat reveal">
-        <div class="churn-stat-tag">50× leverage · average survival</div>
-        <div class="churn-stat-value">&lt; 2<sup>hrs</sup></div>
-        <div class="churn-stat-desc"><strong>median time to liquidation</strong> on a 50× position. Most of your "daily active traders" stop being customers before lunch — you fund their acquisition anyway.</div>
-        <div class="churn-stat-src">Src: <a href="https://blog.mexc.com/news/the-dark-side-of-crypto-leverage-trading-why-95-of-margin-traders-lose-money-and-how-10-billion-vanished-in-24-hours/" target="_blank" rel="noopener">MEXC 2025</a></div>
-      </div>
-      <div class="churn-stat reveal">
-        <div class="churn-stat-tag">Crypto trading apps · D7 retention</div>
-        <div class="churn-stat-value">24<sup>%</sup></div>
-        <div class="churn-stat-desc"><strong>of new users are still active by day 7.</strong> Three in four churn before their second trading session. Acquisition spend compounds; retention doesn't, unless you engineer for it.</div>
-        <div class="churn-stat-src">Src: <a href="https://www.adjust.com/blog/crypto-mobile-2022-series-part-5-stickiness-retention/" target="_blank" rel="noopener">Adjust</a></div>
-      </div>
-    </div>
-
-    <div class="churn-thesis reveal">
-      <span class="churn-thesis-label">RISKGUARD</span>
-      <span class="churn-thesis-text">We <strong>keep their accounts alive.</strong> Traders that survive place <em>8–12× more lifetime orders</em>, your fee curve compounds instead of resetting every 60 days, and you stop paying acquisition costs to rent customers from the liquidation engine.</span>
     </div>
   </div>
 </section>
@@ -1837,12 +1966,15 @@
 <section id="economics" class="econ-wrap">
   <div class="wrap">
     <div class="sec-head">
-      <div class="sec-label">§ 02 <span>/ the economics</span></div>
+      <div class="sec-label">§ 02 <span>/ the math</span></div>
       <h2 class="sec-title">
-        More survivors. More volume.<br>
-        More fees — <em>for you.</em>
+        <em>$1.01M.</em> Or <span class="strike">$660K</span> when you let them <span class="bleed">bleed out.</span>
       </h2>
     </div>
+
+    <p class="math-sub reveal">
+      <strong>Your DEX doesn't have an acquisition problem. It has a churn problem.</strong> Same 1,000 traders, 12 months apart — the protected cohort earns you <strong class="amber-ink">$1.01M</strong>, the unprotected one caps at <strong class="rust-ink">$660K</strong> because 95% of them liquidate. One SDK call keeps their accounts alive and closes the <strong>$353K gap</strong>. Tier-II license already netted out.
+    </p>
 
     <!-- Headline stats -->
     <div class="econ-stats">
@@ -2095,6 +2227,25 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Moved from hero: live Hyperliquid instance proof -->
+    <div class="math-terminal reveal">
+      <div class="math-terminal-label">LIVE ON HYPERLIQUID MAINNET · the rules firing in real time</div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span>risk_guard.py · LIVE</span>
+          <span class="terminal-status">
+            <span class="dot"></span>
+            CONNECTED · HL MAINNET
+          </span>
+        </div>
+        <div class="feed">
+          <div class="feed-inner" id="feed-inner">
+            <!-- Populated by JS -->
+          </div>
+        </div>
       </div>
     </div>
 
