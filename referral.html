@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HyperGuard — Referral</title>
+<link rel="icon" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:         #07090c;
+    --bg-2:       #0a0d12;
+    --surface:    #0f1319;
+    --surface-2:  #161b23;
+    --surface-3:  #1f262f;
+    --border:     #1a2029;
+    --border-2:   #242c37;
+    --border-hi:  #354050;
+    --text:       #ecf0f5;
+    --text-2:     #aab2bd;
+    --text-3:     #6c7480;
+    --text-4:     #434a55;
+    --mint:       #a3f7bf;
+    --mint-hi:    #c5fad6;
+    --mint-soft:  rgba(163,247,191,.12);
+    --mint-glow:  rgba(163,247,191,.18);
+    --cream:      #ece7dd;
+    --danger:     #ff7468;
+    --warn:       #ffce6b;
+    --r-sm: 6px; --r: 10px; --r-lg: 14px; --r-xl: 20px;
+    --f-sans: 'Geist', -apple-system, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv01', 'cv11', 'tnum';
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(163,247,191,.04), transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(163,247,191,.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+    pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 80%);
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+  ::selection { background: var(--mint); color: var(--bg); }
+
+  /* ── Topbar ── */
+  .topbar {
+    position: relative; z-index: 10;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 18px;
+    background: rgba(7,9,12,.92);
+    backdrop-filter: blur(20px);
+    gap: 16px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+    color: var(--text);
+  }
+  .brand-mark {
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
+  }
+  .brand-mark::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 3px; background: var(--bg);
+  }
+  .app-nav { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+  .app-nav a {
+    color: var(--text-3);
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 8px 14px;
+    border-radius: var(--r-sm);
+    transition: all .15s ease;
+  }
+  .app-nav a:hover { color: var(--text); }
+  .app-nav a.active { color: var(--text); background: var(--surface); }
+  .topbar-spacer { flex: 1; }
+  .pill {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-2);
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pill .lbl { color: var(--text-3); font-size: 11px; }
+  .pill .v { font-feature-settings: 'tnum'; }
+  .wallet-btn {
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    color: var(--bg); background: var(--mint);
+    padding: 9px 16px;
+    border: 1px solid var(--mint);
+    border-radius: var(--r);
+    transition: all .18s ease;
+    letter-spacing: -0.005em;
+    box-shadow: 0 0 0 1px var(--mint), 0 6px 18px rgba(163,247,191,.18);
+  }
+  .wallet-btn:hover { background: var(--mint-hi); }
+  .wallet-btn.connected {
+    background: var(--surface);
+    color: var(--mint);
+    border-color: var(--mint-soft);
+    box-shadow: none;
+  }
+  .wallet-btn.connected::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint); margin-right: 8px;
+    box-shadow: 0 0 6px var(--mint);
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 1;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 32px 28px 80px;
+  }
+  .page-head {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .page-title {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .tier-badge {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    padding: 4px 10px;
+    border-radius: var(--r-sm);
+    letter-spacing: 0.04em;
+  }
+
+  .row-3 {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1.1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .row-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 1100px) {
+    .row-3 { grid-template-columns: 1fr; }
+    .row-4 { grid-template-columns: repeat(2, 1fr); }
+    .row-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .row-4 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 24px;
+    transition: border-color .2s ease;
+    display: flex; flex-direction: column;
+    min-height: 180px;
+  }
+  .card:hover { border-color: var(--border-hi); }
+  .card-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .card-title .icn {
+    width: 18px; height: 18px;
+    color: var(--mint);
+    display: grid; place-items: center;
+  }
+  .card-desc {
+    font-size: 13px; color: var(--text-2);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .card-desc .second {
+    display: block; margin-top: 6px;
+    color: var(--text-3); font-size: 12px;
+  }
+  .big-num {
+    font-size: 32px; font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+    font-feature-settings: 'tnum';
+    margin-top: auto;
+  }
+  .big-num .unit {
+    color: var(--text-3); font-size: 0.55em;
+    margin-left: 6px; font-weight: 400;
+  }
+  .big-num .delta {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-3); margin-left: 10px;
+    font-weight: 400; letter-spacing: 0;
+  }
+
+  .input-row { display: flex; gap: 8px; margin-top: auto; }
+  .input-row input {
+    flex: 1;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 11px 14px;
+    font-family: var(--f-mono); font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .input-row input:focus { border-color: var(--mint); }
+  .input-row input::placeholder { color: var(--text-4); }
+  .register-btn {
+    background: var(--mint);
+    color: var(--bg);
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    padding: 11px 18px;
+    border: 1px solid var(--mint);
+    border-radius: var(--r);
+    box-shadow: 0 0 0 1px var(--mint), 0 6px 16px rgba(163,247,191,.18);
+    letter-spacing: -0.005em;
+  }
+  .register-btn:hover { background: var(--mint-hi); }
+
+  .input-label {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-2);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  /* stat card variant */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    position: relative;
+    min-height: 130px;
+  }
+  .stat-card .scorner {
+    position: absolute; top: 22px; right: 22px;
+    width: 32px; height: 32px;
+    border-radius: var(--r);
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    display: grid; place-items: center;
+    color: var(--text-3); font-size: 14px;
+  }
+  .stat-card .label {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+  .stat-card .v {
+    font-size: 26px; font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    font-feature-settings: 'tnum';
+    margin-bottom: 4px;
+  }
+  .stat-card .v .unit { color: var(--text-3); font-size: 0.55em; margin-left: 4px; }
+  .stat-card .v .small { color: var(--text-3); font-size: 0.55em; margin-left: 4px; font-family: var(--f-mono); }
+  .stat-card .sub {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .stat-card .v.mint { color: var(--mint); }
+
+  /* range toggle */
+  .range-toggle {
+    display: inline-flex; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 3px;
+    margin-bottom: 16px;
+  }
+  .range-toggle button {
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 12px; font-weight: 500;
+    padding: 6px 16px;
+    border: none; border-radius: var(--r-sm);
+    transition: all .15s ease;
+  }
+  .range-toggle button:hover { color: var(--text); }
+  .range-toggle button.active {
+    background: var(--mint);
+    color: var(--bg);
+  }
+
+  /* chart cards */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    min-height: 320px;
+    display: flex; flex-direction: column;
+  }
+  .chart-card-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px;
+  }
+  .chart-card-title {
+    font-size: 16px; font-weight: 500; letter-spacing: -0.015em;
+  }
+  .chart-card-sub {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    text-align: right;
+  }
+  .chart-card-sub .pct { color: var(--mint); font-size: 14px; }
+  .chart-svg-wrap {
+    flex: 1; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 220px;
+  }
+  .chart-svg-wrap svg { width: 100%; height: 100%; display: block; }
+  .chart-axis-label {
+    font-family: var(--f-mono); font-size: 10px;
+    fill: var(--text-3);
+  }
+  .chart-grid line { stroke: var(--border); stroke-dasharray: 2 4; }
+  .empty-state {
+    text-align: center;
+    color: var(--text-3);
+  }
+  .empty-state .h { font-size: 14px; color: var(--text-2); margin-bottom: 6px; }
+  .empty-state .b { font-family: var(--f-mono); font-size: 11px; }
+
+  @media (max-width: 720px) {
+    .page { padding: 24px 16px 60px; }
+    .page-title { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="dex.html">
+    <span class="brand-mark"></span>
+    <span>HyperGuard</span>
+  </a>
+  <nav class="app-nav">
+    <a href="app.html">Perps</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="referral.html" class="active">Referral</a>
+  </nav>
+  <div class="topbar-spacer"></div>
+  <div class="pill"><span class="lbl">Equity</span><span class="v">$10,000.00</span></div>
+  <div class="pill"><span class="lbl">Today</span><span class="v">+0.00%</span></div>
+  <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+</div>
+
+<div class="page">
+  <div class="page-head">
+    <h1 class="page-title">Affiliate Dashboard</h1>
+    <span class="tier-badge">Basic</span>
+  </div>
+
+  <!-- Top row — 3 cards -->
+  <div class="row-3">
+    <div class="card">
+      <div class="card-title"><span class="icn">⌖</span>Your Referral Link</div>
+      <div class="card-desc">
+        Choose a custom referral code to share with your network.
+        <span class="second">Trade $50,000 more to unlock referrals.</span>
+      </div>
+      <div class="input-row">
+        <input type="text" placeholder="custom-code" disabled />
+        <button class="register-btn" disabled style="opacity:.45;cursor:not-allowed;">Locked</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icn">◎</span>Pending Payout</div>
+      <div class="card-desc">No payouts yet. Share your referral link to start earning.</div>
+      <div class="big-num">0<span class="unit">UENA</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icn">+</span>Referral Status</div>
+      <div class="card-desc">You haven't been referred yet. Enter a referral code to support a trader and earn rewards.</div>
+      <div class="input-label">Enter Referral Code</div>
+      <div class="input-row">
+        <input type="text" placeholder="TRADE123" id="refCode"/>
+        <button class="register-btn" id="registerBtn">Register</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="row-4">
+    <div class="stat-card">
+      <div class="scorner">⚇</div>
+      <div class="label">Total Referrals</div>
+      <div class="v">0</div>
+      <div class="sub">0 active users</div>
+    </div>
+    <div class="stat-card">
+      <div class="scorner">$</div>
+      <div class="label">Total Earnings Received</div>
+      <div class="v">$0.00 <span class="small">~0.00 UENA</span></div>
+      <div class="sub">Lifetime earnings</div>
+    </div>
+    <div class="stat-card">
+      <div class="scorner">↻</div>
+      <div class="label">Estimated Commissions</div>
+      <div class="v">$0.00 <span class="small">~0 ENA</span></div>
+      <div class="sub">Current cycle (09/04–09/05)</div>
+    </div>
+    <div class="stat-card">
+      <div class="scorner">≣</div>
+      <div class="label">Commission Rates</div>
+      <div class="v mint">50%</div>
+      <div class="sub">Direct Referrals</div>
+    </div>
+  </div>
+
+  <!-- Range toggle -->
+  <div class="range-toggle">
+    <button>Week</button>
+    <button class="active">Month</button>
+    <button>Year</button>
+  </div>
+
+  <!-- Two charts -->
+  <div class="row-2">
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <div class="chart-card-title">Referral Growth Rate</div>
+        <div class="chart-card-sub">Overall Growth<br/><span class="pct">0%</span></div>
+      </div>
+      <div class="chart-svg-wrap">
+        <svg viewBox="0 0 600 240" preserveAspectRatio="none">
+          <g class="chart-grid">
+            <line x1="40" x2="600" y1="40"  y2="40"/>
+            <line x1="40" x2="600" y1="90"  y2="90"/>
+            <line x1="40" x2="600" y1="140" y2="140"/>
+            <line x1="40" x2="600" y1="190" y2="190"/>
+          </g>
+          <text class="chart-axis-label" x="14" y="44">4</text>
+          <text class="chart-axis-label" x="14" y="94">3</text>
+          <text class="chart-axis-label" x="14" y="144">2</text>
+          <text class="chart-axis-label" x="14" y="194">1</text>
+          <!-- empty: no data line -->
+        </svg>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <div class="chart-card-title">Estimated Commission Earnings</div>
+      </div>
+      <div class="chart-svg-wrap">
+        <div class="empty-state">
+          <div class="h">No data yet</div>
+          <div class="b">Estimated commissions will appear as your referrals trade</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Real EIP-1193 wallet integration
+  const WALLET_KEY = 'hyperguard:wallet';
+  const wbtn = document.getElementById('walletBtn');
+  function setConnected(addr) {
+    wbtn.classList.add('connected');
+    wbtn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
+  }
+  function setDisconnected() {
+    wbtn.classList.remove('connected');
+    wbtn.textContent = 'Connect wallet';
+  }
+  wbtn.addEventListener('click', async () => {
+    if (wbtn.classList.contains('connected')) return;
+    wbtn.textContent = 'Connecting…';
+    const eth = window.ethereum;
+    if (!eth) {
+      wbtn.textContent = 'Connect wallet';
+      alert('No wallet detected. Install MetaMask, Rabby, or another EIP-1193 wallet.');
+      return;
+    }
+    try {
+      const accs = await eth.request({ method: 'eth_requestAccounts' });
+      const addr = accs && accs[0];
+      if (addr) { try { localStorage.setItem(WALLET_KEY, addr); } catch {}; setConnected(addr); }
+      else wbtn.textContent = 'Connect wallet';
+    } catch (err) {
+      wbtn.textContent = 'Connect wallet';
+      console.warn('[wallet] connect rejected', err);
+    }
+  });
+  (async () => {
+    const eth = window.ethereum;
+    if (!eth) return;
+    try {
+      const accs = await eth.request({ method: 'eth_accounts' });
+      if (accs && accs[0]) { try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}; setConnected(accs[0]); }
+    } catch {}
+    if (typeof eth.on === 'function') {
+      eth.on('accountsChanged', (accs) => {
+        if (!accs || !accs.length) { try { localStorage.removeItem(WALLET_KEY); } catch {}; setDisconnected(); }
+        else { try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}; setConnected(accs[0]); }
+      });
+      eth.on('chainChanged', () => location.reload());
+    }
+  })();
+
+  document.querySelectorAll('.range-toggle button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.range-toggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+
+  document.getElementById('registerBtn').addEventListener('click', () => {
+    const code = document.getElementById('refCode').value.trim();
+    if (!code) return;
+    const btn = document.getElementById('registerBtn');
+    btn.textContent = 'Registered ✓';
+    btn.style.background = 'var(--surface)';
+    btn.style.color = 'var(--mint)';
+    btn.style.boxShadow = 'none';
+    btn.style.borderColor = 'var(--mint-soft)';
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HyperGuard — Dashboard</title>
+<link rel="icon" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:         #07090c;
+    --bg-2:       #0a0d12;
+    --surface:    #0f1319;
+    --surface-2:  #161b23;
+    --surface-3:  #1f262f;
+    --border:     #1a2029;
+    --border-2:   #242c37;
+    --border-hi:  #354050;
+    --text:       #ecf0f5;
+    --text-2:     #aab2bd;
+    --text-3:     #6c7480;
+    --text-4:     #434a55;
+    --mint:       #a3f7bf;
+    --mint-hi:    #c5fad6;
+    --mint-soft:  rgba(163,247,191,.12);
+    --mint-glow:  rgba(163,247,191,.18);
+    --cream:      #ece7dd;
+    --danger:     #ff7468;
+    --warn:       #ffce6b;
+    --r-sm: 6px; --r: 10px; --r-lg: 14px; --r-xl: 20px;
+    --f-sans: 'Geist', -apple-system, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv01', 'cv11', 'tnum';
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(163,247,191,.04), transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(163,247,191,.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+    pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent 80%);
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+  ::selection { background: var(--mint); color: var(--bg); }
+
+  /* ── Topbar (shared with app) ── */
+  .topbar {
+    position: relative; z-index: 10;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 18px;
+    background: rgba(7,9,12,.92);
+    backdrop-filter: blur(20px);
+    gap: 16px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+    color: var(--text);
+  }
+  .brand-mark {
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
+  }
+  .brand-mark::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 3px; background: var(--bg);
+  }
+  .app-nav { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+  .app-nav a {
+    color: var(--text-3);
+    font-size: 13px; font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 8px 14px;
+    border-radius: var(--r-sm);
+    transition: all .15s ease;
+  }
+  .app-nav a:hover { color: var(--text); }
+  .app-nav a.active { color: var(--text); background: var(--surface); }
+  .topbar-spacer { flex: 1; }
+  .pill {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-2);
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pill .lbl { color: var(--text-3); font-size: 11px; }
+  .pill .v { font-feature-settings: 'tnum'; }
+  .wallet-btn {
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    color: var(--bg); background: var(--mint);
+    padding: 9px 16px;
+    border: 1px solid var(--mint);
+    border-radius: var(--r);
+    transition: all .18s ease;
+    letter-spacing: -0.005em;
+    box-shadow: 0 0 0 1px var(--mint), 0 6px 18px rgba(163,247,191,.18);
+  }
+  .wallet-btn:hover { background: var(--mint-hi); }
+  .wallet-btn.connected {
+    background: var(--surface);
+    color: var(--mint);
+    border-color: var(--mint-soft);
+    box-shadow: none;
+  }
+  .wallet-btn.connected::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint); margin-right: 8px;
+    box-shadow: 0 0 6px var(--mint);
+  }
+
+  /* ── Page layout ── */
+  .page {
+    position: relative; z-index: 1;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 32px 28px 80px;
+  }
+  .page-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .page-title {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+  .fees-pill {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    font-family: var(--f-mono); font-size: 12px;
+  }
+  .fees-pill .lbl { color: var(--text-3); }
+  .fees-pill .v { color: var(--text); font-feature-settings: 'tnum'; }
+  .fees-pill .info {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid var(--text-3); color: var(--text-3);
+    display: inline-grid; place-items: center;
+    font-size: 9px;
+  }
+
+  .tabs {
+    display: flex; gap: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 14px; font-weight: 500;
+    border: none;
+    padding: 12px 0;
+    border-bottom: 2px solid transparent;
+    transition: all .15s ease;
+    letter-spacing: -0.005em;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--mint);
+    border-bottom-color: var(--mint);
+  }
+
+  .grid-main {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 1100px) { .grid-main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 22px 24px;
+    transition: border-color .2s ease;
+  }
+  .card:hover { border-color: var(--border-hi); }
+  .card .label {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 14px;
+    letter-spacing: 0.04em;
+  }
+  .card .label.with-icon { display: flex; align-items: center; gap: 8px; }
+  .card .label .icn {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    display: grid; place-items: center;
+    color: var(--mint);
+    font-size: 11px;
+  }
+  .card .big-num {
+    font-size: 38px; font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+    font-feature-settings: 'tnum';
+    margin-bottom: 6px;
+  }
+  .card .delta {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-3);
+    font-feature-settings: 'tnum';
+  }
+  .card .delta.up   { color: var(--mint); }
+  .card .delta.down { color: var(--danger); }
+
+  .card.tall { display: flex; flex-direction: column; justify-content: space-between; min-height: 178px; position: relative; }
+  .card .add-btn {
+    align-self: flex-start;
+    background: var(--mint);
+    color: var(--bg);
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--mint);
+    box-shadow: 0 0 0 1px var(--mint), 0 6px 16px rgba(163,247,191,.2);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.005em;
+    margin-top: 14px;
+  }
+  .card .add-btn:hover { background: var(--mint-hi); }
+  .card .add-btn .plus {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: rgba(7,9,12,.2);
+    display: grid; place-items: center;
+    font-size: 11px; line-height: 1;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .card.compact .label { margin-bottom: 8px; }
+  .card.compact .big-num { font-size: 22px; }
+
+  /* USDe Rewards card with subtle mint accent */
+  .card.rewards .big-num { color: var(--mint); }
+
+  /* ── Chart card ── */
+  .card-chart {
+    padding: 22px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    display: flex; flex-direction: column;
+    min-height: 480px;
+  }
+  .chart-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px;
+  }
+  .chart-tabs { display: flex; gap: 22px; }
+  .chart-tabs .tab { font-size: 13px; padding: 6px 0; }
+  .chart-tabs .tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+  .range-toggle {
+    display: flex; gap: 4px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 3px;
+  }
+  .range-toggle button {
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 12px; font-weight: 500;
+    padding: 6px 14px;
+    border: none; border-radius: var(--r-sm);
+    transition: all .15s ease;
+  }
+  .range-toggle button:hover { color: var(--text); }
+  .range-toggle button.active {
+    background: var(--surface-3);
+    color: var(--mint);
+  }
+
+  .chart-svg-wrap { flex: 1; position: relative; min-height: 360px; }
+  .chart-svg-wrap svg { width: 100%; height: 100%; display: block; }
+  .chart-axis-label {
+    font-family: var(--f-mono); font-size: 10px;
+    fill: var(--text-3);
+  }
+  .chart-grid line { stroke: var(--border); stroke-dasharray: 2 4; }
+  .chart-area {
+    fill: url(#chartGrad);
+    stroke: none;
+  }
+  .chart-line {
+    fill: none;
+    stroke: var(--mint);
+    stroke-width: 2;
+    filter: drop-shadow(0 0 6px rgba(163,247,191,.3));
+  }
+  .x-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    padding: 6px 8px 0;
+    margin-top: 6px;
+  }
+
+  /* ── Assets table ── */
+  .assets {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .assets-tabs {
+    display: flex; gap: 24px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .assets-tabs .tab { font-size: 13px; padding: 10px 0; }
+  .assets-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .assets-table th, .assets-table td {
+    padding: 14px 24px;
+    text-align: left;
+    font-family: var(--f-mono); font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .assets-table th {
+    color: var(--text-3);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  .assets-table td.num { color: var(--text); font-feature-settings: 'tnum'; text-align: right; }
+  .assets-table th.num { text-align: right; }
+  .assets-table tr:last-child td { border-bottom: none; }
+  .asset-cell {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .asset-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 600;
+    color: #fff;
+  }
+  .asset-icon.usdc { background: linear-gradient(135deg, #2775ca, #4d8ff5); }
+  .asset-icon.hype { background: linear-gradient(135deg, #19c2a4, #1ed3a3); }
+  .asset-icon.eth  { background: linear-gradient(135deg, #627eea, #8da4f5); }
+  .asset-icon.btc  { background: linear-gradient(135deg, #f7931a, #ffb84a); }
+  .asset-name {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .asset-name .a { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; font-family: var(--f-sans); }
+  .asset-name .b { font-size: 11px; color: var(--text-3); }
+  .asset-actions {
+    display: flex; gap: 6px;
+    justify-content: flex-end;
+  }
+  .asset-actions button {
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: var(--f-sans); font-size: 12px; font-weight: 500;
+    padding: 7px 13px;
+    border: 1px solid var(--border-2);
+    border-radius: var(--r);
+    transition: all .15s ease;
+    letter-spacing: -0.005em;
+  }
+  .asset-actions button:hover { border-color: var(--text); }
+  .asset-actions button.icon-btn {
+    padding: 7px 10px;
+    background: var(--mint-soft);
+    color: var(--mint);
+    border-color: var(--mint-soft);
+  }
+  .asset-actions button.icon-btn:hover {
+    background: var(--mint);
+    color: var(--bg);
+  }
+  .asset-actions button.transfer-link {
+    background: var(--mint-soft);
+    color: var(--mint);
+    border-color: var(--mint-soft);
+  }
+  .asset-actions button.transfer-link:hover {
+    background: var(--mint);
+    color: var(--bg);
+  }
+
+  @media (max-width: 720px) {
+    .page { padding: 24px 16px 60px; }
+    .page-title { font-size: 24px; }
+    .stat-row { grid-template-columns: 1fr; }
+    .assets-table th, .assets-table td { padding: 12px 14px; }
+    .asset-actions button { padding: 6px 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="dex.html">
+    <span class="brand-mark"></span>
+    <span>HyperGuard</span>
+  </a>
+  <nav class="app-nav">
+    <a href="app.html">Perps</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="referral.html">Referral</a>
+  </nav>
+  <div class="topbar-spacer"></div>
+  <div class="pill"><span class="lbl">Equity</span><span class="v">$10,000.00</span></div>
+  <div class="pill"><span class="lbl">Today</span><span class="v">+0.00%</span></div>
+  <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+</div>
+
+<div class="page">
+  <div class="page-head">
+    <h1 class="page-title">Portfolio</h1>
+    <div class="fees-pill">
+      <span class="lbl">Fees</span>
+      <span class="v">0.0500% / 0.0167%</span>
+      <span class="info">i</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="assets">Assets</button>
+    <button class="tab" data-tab="history">History</button>
+  </div>
+
+  <div id="tab-assets">
+  <div class="grid-main">
+    <!-- LEFT COLUMN — stat cards -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="card tall">
+        <div>
+          <div class="label">Total Balance</div>
+          <div class="big-num" id="b-total">—</div>
+          <div class="delta" id="b-delta">Connect a wallet to view balance</div>
+        </div>
+        <button class="add-btn" id="addFundsBtn" disabled style="opacity:.45;cursor:not-allowed;">
+          <span class="plus">+</span>Connect wallet first
+        </button>
+      </div>
+
+      <div class="card rewards">
+        <div class="label with-icon"><span class="icn">$</span>USDe Rewards</div>
+        <div class="big-num" id="b-rewards">—</div>
+      </div>
+
+      <div class="stat-row">
+        <div class="card compact">
+          <div class="label">Available Balance</div>
+          <div class="big-num" id="b-avail">—</div>
+        </div>
+        <div class="card compact">
+          <div class="label">USDe Balance</div>
+          <div class="big-num" id="b-usde">—</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="card compact">
+          <div class="label">Spot Balance <span style="color:var(--text-4); font-size:9px;">(ex. USDe)</span></div>
+          <div class="big-num" id="b-spot">—</div>
+        </div>
+        <div class="card compact">
+          <div class="label">EVM Balance</div>
+          <div class="big-num" id="b-evm">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN — chart -->
+    <div class="card-chart">
+      <div class="chart-head">
+        <div class="chart-tabs">
+          <button class="tab active">Balance</button>
+          <button class="tab">PnL</button>
+          <button class="tab">USDe Rewards</button>
+        </div>
+        <div class="range-toggle">
+          <button class="active">Week</button>
+          <button>Month</button>
+        </div>
+      </div>
+      <div class="chart-svg-wrap">
+        <svg viewBox="0 0 800 380" preserveAspectRatio="none" id="balanceChart">
+          <defs>
+            <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%"  stop-color="#a3f7bf" stop-opacity="0.30"/>
+              <stop offset="100%" stop-color="#a3f7bf" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g class="chart-grid">
+            <line x1="0"   x2="800" y1="60"  y2="60"/>
+            <line x1="0"   x2="800" y1="140" y2="140"/>
+            <line x1="0"   x2="800" y1="220" y2="220"/>
+            <line x1="0"   x2="800" y1="300" y2="300"/>
+          </g>
+          <text class="chart-axis-label" x="6" y="58">$600</text>
+          <text class="chart-axis-label" x="6" y="138">$500</text>
+          <text class="chart-axis-label" x="6" y="218">$400</text>
+          <text class="chart-axis-label" x="6" y="298">$300</text>
+          <text class="chart-axis-label" x="6" y="370">$200</text>
+          <!-- area + line — Apr 24 → Apr 30 ($310 → $415) -->
+          <path class="chart-area" d="M 60 290 C 100 240, 160 215, 220 218 L 320 220 L 420 224 L 520 218 L 620 215 L 720 200 L 760 175 L 760 380 L 60 380 Z"/>
+          <path class="chart-line" d="M 60 290 C 100 240, 160 215, 220 218 L 320 220 L 420 224 L 520 218 L 620 215 L 720 200 L 760 175"/>
+        </svg>
+      </div>
+      <div class="x-labels">
+        <span>Apr 24</span><span>Apr 25</span><span>Apr 26</span><span>Apr 27</span><span>Apr 28</span><span>Apr 29</span><span>Apr 30</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assets table -->
+  <div class="assets">
+    <div class="assets-tabs">
+      <button class="tab active">All</button>
+      <button class="tab">Non-Zero</button>
+      <button class="tab">Perps</button>
+      <button class="tab">Spot</button>
+      <button class="tab">EVM</button>
+    </div>
+    <table class="assets-table">
+      <thead>
+        <tr>
+          <th>Asset</th>
+          <th class="num">Balance</th>
+          <th class="num">Withdrawable</th>
+          <th class="num">Locked</th>
+          <th class="num">Value</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="assetsTbody">
+        <tr id="emptyAssetsRow">
+          <td colspan="6" style="text-align:center; padding: 56px 24px; color: var(--text-3);">
+            <div style="font-size:14px; color: var(--text-2); margin-bottom: 6px;">No wallet connected</div>
+            <div style="font-family: var(--f-mono); font-size: 11px;">Connect a wallet to view your assets</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  </div><!-- /tab-assets -->
+
+  <!-- ── History tab ── -->
+  <div id="tab-history" style="display:none;">
+    <div class="assets">
+      <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
+        <div style="display:flex; gap:18px; align-items:baseline;">
+          <div style="font-size: 14px; font-weight: 500; letter-spacing: -0.01em;">Trade History</div>
+          <div style="font-family: var(--f-mono); font-size: 11px; color: var(--text-3);"><span id="hist-count">0</span> trades · <span id="hist-net" style="color: var(--text-2)">$0.00 net</span></div>
+        </div>
+        <button id="hist-clear" style="background:transparent;color:var(--text-3);border:1px solid var(--border-2);border-radius:var(--r);padding:7px 12px;font-family:var(--f-sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">Clear log</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="assets-table" id="hist-table">
+          <thead>
+            <tr>
+              <th>Coin</th>
+              <th>Side</th>
+              <th class="num">Entry</th>
+              <th class="num">Exit</th>
+              <th class="num">Size</th>
+              <th class="num">Fees $</th>
+              <th class="num">Funding $</th>
+              <th class="num">Net P&L $</th>
+              <th class="num">Net %</th>
+              <th class="num">Entry → Close</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="hist-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-history --></div>
+
+<script>
+  // ── Wallet-gated portfolio data ──
+  // Real Hyperliquid integration would call POST /info clearinghouseState here.
+  // Until that's wired, balances stay at "—" until connect, then read from
+  // localStorage or a paper-trading hook. NEVER show fabricated balance numbers
+  // before wallet connection.
+  function paintEmptyBalance() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('b-total', '—');
+    set('b-rewards', '—');
+    set('b-avail', '—');
+    set('b-usde', '—');
+    set('b-spot', '—');
+    set('b-evm', '—');
+    const d = document.getElementById('b-delta');
+    if (d) { d.textContent = 'Connect a wallet to view balance'; d.className = 'delta'; }
+    const fundsBtn = document.getElementById('addFundsBtn');
+    if (fundsBtn) {
+      fundsBtn.disabled = true;
+      fundsBtn.style.opacity = '.45';
+      fundsBtn.style.cursor = 'not-allowed';
+      fundsBtn.innerHTML = '<span class="plus">+</span>Connect wallet first';
+    }
+    document.getElementById('assetsTbody').innerHTML = `
+      <tr id="emptyAssetsRow">
+        <td colspan="6" style="text-align:center; padding: 56px 24px; color: var(--text-3);">
+          <div style="font-size:14px; color: var(--text-2); margin-bottom: 6px;">No wallet connected</div>
+          <div style="font-family: var(--f-mono); font-size: 11px;">Connect a wallet to view your assets</div>
+        </td>
+      </tr>`;
+  }
+
+  function paintConnectedBalance(addr) {
+    // Demo state for a connected wallet — zeros, not fake balances.
+    // When wired to HL, replace with real clearinghouseState fetch.
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('b-total', '$0.00');
+    set('b-rewards', '$0.00');
+    set('b-avail', '$0.00');
+    set('b-usde', '$0.00');
+    set('b-spot', '$0.00');
+    set('b-evm', '$0.00');
+    const d = document.getElementById('b-delta');
+    if (d) { d.innerHTML = '<span style="color:var(--text-3)">No 24h change yet</span>'; d.className = 'delta'; }
+    const fundsBtn = document.getElementById('addFundsBtn');
+    if (fundsBtn) {
+      fundsBtn.disabled = false;
+      fundsBtn.style.opacity = '1';
+      fundsBtn.style.cursor = 'pointer';
+      fundsBtn.innerHTML = '<span class="plus">+</span>Add funds';
+    }
+    document.getElementById('assetsTbody').innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center; padding: 40px 24px; color: var(--text-3);">
+          <div style="font-size:13px; color: var(--text-2); margin-bottom: 4px;">No assets yet</div>
+          <div style="font-family: var(--f-mono); font-size: 11px;">Deposit USDC to start trading</div>
+        </td>
+      </tr>`;
+  }
+
+  // Real EIP-1193 wallet integration with silent restore + listeners
+  const WALLET_KEY = 'hyperguard:wallet';
+  const btn = document.getElementById('walletBtn');
+
+  function applyConnected(addr) {
+    btn.classList.add('connected');
+    btn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
+    paintConnectedBalance(addr);
+  }
+  function applyDisconnected() {
+    btn.classList.remove('connected');
+    btn.textContent = 'Connect wallet';
+    paintEmptyBalance();
+  }
+
+  btn.addEventListener('click', async () => {
+    if (btn.classList.contains('connected')) return;
+    btn.textContent = 'Connecting…';
+    const eth = window.ethereum;
+    if (!eth) {
+      btn.textContent = 'Connect wallet';
+      alert('No wallet detected. Install MetaMask, Rabby, or another EIP-1193 wallet.');
+      return;
+    }
+    try {
+      const accs = await eth.request({ method: 'eth_requestAccounts' });
+      const addr = accs && accs[0];
+      if (addr) {
+        try { localStorage.setItem(WALLET_KEY, addr); } catch {}
+        applyConnected(addr);
+      } else {
+        btn.textContent = 'Connect wallet';
+      }
+    } catch (err) {
+      btn.textContent = 'Connect wallet';
+      console.warn('[wallet] connect rejected', err);
+    }
+  });
+
+  // Silent restore + listeners
+  (async () => {
+    paintEmptyBalance();
+    const eth = window.ethereum;
+    if (!eth) return;
+    try {
+      const accs = await eth.request({ method: 'eth_accounts' });
+      const addr = accs && accs[0];
+      if (addr) {
+        try { localStorage.setItem(WALLET_KEY, addr); } catch {}
+        applyConnected(addr);
+      }
+    } catch {}
+    if (typeof eth.on === 'function') {
+      eth.on('accountsChanged', (accs) => {
+        if (!accs || !accs.length) {
+          try { localStorage.removeItem(WALLET_KEY); } catch {}
+          applyDisconnected();
+        } else {
+          try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}
+          applyConnected(accs[0]);
+        }
+      });
+      eth.on('chainChanged', () => location.reload());
+    }
+  })();
+
+  // Tabs (visual + tab-swap for assets/history)
+  document.querySelectorAll('.tabs .tab, .chart-tabs .tab, .assets-tabs .tab, .range-toggle button').forEach(t => {
+    t.addEventListener('click', () => {
+      const group = t.closest('.tabs') || t.closest('.chart-tabs') || t.closest('.assets-tabs') || t.closest('.range-toggle');
+      group.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const tabName = t.dataset.tab;
+      if (tabName === 'assets' || tabName === 'history') {
+        document.getElementById('tab-assets').style.display  = tabName === 'assets'  ? '' : 'none';
+        document.getElementById('tab-history').style.display = tabName === 'history' ? '' : 'none';
+        if (tabName === 'history') renderHistory();
+      }
+    });
+  });
+
+  // ── History tab — reads from localStorage written by app.html ──
+  function fmtTime(ts) {
+    const d = new Date(ts);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function fmtUsd(n, opts = {}) {
+    const sign = n >= 0 ? '+' : '−';
+    const abs = Math.abs(n);
+    return `${opts.signed ? sign : ''}$${abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  function fmtPx(n) {
+    if (n == null || isNaN(n)) return '—';
+    return n.toLocaleString('en-US', { maximumFractionDigits: n >= 1000 ? 1 : n >= 1 ? 2 : 4 });
+  }
+  function fmtDuration(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60)   return `${s}s`;
+    if (s < 3600) return `${Math.floor(s/60)}m ${s%60}s`;
+    return `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+  }
+
+  function renderHistory() {
+    let log = [];
+    try { log = JSON.parse(localStorage.getItem('hyperguard:trades') || '[]'); } catch {}
+    const tbody = document.getElementById('hist-tbody');
+    const countEl = document.getElementById('hist-count');
+    const netEl = document.getElementById('hist-net');
+    countEl.textContent = log.length;
+    const totalNet = log.reduce((sum, t) => sum + (+t.netPnl || 0), 0);
+    netEl.textContent = `${totalNet >= 0 ? '+' : '−'}$${Math.abs(totalNet).toFixed(2)} net`;
+    netEl.style.color = totalNet >= 0 ? 'var(--mint)' : 'var(--danger)';
+
+    if (!log.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11" style="text-align:center; padding: 56px 24px; color: var(--text-3);">
+            <div style="font-size:14px; color: var(--text-2); margin-bottom: 6px;">No trades yet</div>
+            <div style="font-family: var(--f-mono); font-size: 11px;">Closed trades from the Perps app will appear here</div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    // newest first
+    const rows = [...log].reverse();
+    tbody.innerHTML = rows.map(t => {
+      const sideCls = t.side === 'long' ? 'mint' : 'danger';
+      const sideTxt = (t.side || '').toUpperCase();
+      const netCls = t.netPnl >= 0 ? 'mint' : 'danger';
+      const reasonTxt = ({ manual: 'Manual close', stop: 'Stop loss', liquidated: '☠ Liquidated' })[t.reason] || t.reason || '—';
+      const dur = fmtDuration((t.exitTime || 0) - (t.entryTime || 0));
+      return `
+        <tr>
+          <td style="font-family: var(--f-sans); font-weight: 500;">${t.coin || '—'}-USDC</td>
+          <td><span style="display:inline-block;padding:3px 9px;border-radius:100px;font-family:var(--f-mono);font-size:10px;font-weight:600;
+                          background:${t.side==='long' ? 'rgba(163,247,191,.12)' : 'rgba(255,116,104,.12)'};
+                          color:${t.side==='long' ? 'var(--mint)' : 'var(--danger)'};">${sideTxt}</span></td>
+          <td class="num">${fmtPx(t.entry)}</td>
+          <td class="num">${fmtPx(t.exit)}</td>
+          <td class="num">$${(+t.sizeUsd || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+          <td class="num" style="color: var(--danger);">−$${(+t.feesUsd || 0).toFixed(2)}</td>
+          <td class="num" style="color: ${(+t.fundingUsd||0) < 0 ? 'var(--danger)' : 'var(--text-3)'};">${(+t.fundingUsd||0)===0 ? '$0.00' : ((+t.fundingUsd) >= 0 ? '+$' : '−$')+Math.abs(+t.fundingUsd||0).toFixed(2)}</td>
+          <td class="num" style="color: var(--${netCls});">${t.netPnl >= 0 ? '+' : '−'}$${Math.abs(+t.netPnl || 0).toFixed(2)}</td>
+          <td class="num" style="color: var(--${netCls});">${t.netPct >= 0 ? '+' : ''}${(+t.netPct || 0).toFixed(2)}%</td>
+          <td class="num" style="font-size:10px;line-height:1.4;">
+            <div style="color:var(--text-3);">${fmtTime(t.entryTime)}</div>
+            <div style="color:var(--text-2);">${fmtTime(t.exitTime)} <span style="color:var(--text-4);">(${dur})</span></div>
+          </td>
+          <td style="color: var(--text-2); font-size: 11px;">${reasonTxt}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('hist-clear').addEventListener('click', () => {
+    if (confirm('Clear all trade history?')) {
+      localStorage.removeItem('hyperguard:trades');
+      renderHistory();
+    }
+  });
+</script>
+
+</body>
+</html>

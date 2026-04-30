@@ -1,0 +1,2481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HyperGuard — App</title>
+<link rel="icon" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root {
+    --bg:         #07090c;
+    --bg-2:       #0a0d12;
+    --surface:    #0f1319;
+    --surface-2:  #161b23;
+    --surface-3:  #1f262f;
+    --border:     #1a2029;
+    --border-2:   #242c37;
+    --border-hi:  #354050;
+    --text:       #ecf0f5;
+    --text-2:     #aab2bd;
+    --text-3:     #6c7480;
+    --text-4:     #434a55;
+    --mint:       #a3f7bf;
+    --mint-hi:    #c5fad6;
+    --mint-soft:  rgba(163,247,191,.12);
+    --mint-glow:  rgba(163,247,191,.18);
+    --cream:      #ece7dd;
+    --danger:     #ff7468;
+    --danger-soft:rgba(255,116,104,.10);
+    --warn:       #ffce6b;
+    --warn-soft:  rgba(255,206,107,.10);
+    --r-sm: 6px; --r: 10px; --r-lg: 14px; --r-xl: 20px;
+    --f-sans: 'Geist', -apple-system, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-sans);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv01', 'cv11', 'tnum';
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(163,247,191,.04), transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+  ::selection { background: var(--mint); color: var(--bg); }
+
+  /* ═══════════ TOP BAR ═══════════ */
+  .topbar {
+    position: relative; z-index: 10;
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 18px;
+    background: rgba(7,9,12,.92);
+    backdrop-filter: blur(20px);
+    gap: 16px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+    color: var(--text);
+  }
+  .brand-mark {
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
+  }
+  .brand-mark::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 3px; background: var(--bg);
+  }
+
+  .app-nav {
+    display: flex; align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+  }
+  .app-nav a {
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 8px 14px;
+    border-radius: var(--r-sm);
+    transition: all .15s ease;
+    text-decoration: none;
+  }
+  .app-nav a:hover { color: var(--text); }
+  .app-nav a.active {
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  .mode-seg {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 3px; gap: 2px;
+    margin: 14px 14px 0;
+  }
+  .mode-btn {
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 11px; font-weight: 500;
+    padding: 8px 6px;
+    border: none; border-radius: var(--r-sm);
+    transition: all .15s ease;
+    letter-spacing: -0.005em;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .mode-btn:hover { color: var(--text); }
+  .mode-btn.active { background: var(--surface-3); color: var(--text); }
+  .mode-btn.active.conservative { color: var(--mint); }
+  .mode-btn.active.balanced     { color: var(--cream); }
+  .mode-btn.active.aggressive   { color: var(--warn); }
+  @media (max-width: 720px) {
+    .app-nav { gap: 0; }
+    .app-nav a { padding: 6px 10px; font-size: 12px; }
+  }
+
+  .topbar-spacer { flex: 1; }
+  .pill {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-2);
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pill .lbl { color: var(--text-3); font-size: 11px; }
+  .pill .v { font-feature-settings: 'tnum'; }
+  .pill .v.up   { color: var(--mint); }
+  .pill .v.down { color: var(--danger); }
+
+  .wallet-btn {
+    font-family: var(--f-sans); font-size: 13px; font-weight: 500;
+    color: var(--bg); background: var(--mint);
+    padding: 9px 16px;
+    border: 1px solid var(--mint);
+    border-radius: var(--r);
+    transition: all .18s ease;
+    letter-spacing: -0.005em;
+    box-shadow: 0 0 0 1px var(--mint), 0 6px 18px rgba(163,247,191,.18);
+  }
+  .wallet-btn:hover { background: var(--mint-hi); }
+  .wallet-btn.connected {
+    background: var(--surface);
+    color: var(--mint);
+    border-color: var(--mint-soft);
+    box-shadow: none;
+  }
+  .wallet-btn.connected::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint); margin-right: 8px;
+    box-shadow: 0 0 6px var(--mint);
+  }
+
+  /* ═══════════ MAIN GRID ═══════════ */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: 60px 1fr;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── Pair bar (rich stats) ── */
+  .pair-bar {
+    grid-column: 1 / -1;
+    height: 60px;
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-2) transparent;
+  }
+  .pair-bar::-webkit-scrollbar { height: 3px; }
+  .pair-bar::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+  .pair-coin {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 16px;
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: var(--r);
+    transition: background .15s ease;
+  }
+  .pair-coin:hover { background: var(--surface); }
+  .pair-coin.open { background: var(--surface); }
+  .pair-coin .icon {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #f7931a 0%, #ffb84a 100%);
+    display: grid; place-items: center;
+    color: #fff; font-size: 14px; font-weight: 700;
+    box-shadow: 0 0 0 1px rgba(247,147,26,.3);
+    line-height: 1;
+    transition: background .25s ease, box-shadow .25s ease;
+  }
+  .pair-coin .caret { color: var(--text-3); font-size: 11px; transition: transform .15s ease; }
+  .pair-coin.open .caret { transform: rotate(180deg); }
+
+  /* ── Markets dropdown ── */
+  /* Fixed-positioned so it escapes pair-bar's overflow-x clipping context.
+     Position computed in JS from the pair-coin trigger's bounding rect. */
+  .markets-dd {
+    position: fixed;
+    top: 0; left: 0;
+    width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    box-shadow: 0 24px 60px rgba(0,0,0,.65);
+    z-index: 1000;
+    display: none;
+    max-height: 480px;
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .markets-dd.open { display: flex; }
+  .markets-dd-search {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .markets-dd-search input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 9px 12px;
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .markets-dd-search input:focus { border-color: var(--mint); }
+  .markets-dd-search input::placeholder { color: var(--text-4); }
+  .markets-dd-body {
+    flex: 1; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--border-2) transparent;
+  }
+  .markets-dd-body::-webkit-scrollbar { width: 6px; }
+  .markets-dd-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+  .market-item {
+    display: grid;
+    grid-template-columns: 18px 24px 1fr 90px 60px;
+    align-items: center; gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: var(--f-mono); font-size: 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background .12s ease;
+    font-weight: 400;
+  }
+  .market-item .fav {
+    color: var(--text-4);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color .15s ease, transform .15s ease;
+    padding: 2px;
+    border-radius: 3px;
+    user-select: none;
+  }
+  .market-item .fav:hover { color: var(--warn); transform: scale(1.15); }
+  .market-item .fav.on { color: var(--warn); }
+  .market-item.fav-row { background: rgba(255,206,107,.025); }
+  .markets-dd-section {
+    padding: 8px 14px 6px;
+    font-family: var(--f-mono); font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .market-item:last-child { border-bottom: none; }
+  .market-item:hover { background: var(--surface-2); }
+  .market-item.active { background: var(--mint-soft); }
+  .market-item .micon {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 600; color: #fff;
+    line-height: 1;
+  }
+  .market-item .msym {
+    color: var(--text); font-weight: 500;
+    font-family: var(--f-sans); font-size: 13px;
+    letter-spacing: -0.005em;
+  }
+  .market-item .mpx { color: var(--text-2); font-feature-settings: 'tnum'; text-align: right; }
+  .market-item .mpct { font-feature-settings: 'tnum'; text-align: right; }
+  .market-item .mpct.up   { color: var(--mint); }
+  .market-item .mpct.down { color: var(--danger); }
+
+  .pair-stat {
+    display: flex; flex-direction: column; gap: 3px;
+    flex-shrink: 0;
+  }
+  .pair-stat .k {
+    color: var(--text-3);
+    font-size: 10px;
+    border-bottom: 1px dotted var(--text-4);
+    padding-bottom: 1px;
+    width: max-content;
+    font-family: var(--f-mono);
+    letter-spacing: 0.02em;
+  }
+  .pair-stat .v {
+    font-family: var(--f-mono); font-size: 13px;
+    font-feature-settings: 'tnum';
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .pair-stat .v.up   { color: var(--mint); }
+  .pair-stat .v.down { color: var(--danger); }
+  .pair-stat .v .delta { color: var(--text-3); font-size: 11px; margin-right: 4px; }
+  .pair-stat .v .cd { color: var(--text-2); }
+
+  .pair-bar-spacer { flex: 1; min-width: 24px; }
+
+  .risk-badge {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 7px 14px;
+    border: 1px solid var(--border-2);
+    border-radius: 100px;
+    font-family: var(--f-mono); font-size: 12px;
+    background: var(--surface);
+    transition: all .25s ease;
+  }
+  .risk-badge .rdot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-3);
+    transition: all .25s ease;
+  }
+  .risk-badge .rscore { color: var(--text); font-feature-settings: 'tnum'; }
+  .risk-badge .lbl { color: var(--text-3); }
+
+  /* ═══════════ CHART PANE ═══════════ */
+  .chart-pane {
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  #chart {
+    flex: 1; min-height: 200px;
+    position: relative;
+  }
+  /* Position panel — always visible below chart while in trade */
+  .pos-panel {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg-2), var(--bg));
+    transition: max-height .25s ease, opacity .2s ease;
+  }
+  .pos-panel:empty { display: none; }
+
+  /* Risk-zone shading overlay — positioned via priceToCoordinate */
+  .risk-zone {
+    position: absolute;
+    left: 0; right: 60px;
+    pointer-events: none;
+    z-index: 4;
+    background: linear-gradient(180deg, rgba(255,116,104,.04), rgba(255,116,104,.16));
+    border-top: 1px dashed rgba(255,206,107,.4);
+    border-bottom: 1px solid rgba(255,116,104,.7);
+    transition: top .12s linear, height .12s linear, opacity .25s ease;
+  }
+  @keyframes zone-flash {
+    0%   { background: linear-gradient(180deg, rgba(255,116,104,.04), rgba(255,116,104,.16)); }
+    35%  { background: linear-gradient(180deg, rgba(255,116,104,.22), rgba(255,116,104,.5)); }
+    100% { background: linear-gradient(180deg, rgba(255,116,104,.04), rgba(255,116,104,.16)); }
+  }
+  .risk-zone.flash { animation: zone-flash 520ms cubic-bezier(.2,.7,.3,1); }
+
+  /* Risk-badge band-cross pulse */
+  @keyframes risk-flash-warn {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,206,107,0); }
+    35%      { transform: scale(1.08); box-shadow: 0 0 0 5px rgba(255,206,107,.25); }
+  }
+  @keyframes risk-flash-danger {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,116,104,0); }
+    20%      { transform: scale(1.14); box-shadow: 0 0 0 5px rgba(255,116,104,.55); }
+    60%      { transform: scale(1.02); box-shadow: 0 0 0 14px rgba(255,116,104,0); }
+  }
+  .risk-badge.flash-warn   { animation: risk-flash-warn 580ms cubic-bezier(.2,.7,.3,1); }
+  .risk-badge.flash-danger { animation: risk-flash-danger 720ms cubic-bezier(.2,.7,.3,1); }
+  .risk-badge .rscore { transition: color .2s ease; }
+
+  /* Slider thumb intensifies with risk band */
+  @keyframes thumb-pulse-danger {
+    0%, 100% { box-shadow: 0 0 0 1px var(--danger), 0 0 10px rgba(255,116,104,.45); }
+    50%      { box-shadow: 0 0 0 1px var(--danger), 0 0 20px rgba(255,116,104,.85); }
+  }
+  body.risk-warn .slider::-webkit-slider-thumb {
+    background: var(--warn);
+    box-shadow: 0 0 0 1px var(--warn), 0 0 14px rgba(255,206,107,.45);
+  }
+  body.risk-warn .slider::-moz-range-thumb {
+    background: var(--warn);
+    box-shadow: 0 0 0 1px var(--warn), 0 0 14px rgba(255,206,107,.45);
+  }
+  body.risk-danger .slider::-webkit-slider-thumb {
+    background: var(--danger);
+    animation: thumb-pulse-danger 1.4s ease-in-out infinite;
+  }
+  body.risk-danger .slider::-moz-range-thumb {
+    background: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger), 0 0 18px rgba(255,116,104,.7);
+  }
+  /* Pair-bar risk badge hue shifts in danger */
+  body.risk-danger .pair-bar { background: linear-gradient(180deg, rgba(255,116,104,.025), var(--bg-2)); }
+  .risk-zone .zone-label {
+    position: absolute;
+    top: 4px; left: 12px;
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--danger);
+    letter-spacing: 0.12em;
+    background: rgba(7,9,12,0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .legend {
+    position: absolute; top: 14px; left: 14px;
+    background: rgba(15,19,25,.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 10px 12px;
+    font-family: var(--f-mono); font-size: 11px;
+    z-index: 5;
+    min-width: 200px;
+  }
+  /* OHLC strip — sits to the right of the legend */
+  .chart-ohlc {
+    position: absolute;
+    top: 14px; left: 240px;
+    z-index: 5;
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 9px 14px;
+    background: rgba(15,19,25,.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    font-family: var(--f-mono); font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .chart-ohlc .pair { display: inline-flex; align-items: center; gap: 4px; }
+  .chart-ohlc .k {
+    color: var(--text-3);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .chart-ohlc .v {
+    color: var(--text);
+    font-feature-settings: 'tnum';
+  }
+  .chart-ohlc .delta {
+    border-left: 1px solid var(--border);
+    padding-left: 14px;
+    color: var(--text-3);
+    font-feature-settings: 'tnum';
+  }
+  .chart-ohlc .delta.up   { color: var(--mint); }
+  .chart-ohlc .delta.down { color: var(--danger); }
+  @media (max-width: 900px) {
+    .chart-ohlc {
+      top: auto; bottom: 12px; left: 14px;
+      gap: 10px; font-size: 10px; padding: 7px 10px;
+    }
+  }
+  .legend .row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+  .legend .swatch { width: 14px; height: 2px; border-radius: 1px; }
+  .legend .lbl { color: var(--text-3); flex: 1; }
+  .legend .v { color: var(--text); font-feature-settings: 'tnum'; }
+
+  /* ═══════════ CONTROL PANE ═══════════ */
+  .control-pane {
+    background: var(--surface);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .control-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--border-2) transparent;
+  }
+  .control-scroll::-webkit-scrollbar { width: 6px; }
+  .control-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+  .side-tabs {
+    display: grid; grid-template-columns: 1fr 1fr;
+    padding: 14px 14px 0;
+    gap: 6px;
+  }
+  .side-tab {
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--f-sans); font-size: 12px; font-weight: 500;
+    padding: 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    transition: all .15s ease;
+    letter-spacing: -0.005em;
+  }
+  .side-tab:hover { color: var(--text); border-color: var(--border-hi); }
+  .side-tab.active.long {
+    color: var(--bg);
+    background: var(--mint);
+    border-color: var(--mint);
+    box-shadow: 0 0 0 1px var(--mint), 0 4px 14px rgba(163,247,191,.18);
+  }
+  .side-tab.active.short {
+    color: var(--text);
+    background: var(--danger);
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger), 0 4px 14px rgba(255,116,104,.2);
+  }
+
+  .form { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .field-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+  }
+  .field-label .hint { color: var(--text-4); font-size: 10px; }
+  .field-label .field-val {
+    font-family: var(--f-mono); font-size: 13px;
+    color: var(--text); font-feature-settings: 'tnum';
+  }
+
+  .slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: var(--surface-3);
+    outline: none; border-radius: 2px;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--mint);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--mint), 0 0 10px var(--mint-glow);
+    cursor: pointer;
+  }
+  .slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--mint); border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--mint), 0 0 10px var(--mint-glow);
+    cursor: pointer;
+  }
+
+  .input-static {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--f-mono); font-size: 14px;
+    color: var(--text);
+    font-feature-settings: 'tnum';
+  }
+  .input-static .suffix { color: var(--text-3); font-size: 11px; }
+
+  .place-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 14px;
+    background: var(--mint); color: var(--bg);
+    border: 1px solid var(--mint);
+    border-radius: var(--r-lg);
+    font-family: var(--f-sans); font-size: 13px; font-weight: 600;
+    letter-spacing: -0.005em;
+    transition: all .18s ease;
+    box-shadow: 0 0 0 1px var(--mint), 0 8px 22px rgba(163,247,191,.18);
+  }
+  .place-btn:hover { background: var(--mint-hi); }
+  .place-btn.long  { background: var(--mint); border-color: var(--mint); color: var(--bg); }
+  .place-btn.short {
+    background: var(--danger); border-color: var(--danger); color: var(--text);
+    box-shadow: 0 0 0 1px var(--danger), 0 8px 22px rgba(255,116,104,.2);
+  }
+  .place-btn:disabled {
+    opacity: .35; cursor: not-allowed;
+    box-shadow: none; background: var(--surface-3);
+    border-color: var(--border-2); color: var(--text-3);
+  }
+
+  /* ═══════════ "WHAT KILLS ME?" PROBE ═══════════ */
+  .probe {
+    margin-top: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: linear-gradient(180deg, rgba(255,116,104,.025), transparent), var(--bg-2);
+  }
+  .probe-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .probe-title {
+    font-family: var(--f-mono); font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .probe-title .icn {
+    color: var(--danger); font-size: 13px; line-height: 1;
+  }
+  .probe-state {
+    font-family: var(--f-mono); font-size: 11px;
+    padding: 3px 8px; border-radius: var(--r-sm);
+    border: 1px solid var(--border-2);
+    color: var(--text-3);
+  }
+  .probe-state.ok    { color: var(--mint);   border-color: var(--mint-soft);  background: rgba(163,247,191,.04); }
+  .probe-state.stop  { color: var(--warn);   border-color: rgba(255,206,107,.3); background: rgba(255,206,107,.04); }
+  .probe-state.dead  { color: var(--danger); border-color: rgba(255,116,104,.3); background: rgba(255,116,104,.04); }
+  .probe-readout {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .probe-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 8px 10px;
+  }
+  .probe-cell .k {
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--text-3); margin-bottom: 4px;
+  }
+  .probe-cell .v {
+    font-family: var(--f-mono); font-size: 14px;
+    font-feature-settings: 'tnum'; color: var(--text);
+  }
+  .probe-cell .v.up   { color: var(--mint); }
+  .probe-cell .v.down { color: var(--danger); }
+
+  /* ═══════════ RULES BADGE + POPOVER (in sub-header) ═══════════ */
+  .rules-badge {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 7px 14px;
+    border: 1px solid var(--border-2);
+    border-radius: 100px;
+    font-family: var(--f-mono); font-size: 12px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: all .2s ease;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .rules-badge:hover { border-color: var(--border-hi); background: var(--surface-2); }
+  .rules-badge.open { border-color: var(--mint-soft); background: var(--surface-2); }
+  .rules-badge.tripped { border-color: rgba(255,116,104,.4); background: rgba(255,116,104,.04); }
+  .rules-badge .rdot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint-glow);
+    transition: all .25s ease;
+  }
+  .rules-badge.tripped .rdot {
+    background: var(--danger);
+    box-shadow: 0 0 8px var(--danger);
+    animation: pulse-tripped 1.4s ease-in-out infinite;
+  }
+  .rules-badge .lbl { color: var(--text-3); }
+  .rules-badge .rcount {
+    color: var(--text);
+    font-feature-settings: 'tnum';
+    font-weight: 500;
+  }
+  .rules-badge.tripped .rcount { color: var(--danger); }
+  .rules-badge .caret {
+    color: var(--text-4); font-size: 9px;
+    transition: transform .15s ease;
+  }
+  .rules-badge.open .caret { transform: rotate(180deg); }
+
+  /* Popover */
+  .rules-pop {
+    position: absolute;
+    top: calc(100% + 8px); right: 0;
+    width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-lg);
+    box-shadow: 0 24px 60px rgba(0,0,0,.65);
+    z-index: 50;
+    display: none;
+    overflow: hidden;
+  }
+  .rules-pop.open { display: block; }
+  .rules-pop-head {
+    padding: 11px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .rules-pop-head .title { color: var(--text-2); font-weight: 500; }
+  .rules-pop-head .live {
+    display: flex; align-items: center; gap: 7px;
+    color: var(--mint);
+    font-weight: 500;
+  }
+  .rules-pop-head .live::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint);
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+  @media (max-width: 720px) {
+    .rules-pop { width: calc(100vw - 32px); right: -8px; }
+  }
+
+  /* Sticky-bottom Active Rules panel — restored. The sub-header badge
+     migration (rules-badge + rules-pop) is partly built but not wired;
+     until then the bottom panel is the source of truth so users
+     can actually see the active rules state. */
+  .rules-hud {
+    flex-shrink: 0;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+    border-top: 1px solid var(--border-2);
+    box-shadow: 0 -8px 24px rgba(7,9,12,.55);
+    position: sticky; bottom: 0; z-index: 6;
+  }
+  .rules-hud-head {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: var(--bg-2);
+  }
+  .rules-hud-head .title { color: var(--text-2); font-weight: 500; }
+  .rules-hud-head .live {
+    display: flex; align-items: center; gap: 7px;
+    color: var(--mint);
+    font-weight: 500;
+  }
+  .rules-hud-head .live::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint);
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(0.85); }
+  }
+  .rule-line {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--f-mono); font-size: 12px;
+    transition: background .15s ease;
+  }
+  .rule-line:last-child { border-bottom: none; }
+  .rule-line:hover { background: rgba(163,247,191,.02); }
+  .rule-line .rs {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .rule-line .rs .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-4);
+    transition: all .25s ease;
+  }
+  .rule-line .rs .num {
+    color: var(--text-3);
+    font-weight: 500;
+    font-feature-settings: 'tnum';
+  }
+  .rule-line.ok      .rs .dot { background: var(--mint);   box-shadow: 0 0 8px var(--mint-glow); }
+  .rule-line.tripped .rs .dot {
+    background: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
+    animation: pulse-tripped 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-tripped {
+    0%, 100% { box-shadow: 0 0 8px var(--danger), 0 0 0 0 rgba(255,116,104,.6); }
+    50%      { box-shadow: 0 0 12px var(--danger), 0 0 0 6px rgba(255,116,104,0); }
+  }
+  .rule-line .rt {
+    color: var(--text-2);
+    letter-spacing: -0.005em;
+    font-family: var(--f-sans);
+    font-size: 13px;
+  }
+  .rule-line.tripped .rt { color: var(--danger); }
+  .rule-line .rv {
+    color: var(--text); font-feature-settings: 'tnum';
+    font-size: 11px; text-align: right;
+    letter-spacing: 0;
+  }
+  .rule-line.tripped .rv { color: var(--danger); font-weight: 500; }
+
+  /* ═══════════ POSITION CARD — sits below chart, always visible ═══════════ */
+  .pos-card {
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--mint-soft);
+    border-radius: 0;
+    background: linear-gradient(180deg, rgba(163,247,191,.06), transparent 60%), var(--bg-2);
+    padding: 14px 20px 12px;
+  }
+  .pos-card.short {
+    border-top-color: rgba(255,116,104,.25);
+    background: linear-gradient(180deg, rgba(255,116,104,.06), transparent 60%), var(--bg-2);
+  }
+  .pos-card .ph-grid {
+    display: grid;
+    grid-template-columns: minmax(160px, auto) repeat(7, minmax(72px, 1fr)) auto;
+    gap: 14px 22px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .pos-card .pcell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .pos-card .pcell .k {
+    font-family: var(--f-mono); font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .pos-card .pcell .v {
+    font-family: var(--f-mono); font-size: 13px;
+    color: var(--text);
+    font-feature-settings: 'tnum';
+    line-height: 1.15;
+  }
+  .pos-card .pcell .v.up   { color: var(--mint); }
+  .pos-card .pcell .v.down { color: var(--danger); }
+  .pos-card .pcell .v.warn { color: var(--warn); }
+  .pos-card .pcell .v .sub { color: var(--text-3); font-size: 10px; margin-left: 4px; }
+  .pos-card .pcell.headline .v {
+    font-family: var(--f-sans); font-size: 22px;
+    font-weight: 500; letter-spacing: -0.02em;
+  }
+  @media (max-width: 1100px) {
+    .pos-card .ph-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  }
+  .pos-card .ph {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .pos-side {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 9px;
+    border-radius: 100px;
+    font-family: var(--f-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .pos-side.long  { background: var(--mint-soft); color: var(--mint); }
+  .pos-side.short { background: var(--danger-soft); color: var(--danger); }
+  .pnl {
+    font-size: 20px; font-weight: 500;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum';
+  }
+  .pnl.up   { color: var(--mint); }
+  .pnl.down { color: var(--danger); }
+  .prow {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-family: var(--f-mono); font-size: 11px;
+  }
+  .prow .k { color: var(--text-3); }
+  .prow .v { color: var(--text); font-feature-settings: 'tnum'; }
+  .pactions { display: flex; gap: 6px; margin-top: 10px; }
+  .pactions button {
+    flex: 1; padding: 8px;
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r-sm);
+    font-family: var(--f-sans); font-size: 11px; font-weight: 500;
+    transition: all .15s ease;
+  }
+  .pactions button:hover { border-color: var(--text); }
+  .pactions .close-btn { color: var(--danger); border-color: rgba(255,116,104,.25); }
+  .pactions .close-btn:hover { background: var(--danger); color: var(--text); border-color: var(--danger); }
+  .pactions .be-btn { color: var(--mint); border-color: var(--mint-soft); background: rgba(163,247,191,.04); }
+  .pactions .be-btn:hover { background: var(--mint); color: var(--bg); border-color: var(--mint); }
+  .pactions button:disabled {
+    opacity: .35; cursor: not-allowed;
+    background: var(--surface-2); color: var(--text-3); border-color: var(--border);
+  }
+  .pactions button:disabled:hover { background: var(--surface-2); color: var(--text-3); }
+
+  /* ═══════════ TOAST + BLOCKED BANNER ═══════════ */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r);
+    padding: 11px 18px;
+    font-family: var(--f-mono); font-size: 12px;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity .25s ease, transform .25s ease;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok  { border-color: var(--mint-soft); color: var(--mint); }
+  .toast.bad { border-color: rgba(255,116,104,.3); color: var(--danger); }
+  .toast.warn { border-color: rgba(255,206,107,.3); color: var(--warn); }
+
+  .blocked-banner {
+    margin: 14px 16px 0;
+    border: 1px solid rgba(255,116,104,.3);
+    border-radius: var(--r-lg);
+    background: rgba(255,116,104,.04);
+    padding: 12px 14px;
+    display: none;
+    align-items: center; gap: 12px;
+  }
+  .blocked-banner.show { display: flex; }
+  .blocked-banner .icn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,116,104,.15);
+    color: var(--danger);
+    display: grid; place-items: center;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .blocked-banner .body {
+    font-size: 12px; color: var(--text); line-height: 1.4;
+  }
+  .blocked-banner .rule-name {
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--danger); letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 56px 50vh auto; }
+    .chart-pane { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="dex.html">
+    <span class="brand-mark"></span>
+    <span>HyperGuard</span>
+  </a>
+
+  <nav class="app-nav">
+    <a href="app.html" class="active">Perps</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="referral.html">Referral</a>
+  </nav>
+
+  <div class="topbar-spacer"></div>
+
+  <div class="pill" id="equityPill" style="display:none;"><span class="lbl">Equity</span><span class="v" id="equity">$0.00</span></div>
+  <div class="pill" id="todayPill" style="display:none;"><span class="lbl">Today</span><span class="v" id="today-pnl">+0.00%</span></div>
+  <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+</div>
+
+<div class="app">
+  <div class="pair-bar">
+    <div class="pair-coin" id="pairCoin">
+      <span class="icon" id="pairCoinIcon">₿</span>
+      <span class="name" id="pairCoinName">BTC-USDC</span>
+      <span class="caret">▾</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">Mark</span>
+      <span class="v" id="ps-mark">—</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">Oracle</span>
+      <span class="v" id="ps-oracle">—</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">24h Change</span>
+      <span class="v" id="ps-change">—</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">24h Vol</span>
+      <span class="v" id="ps-vol">—</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">Open Interest</span>
+      <span class="v" id="ps-oi">—</span>
+    </div>
+    <div class="pair-stat">
+      <span class="k">Funding / Countdown</span>
+      <span class="v" id="ps-funding">—</span>
+    </div>
+    <div class="pair-bar-spacer"></div>
+    <div class="risk-badge" id="riskBadge">
+      <span class="rdot" id="rdot"></span>
+      <span class="lbl">Risk</span>
+      <span class="rscore" id="riskScore">0</span>
+    </div>
+    <div class="rules-badge" id="rulesBadge" title="Active risk rules — click to view detail">
+      <span class="rdot" id="rulesBadgeDot"></span>
+      <span class="lbl">Rules</span>
+      <span class="rcount" id="rulesBadgeCount">5/5 OK</span>
+      <span class="caret">▾</span>
+    </div>
+  </div>
+
+  <div class="chart-pane">
+    <div id="chart">
+      <div class="legend">
+        <div class="row"><div class="swatch" style="background:#a3f7bf"></div><div class="lbl">Entry</div><div class="v" id="lg-entry">—</div></div>
+        <div class="row"><div class="swatch" style="background:#ffce6b"></div><div class="lbl">Stop</div><div class="v" id="lg-stop">—</div></div>
+        <div class="row"><div class="swatch" style="background:#ff7468"></div><div class="lbl">Liquidation</div><div class="v" id="lg-liq">—</div></div>
+        <div class="row"><div class="swatch" style="background:rgba(255,116,104,.3)"></div><div class="lbl">Risk zone</div><div class="v" id="lg-zone">—</div></div>
+      </div>
+      <div class="risk-zone" id="riskZone"><div class="zone-label">RISK ZONE</div></div>
+      <div class="chart-ohlc" id="chartOhlc">
+        <span class="pair"><span class="k">O</span><span class="v" id="oh-o">—</span></span>
+        <span class="pair"><span class="k">H</span><span class="v" id="oh-h">—</span></span>
+        <span class="pair"><span class="k">L</span><span class="v" id="oh-l">—</span></span>
+        <span class="pair"><span class="k">C</span><span class="v" id="oh-c">—</span></span>
+        <span class="delta" id="oh-d">—</span>
+      </div>
+    </div>
+    <!-- Position panel — always visible below chart while in trade -->
+    <div class="pos-panel" id="posCardSlot"></div>
+  </div>
+
+  <div class="control-pane">
+    <div class="control-scroll">
+    <div class="mode-seg" id="modeToggle">
+      <button class="mode-btn conservative" data-mode="conservative">Conservative</button>
+      <button class="mode-btn balanced active" data-mode="balanced">Balanced</button>
+      <button class="mode-btn aggressive" data-mode="aggressive">Aggressive</button>
+    </div>
+
+    <div class="side-tabs">
+      <button class="side-tab long active" data-side="long">Long</button>
+      <button class="side-tab short" data-side="short">Short</button>
+    </div>
+
+    <div class="blocked-banner" id="blocked">
+      <div class="icn">!</div>
+      <div class="body">
+        <div class="rule-name" id="blocked-rule">—</div>
+        <div id="blocked-msg">—</div>
+      </div>
+    </div>
+
+    <div class="form">
+      <div>
+        <div class="field-label">
+          <span>Risk per trade <span class="hint" id="riskHint">2% max</span></span>
+          <span class="field-val"><span id="i-risk-v">2</span>%</span>
+        </div>
+        <input id="i-risk" class="slider" type="range" min="0.5" max="5" step="0.5" value="2" />
+      </div>
+
+      <div>
+        <div class="field-label">
+          <span>Stop-loss distance <span class="hint">drag to keep risk constant</span></span>
+          <span class="field-val">−<span id="i-stop-v">4</span>%</span>
+        </div>
+        <input id="i-stop" class="slider" type="range" min="1" max="15" step="0.5" value="4" />
+      </div>
+
+      <div>
+        <div class="field-label">
+          <span>Leverage <span class="hint" id="levHint">cap 5×</span></span>
+          <span class="field-val"><span id="i-lev-v">5</span>×</span>
+        </div>
+        <input id="i-lev" class="slider" type="range" min="1" max="20" step="1" value="5" />
+      </div>
+
+      <div>
+        <div class="field-label"><span>Position size <span class="hint">auto</span></span></div>
+        <div class="input-static">
+          <span id="i-size">—</span>
+          <span class="suffix">notional</span>
+        </div>
+      </div>
+
+      <!-- ── "What kills me?" probe ── -->
+      <div class="probe">
+        <div class="probe-head">
+          <div class="probe-title"><span class="icn">▾</span>What kills me?</div>
+          <div class="probe-state ok" id="probe-state">ALIVE</div>
+        </div>
+        <div>
+          <div class="field-label">
+            <span>Probe price</span>
+            <span class="field-val" id="probe-price">—</span>
+          </div>
+          <input id="probe" class="slider" type="range" min="-15" max="15" step="0.1" value="0" />
+        </div>
+        <div class="probe-readout">
+          <div class="probe-cell">
+            <div class="k">PnL at this price</div>
+            <div class="v" id="probe-pnl">—</div>
+          </div>
+          <div class="probe-cell">
+            <div class="k">Outcome</div>
+            <div class="v" id="probe-out">—</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="place-btn long" id="placeBtn">Place long</button>
+    </div>
+
+    </div><!-- /control-scroll -->
+  </div>
+</div>
+
+<!-- ── Rules popover — anchored to the rules badge in pair-bar ── -->
+<div class="rules-pop" id="rulesPop">
+  <div class="rules-pop-head">
+    <span class="title">Active Rules</span>
+    <span class="live">3s POLL</span>
+  </div>
+  <div class="rule-line ok" id="rh-1">
+    <span class="rs"><span class="dot"></span><span class="num">01</span></span>
+    <span class="rt">Max Daily Loss</span>
+    <span class="rv">−0.00% / −5%</span>
+  </div>
+  <div class="rule-line ok" id="rh-2">
+    <span class="rs"><span class="dot"></span><span class="num">02</span></span>
+    <span class="rt">Max Daily Profit</span>
+    <span class="rv">+0.00% / +100%</span>
+  </div>
+  <div class="rule-line ok" id="rh-3">
+    <span class="rs"><span class="dot"></span><span class="num">03</span></span>
+    <span class="rt">Loss Cooldown</span>
+    <span class="rv">— inactive</span>
+  </div>
+  <div class="rule-line ok" id="rh-4">
+    <span class="rs"><span class="dot"></span><span class="num">04</span></span>
+    <span class="rt">SL Discipline</span>
+    <span class="rv">No widen</span>
+  </div>
+  <div class="rule-line ok" id="rh-5">
+    <span class="rs"><span class="dot"></span><span class="num">05</span></span>
+    <span class="rt">No Adding</span>
+    <span class="rv">enforced</span>
+  </div>
+</div>
+
+<!-- Markets dropdown — fixed-position, escapes pair-bar overflow clipping -->
+<div class="markets-dd" id="marketsDd" onclick="event.stopPropagation()">
+  <div class="markets-dd-search">
+    <input type="text" id="ddSearch" placeholder="Search markets…" autocomplete="off"/>
+  </div>
+  <div class="markets-dd-body" id="ddBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ═══════════════════════════════════════════════════════════════
+// HyperGuard — running app
+// (Source of truth: app.ts. This file is the JS-runtime mirror.
+//  When editing, keep both in sync or compile app.ts → here.)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * @typedef {'long'|'short'} Side
+ * @typedef {'conservative'|'balanced'|'aggressive'} Mode
+ * @typedef {{maxLeverage:number,maxRiskPct:number,minLiqBufferPct:number,label:string}} ModeConfig
+ * @typedef {{equity:number,riskPct:number,stopPct:number,leverage:number,side:Side,markPrice:number}} RiskInputs
+ * @typedef {{notional:number,margin:number,liqPrice:number,stopPrice:number,liqBufferPct:number,liqStopRatio:number,riskScore:number,dollarRisk:number,entry:number}} RiskOutputs
+ * @typedef {{side:Side,entry:number,notional:number,margin:number,leverage:number,stopPrice:number,liqPrice:number,openedAt:number,riskAtEntry:number}} Position
+ */
+
+// ─── modes ────────────────────────────────────────────────────
+/** @type {Record<Mode, ModeConfig>} */
+const MODES = {
+  conservative: { maxLeverage: 3,  maxRiskPct: 1, minLiqBufferPct: 20, label: 'Conservative' },
+  balanced:     { maxLeverage: 5,  maxRiskPct: 2, minLiqBufferPct: 15, label: 'Balanced' },
+  aggressive:   { maxLeverage: 10, maxRiskPct: 5, minLiqBufferPct: 10, label: 'Aggressive' },
+};
+
+// ─── pure risk math ───────────────────────────────────────────
+/** @param {RiskInputs} i @returns {RiskOutputs} */
+function computeRisk(i) {
+  const dir = i.side === 'long' ? 1 : -1;
+  const dollarRisk = i.equity * (i.riskPct / 100);
+  const notional   = dollarRisk / (i.stopPct / 100);
+  const margin     = notional / i.leverage;
+  const liqBufferPct = (1 / i.leverage) * 100 * 0.95;
+  const liqStopRatio = liqBufferPct / i.stopPct;
+  const entry = i.markPrice;
+  const stopPrice = entry * (1 - dir * i.stopPct / 100);
+  const liqPrice  = entry * (1 - dir * liqBufferPct / 100);
+
+  const m = MODES[state.mode];
+  const levScore   = Math.min(50, Math.pow(i.leverage / m.maxLeverage, 1.4) * 35);
+  const ratioScore = liqStopRatio < 1 ? 40 : liqStopRatio < 2 ? 25 : liqStopRatio < 3 ? 12 : 4;
+  const riskScore  = Math.min(40, Math.pow(i.riskPct / m.maxRiskPct, 1.2) * 22);
+  const score = Math.max(0, Math.min(100, Math.round(levScore + ratioScore + riskScore)));
+
+  return { notional, margin, liqPrice, stopPrice, liqBufferPct, liqStopRatio, riskScore: score, dollarRisk, entry };
+}
+
+// ─── state ────────────────────────────────────────────────────
+const state = {
+  /** @type {Mode} */ mode: 'balanced',
+  /** @type {Side} */ side: 'long',
+  equity: 10000,
+  startOfDayEquity: 10000,
+  todayPnL: 0,
+  /** @type {number|null} */ cooldownUntil: null,
+  /** @type {Position|null} */ position: null,
+  /** @type {string|null} */ walletAddress: null,
+};
+let lastClose = 62000;
+
+// ─── rules engine ─────────────────────────────────────────────
+/**
+ * @param {{type:'placeOrder',side:Side}|{type:'modifyStop',oldStop:number,newStop:number,side:Side,entry:number}} action
+ * @returns {{rule:string,severity:string,message:string}|null}
+ */
+function checkRules(action) {
+  const dailyPct = (state.todayPnL / state.startOfDayEquity) * 100;
+
+  if (dailyPct <= -5) {
+    return { rule: 'max_daily_loss', severity: 'hard_stop',
+      message: `Daily loss limit hit (${dailyPct.toFixed(2)}%). Trading locked until tomorrow.` };
+  }
+  if (dailyPct >= 100) {
+    return { rule: 'max_daily_profit', severity: 'hard_stop',
+      message: `Doubled today (+${dailyPct.toFixed(0)}%). Locked. You won't give those gains back.` };
+  }
+  if (state.cooldownUntil && Date.now() < state.cooldownUntil) {
+    const hours = ((state.cooldownUntil - Date.now()) / 3_600_000).toFixed(1);
+    return { rule: 'loss_cooldown', severity: 'auto_enforced',
+      message: `Cooldown active. ${hours}h remaining. No revenge trades.` };
+  }
+  if (action.type === 'placeOrder' && state.position && state.position.side === action.side) {
+    return { rule: 'no_adding', severity: 'hard_stop',
+      message: `Already ${action.side}. No pyramiding. Manage the trade you have.` };
+  }
+  if (action.type === 'modifyStop') {
+    const oldDist = Math.abs(action.entry - action.oldStop);
+    const newDist = Math.abs(action.entry - action.newStop);
+    if (newDist > oldDist) {
+      return { rule: 'sl_widen', severity: 'cancel_restore',
+        message: `Stop widening blocked. Original stop @ $${action.oldStop.toFixed(2)} restored.` };
+    }
+  }
+  return null;
+}
+
+// ─── wallet (real EIP-1193 connect, no custody) ──────────────
+//   • Detects window.ethereum (MetaMask, Rabby, Brave Wallet, Coinbase, ...)
+//   • Persists to localStorage so refreshes don't drop the connection
+//   • Listens for accountsChanged / chainChanged
+//   • Silent restore on boot via eth_accounts (no popup)
+const WALLET_KEY = 'hyperguard:wallet';
+const wallet = {
+  async connect() {
+    const eth = window.ethereum;
+    if (!eth) {
+      const err = new Error('No wallet detected. Install MetaMask, Rabby, or another EIP-1193 wallet.');
+      err.code = 'NO_PROVIDER';
+      throw err;
+    }
+    const accs = await eth.request({ method: 'eth_requestAccounts' });
+    const addr = (accs && accs[0]) || null;
+    state.walletAddress = addr;
+    if (addr) {
+      try { localStorage.setItem(WALLET_KEY, addr); } catch {}
+    }
+    return addr;
+  },
+  async silentRestore() {
+    const eth = window.ethereum;
+    if (!eth) return null;
+    try {
+      const accs = await eth.request({ method: 'eth_accounts' });
+      const addr = (accs && accs[0]) || null;
+      if (addr) {
+        state.walletAddress = addr;
+        try { localStorage.setItem(WALLET_KEY, addr); } catch {}
+      } else {
+        try { localStorage.removeItem(WALLET_KEY); } catch {}
+      }
+      return addr;
+    } catch { return null; }
+  },
+  disconnect() {
+    state.walletAddress = null;
+    try { localStorage.removeItem(WALLET_KEY); } catch {}
+  },
+  providerName() {
+    const e = window.ethereum;
+    if (!e) return null;
+    if (e.isRabby) return 'Rabby';
+    if (e.isMetaMask) return 'MetaMask';
+    if (e.isCoinbaseWallet || e.isCoinbaseBrowser) return 'Coinbase';
+    if (e.isBraveWallet) return 'Brave Wallet';
+    return 'Wallet';
+  },
+};
+
+function applyConnectedUI(addr) {
+  const btn = document.getElementById('walletBtn');
+  if (!btn) return;
+  btn.classList.add('connected');
+  btn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
+  state.equity = 0;
+  state.startOfDayEquity = 0;
+  document.getElementById('equity').textContent = '$0.00';
+  document.getElementById('today-pnl').textContent = '+0.00%';
+  document.getElementById('equityPill').style.display = '';
+  document.getElementById('todayPill').style.display  = '';
+}
+function applyDisconnectedUI() {
+  const btn = document.getElementById('walletBtn');
+  if (!btn) return;
+  btn.classList.remove('connected');
+  btn.textContent = 'Connect wallet';
+  document.getElementById('equityPill').style.display = 'none';
+  document.getElementById('todayPill').style.display  = 'none';
+}
+
+// EIP-1193 event listeners — wallet is the source of truth, not local state
+if (window.ethereum && typeof window.ethereum.on === 'function') {
+  window.ethereum.on('accountsChanged', (accs) => {
+    if (!accs || !accs.length) {
+      wallet.disconnect();
+      applyDisconnectedUI();
+      toast('Wallet disconnected', 'warn');
+    } else {
+      state.walletAddress = accs[0];
+      try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}
+      applyConnectedUI(accs[0]);
+      toast('Account changed', 'ok');
+    }
+  });
+  window.ethereum.on('chainChanged', () => {
+    // Simplest correct behavior: full reload so all data fetches re-run.
+    location.reload();
+  });
+}
+
+// ─── chart wrapper ────────────────────────────────────────────
+const chartEl = document.getElementById('chart');
+const chart = LightweightCharts.createChart(chartEl, {
+  layout: { background: { color: '#07090c' }, textColor: '#6c7480', fontFamily: 'Geist Mono', fontSize: 11 },
+  grid:   { vertLines: { color: '#11151c' }, horzLines: { color: '#11151c' } },
+  rightPriceScale: { borderColor: '#1a2029' },
+  timeScale: { borderColor: '#1a2029', timeVisible: true, secondsVisible: false },
+  crosshair: { mode: 1 },
+  autoSize: true,
+});
+const candleSeries = chart.addCandlestickSeries({
+  upColor: '#a3f7bf', downColor: '#ff7468',
+  borderUpColor: '#a3f7bf', borderDownColor: '#ff7468',
+  wickUpColor: '#a3f7bf', wickDownColor: '#ff7468',
+});
+
+// ─── BTC-PERP data from Hyperliquid (REST history + WS live stream) ───
+const candles = [];
+let liveSource = 'pending'; // 'hl' | 'fallback' | 'pending'
+
+const HL_REST = 'https://api.hyperliquid.xyz/info';
+const HL_WS   = 'wss://api.hyperliquid.xyz/ws';
+
+// ─── Markets state ────────────────────────────────────────────
+const marketsCache = { byCoin: /** @type {Record<string,any>} */ ({}) };
+let currentCoin = 'BTC';
+
+// Favorites — persisted to localStorage
+const FAV_KEY = 'hyperguard:favorites';
+function loadFavorites() {
+  try {
+    const f = JSON.parse(localStorage.getItem(FAV_KEY) || 'null');
+    if (Array.isArray(f)) return new Set(f);
+  } catch {}
+  return new Set(['BTC', 'ETH', 'HYPE']); // sensible defaults
+}
+const favorites = loadFavorites();
+function toggleFavorite(coin) {
+  if (favorites.has(coin)) favorites.delete(coin);
+  else favorites.add(coin);
+  try { localStorage.setItem(FAV_KEY, JSON.stringify([...favorites])); } catch {}
+  renderDropdown();
+}
+
+// Per-coin visual identity for the icon + dropdown
+const COIN_META = {
+  BTC:  { sym: '₿', grad: 'linear-gradient(135deg,#f7931a,#ffb84a)', glow: 'rgba(247,147,26,.3)' },
+  ETH:  { sym: 'Ξ', grad: 'linear-gradient(135deg,#627eea,#8da4f5)', glow: 'rgba(98,126,234,.3)' },
+  HYPE: { sym: 'H', grad: 'linear-gradient(135deg,#19c2a4,#1ed3a3)', glow: 'rgba(25,194,164,.3)' },
+  SOL:  { sym: 'S', grad: 'linear-gradient(135deg,#9945ff,#14f195)', glow: 'rgba(153,69,255,.3)' },
+  ARB:  { sym: 'A', grad: 'linear-gradient(135deg,#28a0f0,#5cbef5)', glow: 'rgba(40,160,240,.3)' },
+  AVAX: { sym: 'A', grad: 'linear-gradient(135deg,#e84142,#ff6b6c)', glow: 'rgba(232,65,66,.3)' },
+};
+function getCoinMeta(coin) {
+  return COIN_META[coin] || { sym: coin[0] || '?', grad: 'linear-gradient(135deg,#6c7480,#aab2bd)', glow: 'rgba(108,116,128,.3)' };
+}
+function applyPairCoinUI() {
+  const meta = getCoinMeta(currentCoin);
+  const iEl = document.getElementById('pairCoinIcon');
+  const nEl = document.getElementById('pairCoinName');
+  if (iEl) {
+    iEl.textContent = meta.sym;
+    iEl.style.background = meta.grad;
+    iEl.style.boxShadow = `0 0 0 1px ${meta.glow}`;
+  }
+  if (nEl) nEl.textContent = `${currentCoin}-USDC`;
+}
+
+function formatPx(p) {
+  if (p == null || isNaN(p)) return '—';
+  if (p >= 1000) return p.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  if (p >= 1)    return p.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  if (p >= 0.01) return p.toLocaleString('en-US', { maximumFractionDigits: 4, minimumFractionDigits: 4 });
+  return p.toPrecision(4);
+}
+function formatUsdShort(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+function fundingCountdown() {
+  // HL settles funding hourly. Countdown = time until next top-of-hour UTC.
+  const now = new Date();
+  const ms = 3600_000 - (now.getUTCMinutes() * 60_000 + now.getUTCSeconds() * 1000 + now.getUTCMilliseconds());
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function fetchMetaAndCtxs() {
+  const res = await fetch(HL_REST, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
+  });
+  if (!res.ok) throw new Error(`metaAndAssetCtxs ${res.status}`);
+  const json = await res.json();
+  if (!Array.isArray(json) || json.length < 2) throw new Error('bad meta payload');
+  const [meta, ctxs] = json;
+  marketsCache.byCoin = {};
+  meta.universe.forEach((u, i) => { marketsCache.byCoin[u.name] = ctxs[i]; });
+  return { meta, ctxs };
+}
+
+// (markets ticker removed — favorites live in the dropdown now)
+function renderTicker() { /* no-op, kept for compatibility */ }
+
+// ─── Markets dropdown ─────────────────────────────────────────
+function buildMarketRow(coin, ctx) {
+  const px = +ctx.markPx;
+  const prev = +ctx.prevDayPx;
+  const pct = ((px - prev) / prev) * 100;
+  const cls = pct >= 0 ? 'up' : 'down';
+  const meta = getCoinMeta(coin);
+  const active = coin === currentCoin ? 'active' : '';
+  const isFav = favorites.has(coin);
+  return `
+    <div class="market-item ${active} ${isFav ? 'fav-row' : ''}" data-coin="${coin}">
+      <span class="fav ${isFav ? 'on' : ''}" data-fav="${coin}" title="${isFav ? 'Unfavorite' : 'Favorite'}">${isFav ? '★' : '☆'}</span>
+      <span class="micon" style="background:${meta.grad}">${meta.sym}</span>
+      <span class="msym">${coin}-USDC</span>
+      <span class="mpx">${formatPx(px)}</span>
+      <span class="mpct ${cls}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>
+    </div>
+  `;
+}
+
+function renderDropdown() {
+  const body = document.getElementById('ddBody');
+  if (!body) return;
+  const filterRaw = (document.getElementById('ddSearch').value || '').trim().toUpperCase();
+  const all = Object.keys(marketsCache.byCoin)
+    .filter(c => !filterRaw || c.includes(filterRaw))
+    .map(c => ({ coin: c, ctx: marketsCache.byCoin[c] }));
+
+  const favs = all
+    .filter(({ coin }) => favorites.has(coin))
+    .sort((a, b) => +b.ctx.dayNtlVlm - +a.ctx.dayNtlVlm);
+  const others = all
+    .filter(({ coin }) => !favorites.has(coin))
+    .sort((a, b) => +b.ctx.dayNtlVlm - +a.ctx.dayNtlVlm)
+    .slice(0, 80);
+
+  let html = '';
+  if (favs.length) {
+    html += `<div class="markets-dd-section">★ Favorites</div>`;
+    html += favs.map(({ coin, ctx }) => buildMarketRow(coin, ctx)).join('');
+    html += `<div class="markets-dd-section">All markets</div>`;
+  }
+  html += others.map(({ coin, ctx }) => buildMarketRow(coin, ctx)).join('');
+  body.innerHTML = html || `<div style="padding:32px 16px;text-align:center;color:var(--text-3);font-family:var(--f-mono);font-size:11px;">No matches</div>`;
+
+  body.querySelectorAll('.fav').forEach(s => {
+    s.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFavorite(s.dataset.fav);
+    });
+  });
+  body.querySelectorAll('.market-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.fav')) return;
+      switchCoin(el.dataset.coin);
+      closeDropdown();
+    });
+  });
+}
+function positionDropdown() {
+  const dd = document.getElementById('marketsDd');
+  const pc = document.getElementById('pairCoin');
+  if (!dd || !pc) return;
+  const r = pc.getBoundingClientRect();
+  // Anchor under the trigger, left-aligned. Clamp to viewport on the right.
+  const ddWidth = 380;
+  let left = r.left;
+  if (left + ddWidth > window.innerWidth - 8) {
+    left = Math.max(8, window.innerWidth - ddWidth - 8);
+  }
+  dd.style.top  = (r.bottom + 6) + 'px';
+  dd.style.left = left + 'px';
+}
+function openDropdown() {
+  const dd = document.getElementById('marketsDd');
+  const pc = document.getElementById('pairCoin');
+  if (!dd || !pc) return;
+  renderDropdown();
+  positionDropdown();
+  dd.classList.add('open');
+  pc.classList.add('open');
+  setTimeout(() => document.getElementById('ddSearch').focus(), 50);
+}
+window.addEventListener('resize', () => {
+  if (document.getElementById('marketsDd')?.classList.contains('open')) positionDropdown();
+});
+window.addEventListener('scroll', () => {
+  if (document.getElementById('marketsDd')?.classList.contains('open')) positionDropdown();
+}, true);
+function closeDropdown() {
+  document.getElementById('marketsDd')?.classList.remove('open');
+  document.getElementById('pairCoin')?.classList.remove('open');
+}
+
+function renderPairBar() {
+  const ctx = marketsCache.byCoin[currentCoin];
+  if (!ctx) return;
+  const mark = +ctx.markPx;
+  const oracle = +ctx.oraclePx;
+  const prev = +ctx.prevDayPx;
+  const delta = mark - prev;
+  const pct = (delta / prev) * 100;
+  const vol = +ctx.dayNtlVlm;
+  // openInterest is in base units (BTC) — convert to USD
+  const oiUsd = +ctx.openInterest * mark;
+  const fundingPct = (+ctx.funding) * 100; // hourly funding rate, as %
+
+  // Mark cell is driven by live WS in updatePriceUI(); seed it on first paint
+  const m = document.getElementById('ps-mark');
+  if (m && (!m.textContent || m.textContent === '—')) m.textContent = formatPx(mark);
+
+  document.getElementById('ps-oracle').textContent = formatPx(oracle);
+
+  const cEl = document.getElementById('ps-change');
+  cEl.innerHTML = `<span class="delta">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</span>${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  cEl.className = 'v ' + (pct >= 0 ? 'up' : 'down');
+
+  document.getElementById('ps-vol').textContent = formatUsdShort(vol);
+  document.getElementById('ps-oi').textContent  = formatUsdShort(oiUsd);
+
+  const fEl = document.getElementById('ps-funding');
+  const fundCls = fundingPct >= 0 ? 'up' : 'down';
+  fEl.innerHTML = `<span class="${fundCls === 'up' ? 'up' : 'down'}">${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%</span> <span class="cd">/ ${fundingCountdown()}</span>`;
+  fEl.className = 'v';
+}
+
+async function pollMarkets() {
+  try {
+    await fetchMetaAndCtxs();
+    renderTicker();
+    renderPairBar();
+  } catch (e) {
+    console.warn('[HyperGuard] markets feed:', e.message || e);
+  }
+}
+// initial fetch + 5s poll
+pollMarkets();
+setInterval(pollMarkets, 5000);
+// funding countdown ticks every second using cached ctx
+setInterval(() => {
+  const ctx = marketsCache.byCoin[currentCoin];
+  if (!ctx) return;
+  const fEl = document.getElementById('ps-funding');
+  if (!fEl) return;
+  const fundingPct = (+ctx.funding) * 100;
+  const cls = fundingPct >= 0 ? 'up' : 'down';
+  fEl.innerHTML = `<span class="${cls}">${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%</span> <span class="cd">/ ${fundingCountdown()}</span>`;
+}, 1000);
+
+// default timeframe — 15m bars, 200 of them = ~50 hours of context
+const CURRENT_INTERVAL = '15m';
+const INTERVAL_SECONDS = 15 * 60;
+
+async function loadHyperliquidHistory(coin = currentCoin) {
+  const endTime = Date.now();
+  const startTime = endTime - 200 * INTERVAL_SECONDS * 1000;
+  const res = await fetch(HL_REST, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'candleSnapshot',
+      req: { coin, interval: CURRENT_INTERVAL, startTime, endTime },
+    }),
+  });
+  if (!res.ok) throw new Error(`HL REST ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data) || !data.length) throw new Error('empty candle response');
+  candles.length = 0;
+  for (const c of data) {
+    candles.push({
+      time: Math.floor(c.t / 1000),
+      open:  +c.o, high: +c.h, low: +c.l, close: +c.c,
+    });
+  }
+  candles.sort((a, b) => a.time - b.time);
+  for (let k = candles.length - 1; k > 0; k--) {
+    if (candles[k].time === candles[k - 1].time) candles.splice(k, 1);
+  }
+  lastClose = candles[candles.length - 1].close;
+  candleSeries.setData(candles);
+}
+
+let _ws = null;
+let _wsRetry = 0;
+let _wsCoin = null;
+function openHyperliquidStream(coin = currentCoin) {
+  try { _ws && _ws.close(); } catch {}
+  const ws = new WebSocket(HL_WS);
+  _ws = ws;
+  _wsCoin = coin;
+  ws.onopen = () => {
+    _wsRetry = 0;
+    // 1m candles drive chart bars
+    ws.send(JSON.stringify({
+      method: 'subscribe',
+      subscription: { type: 'candle', coin, interval: CURRENT_INTERVAL },
+    }));
+    // trades drive sub-second mark price (faster than candle ticks)
+    ws.send(JSON.stringify({
+      method: 'subscribe',
+      subscription: { type: 'trades', coin },
+    }));
+    liveSource = 'hl';
+  };
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    // ── candle channel ──
+    if (msg.channel === 'candle' && msg.data && coin === _wsCoin) {
+      const c = msg.data;
+      // gate by coin so a stale subscription doesn't bleed into a switched view
+      if (c.s && c.s !== _wsCoin) return;
+      const tSec = Math.floor(c.t / 1000);
+      const candle = { time: tSec, open: +c.o, high: +c.h, low: +c.l, close: +c.c };
+      const last = candles[candles.length - 1];
+      if (last && last.time === tSec) {
+        candles[candles.length - 1] = candle;
+      } else if (!last || tSec > last.time) {
+        candles.push(candle);
+      } else {
+        return;
+      }
+      candleSeries.update(candle);
+      lastClose = candle.close;
+      updatePriceUI();
+      if (state.position) updatePositionUI();
+      recompute();
+    }
+    // ── trades channel — sub-second mark updates ──
+    else if (msg.channel === 'trades' && Array.isArray(msg.data)) {
+      const trades = msg.data;
+      if (!trades.length) return;
+      const t = trades[trades.length - 1];
+      if (t.coin && t.coin !== _wsCoin) return;
+      const px = +t.px;
+      if (!isFinite(px)) return;
+      lastClose = px;
+      // patch the in-progress candle so the chart reacts
+      const last = candles[candles.length - 1];
+      if (last) {
+        last.close = px;
+        if (px > last.high) last.high = px;
+        if (px < last.low)  last.low  = px;
+        candleSeries.update(last);
+      }
+      updatePriceUI();
+      if (state.position) updatePositionUI();
+      recompute();
+    }
+  };
+  ws.onerror = () => {};
+  ws.onclose = () => {
+    _wsRetry = Math.min(_wsRetry + 1, 6);
+    const delay = Math.min(30_000, 1000 * 2 ** _wsRetry);
+    setTimeout(() => openHyperliquidStream(_wsCoin || currentCoin), delay);
+  };
+}
+
+// ─── Switch market ────────────────────────────────────────────
+async function switchCoin(newCoin) {
+  if (!newCoin || newCoin === currentCoin) { closeDropdown(); return; }
+  if (state.position) {
+    toast('Close current position before switching markets', 'warn');
+    closeDropdown();
+    return;
+  }
+  currentCoin = newCoin;
+  applyPairCoinUI();
+  renderTicker();
+  // immediately pull fresh history + restart stream
+  try {
+    await loadHyperliquidHistory(currentCoin);
+    openHyperliquidStream(currentCoin);
+    liveSource = 'hl';
+    toast(`Switched to ${currentCoin}-USDC`, 'ok');
+  } catch (e) {
+    console.warn('[HyperGuard] switchCoin failed', e);
+    seedSynthetic();
+  }
+  renderPairBar();
+  recompute();
+}
+window.switchCoin = switchCoin;
+
+// fallback: synthetic walk if HL is unreachable (CORS / offline / dev)
+function seedSynthetic() {
+  candles.length = 0;
+  lastClose = 62000;
+  const now = Math.floor(Date.now() / 1000);
+  for (let k = 0; k < 200; k++) {
+    const t = now - (200 - k) * INTERVAL_SECONDS;
+    const drift = (Math.random() - 0.5) * 0.0035;   // 15m bars get bigger drift
+    const open = lastClose;
+    const close = open * (1 + drift);
+    const hi = Math.max(open, close) * (1 + Math.random() * 0.0015);
+    const lo = Math.min(open, close) * (1 - Math.random() * 0.0015);
+    candles.push({ time: t, open, high: hi, low: lo, close });
+    lastClose = close;
+  }
+  candleSeries.setData(candles);
+  liveSource = 'fallback';
+}
+function syntheticTick() {
+  if (liveSource !== 'fallback') return;
+  const last = candles[candles.length - 1];
+  const drift = (Math.random() - 0.5) * 0.0012;
+  const newClose = last.close * (1 + drift);
+  const updated = {
+    time: last.time,
+    open: last.open,
+    high: Math.max(last.high, newClose),
+    low:  Math.min(last.low, newClose),
+    close: newClose,
+  };
+  candles[candles.length - 1] = updated;
+  candleSeries.update(updated);
+  lastClose = newClose;
+  const t = Math.floor(Date.now() / 1000);
+  if (t - last.time >= INTERVAL_SECONDS) {
+    const c = { time: last.time + INTERVAL_SECONDS, open: newClose, high: newClose, low: newClose, close: newClose };
+    candles.push(c);
+    candleSeries.update(c);
+  }
+  updatePriceUI();
+  if (state.position) updatePositionUI();
+  recompute();
+  pollRules();
+}
+
+(async function bootData() {
+  try {
+    await loadHyperliquidHistory();
+    openHyperliquidStream();
+    console.info('[HyperGuard] BTC-PERP feed: Hyperliquid live');
+  } catch (err) {
+    console.warn('[HyperGuard] Hyperliquid feed unavailable, using synthetic walk:', err.message || err);
+    seedSynthetic();
+  }
+})();
+
+// price lines
+let entryLine = null, stopLine = null, liqLine = null;
+function clearLines() {
+  if (entryLine) candleSeries.removePriceLine(entryLine);
+  if (stopLine)  candleSeries.removePriceLine(stopLine);
+  if (liqLine)   candleSeries.removePriceLine(liqLine);
+  entryLine = stopLine = liqLine = null;
+}
+function drawLines(entry, stop, liq) {
+  clearLines();
+  entryLine = candleSeries.createPriceLine({
+    price: entry, color: '#a3f7bf', lineWidth: 2,
+    lineStyle: LightweightCharts.LineStyle.Dashed,
+    axisLabelVisible: true, title: 'ENTRY',
+  });
+  stopLine = candleSeries.createPriceLine({
+    price: stop, color: '#ffce6b', lineWidth: 2,
+    lineStyle: LightweightCharts.LineStyle.Dashed,
+    axisLabelVisible: true, title: 'STOP',
+  });
+  liqLine = candleSeries.createPriceLine({
+    price: liq, color: '#ff7468', lineWidth: 2,
+    lineStyle: LightweightCharts.LineStyle.Solid,
+    axisLabelVisible: true, title: 'LIQ',
+  });
+}
+
+// risk-zone overlay (CSS box positioned via priceToCoordinate)
+const zoneEl = document.getElementById('riskZone');
+function paintRiskZone(stopPrice, liqPrice) {
+  const yStop = candleSeries.priceToCoordinate(stopPrice);
+  const yLiq  = candleSeries.priceToCoordinate(liqPrice);
+  if (yStop == null || yLiq == null) {
+    zoneEl.style.opacity = '0';
+    return;
+  }
+  const top = Math.min(yStop, yLiq);
+  const bot = Math.max(yStop, yLiq);
+  zoneEl.style.top    = top + 'px';
+  zoneEl.style.height = (bot - top) + 'px';
+  zoneEl.style.opacity = state.position ? '1' : '0.85';
+}
+
+// ─── tick driver ──────────────────────────────────────────────
+// Live HL feed pushes via WS. Fallback synthetic walk runs only
+// when the HL handshake fails. Either way: rule polling fires on
+// every UI refresh — rules eval is cheap, so we co-locate it.
+setInterval(() => {
+  if (liveSource === 'fallback') syntheticTick();
+  else { /* HL WS drives renders; keep rules ticking */ pollRules(); }
+}, 800);
+
+// ── OHLC strip ─────────────────────────────────────────────────
+function updateOhlc(bar) {
+  if (!bar) return;
+  const o = +bar.open, h = +bar.high, l = +bar.low, c = +bar.close;
+  const $o = document.getElementById('oh-o'); if ($o) $o.textContent = formatPx(o);
+  const $h = document.getElementById('oh-h'); if ($h) $h.textContent = formatPx(h);
+  const $l = document.getElementById('oh-l'); if ($l) $l.textContent = formatPx(l);
+  const $c = document.getElementById('oh-c'); if ($c) $c.textContent = formatPx(c);
+  const $d = document.getElementById('oh-d');
+  if ($d) {
+    const delta = c - o;
+    const pct = o ? (delta / o) * 100 : 0;
+    const sign = delta >= 0 ? '+' : '−';
+    $d.textContent = `${sign}${formatPx(Math.abs(delta))} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+    $d.className = 'delta ' + (delta >= 0 ? 'up' : 'down');
+  }
+}
+chart.subscribeCrosshairMove((param) => {
+  let bar = null;
+  if (param && param.time && param.seriesData && param.seriesData.size) {
+    bar = param.seriesData.get(candleSeries);
+  }
+  if (!bar) bar = candles[candles.length - 1];
+  updateOhlc(bar);
+});
+
+function updatePriceUI() {
+  // OHLC tracks the latest candle when not hovering
+  if (candles.length) updateOhlc(candles[candles.length - 1]);
+
+  // Mark = live last close (drives chart + risk math)
+  const m = document.getElementById('ps-mark');
+  if (m) m.textContent = formatPx(lastClose);
+
+  // 24h Change uses prevDayPx from cached HL ctx if available, else first candle
+  const prev = (marketsCache.byCoin['BTC'] && +marketsCache.byCoin['BTC'].prevDayPx) || candles[0].close;
+  const delta = lastClose - prev;
+  const pct = (delta / prev) * 100;
+  const cEl = document.getElementById('ps-change');
+  if (cEl) {
+    cEl.innerHTML = `<span class="delta">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</span>${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+    cEl.className = 'v ' + (pct >= 0 ? 'up' : 'down');
+  }
+}
+
+// ─── DOM helpers ──────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const fmt$ = (n) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+const fmt0 = (n) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+function clampInputs() {
+  const m = MODES[state.mode];
+  $('i-lev').max  = m.maxLeverage;
+  $('i-risk').max = m.maxRiskPct;
+  if (+$('i-lev').value  > m.maxLeverage) $('i-lev').value  = m.maxLeverage;
+  if (+$('i-risk').value > m.maxRiskPct)  $('i-risk').value = m.maxRiskPct;
+  $('levHint').textContent  = `cap ${m.maxLeverage}×`;
+  $('riskHint').textContent = `${m.maxRiskPct}% max · ${m.label}`;
+}
+
+// ─── recompute (the heart of the UI) ──────────────────────────
+function recompute() {
+  const inputs = {
+    equity: state.equity,
+    riskPct: +$('i-risk').value,
+    stopPct: +$('i-stop').value,
+    leverage: +$('i-lev').value,
+    side: state.side,
+    markPrice: lastClose,
+  };
+  $('i-risk-v').textContent = inputs.riskPct;
+  $('i-stop-v').textContent = inputs.stopPct;
+  $('i-lev-v').textContent  = inputs.leverage;
+
+  const r = computeRisk(inputs);
+
+  $('i-size').textContent = fmt0(r.notional);
+  $('riskScore').textContent = r.riskScore;
+
+  // risk badge color
+  const color = r.riskScore < 35 ? '#a3f7bf' : r.riskScore < 70 ? '#ffce6b' : '#ff7468';
+  $('rdot').style.background = color;
+  $('rdot').style.boxShadow = `0 0 8px ${color}`;
+  $('riskBadge').style.borderColor = color;
+
+  // legend
+  $('lg-entry').textContent = '$' + r.entry.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  $('lg-stop').textContent  = '$' + r.stopPrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  $('lg-liq').textContent   = '$' + r.liqPrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  $('lg-zone').textContent  = r.liqBufferPct.toFixed(2) + '%';
+
+  // chart lines + zone (only when no live position)
+  if (!state.position) {
+    drawLines(r.entry, r.stopPrice, r.liqPrice);
+    paintRiskZone(r.stopPrice, r.liqPrice);
+  }
+
+  // refresh probe (depends on current sizing)
+  updateProbe(r);
+
+  return r;
+}
+
+// ─── "What kills me?" probe ───────────────────────────────────
+function updateProbe(r) {
+  const probePct = +$('probe').value;     // -15 → +15 % vs mark
+  const probePrice = r.entry * (1 + probePct / 100);
+  const dir = state.side === 'long' ? 1 : -1;
+  const moveSignedPct = ((probePrice - r.entry) / r.entry) * 100 * dir;
+  const pnlUsd = (moveSignedPct / 100) * r.notional;
+
+  // outcome
+  const liqHit = dir === 1 ? probePrice <= r.liqPrice : probePrice >= r.liqPrice;
+  const stopHit = dir === 1 ? probePrice <= r.stopPrice : probePrice >= r.stopPrice;
+
+  $('probe-price').textContent = '$' + probePrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const pnlEl = $('probe-pnl');
+  pnlEl.textContent = (pnlUsd >= 0 ? '+' : '') + fmt$(pnlUsd);
+  pnlEl.className = 'v ' + (pnlUsd >= 0 ? 'up' : 'down');
+
+  const out = $('probe-out');
+  const stEl = $('probe-state');
+  if (liqHit) {
+    out.textContent = '☠ Liquidated';
+    out.className = 'v down';
+    stEl.textContent = 'LIQUIDATED';
+    stEl.className = 'probe-state dead';
+  } else if (stopHit) {
+    out.textContent = `Stopped at ${fmt$(-r.dollarRisk)}`;
+    out.className = 'v down';
+    stEl.textContent = 'STOP HIT';
+    stEl.className = 'probe-state stop';
+  } else {
+    out.textContent = pnlUsd >= 0 ? 'Position alive' : 'Underwater, in budget';
+    out.className = 'v ' + (pnlUsd >= 0 ? 'up' : '');
+    stEl.textContent = 'ALIVE';
+    stEl.className = 'probe-state ok';
+  }
+}
+
+// ─── rules HUD updater ────────────────────────────────────────
+function pollRules() {
+  const dailyPct = (state.todayPnL / state.startOfDayEquity) * 100;
+
+  // Rule 1
+  const r1 = $('rh-1');
+  r1.classList.toggle('tripped', dailyPct <= -5);
+  r1.classList.toggle('ok',     dailyPct >  -5);
+  r1.querySelector('.rv').textContent = `${dailyPct.toFixed(2)}% / −5%`;
+
+  // Rule 2
+  const r2 = $('rh-2');
+  r2.classList.toggle('tripped', dailyPct >= 100);
+  r2.classList.toggle('ok',     dailyPct <  100);
+  r2.querySelector('.rv').textContent = `${dailyPct >= 0 ? '+' : ''}${dailyPct.toFixed(2)}% / +100%`;
+
+  // Rule 3
+  const r3 = $('rh-3');
+  if (state.cooldownUntil && Date.now() < state.cooldownUntil) {
+    r3.classList.remove('ok'); r3.classList.add('tripped');
+    const h = ((state.cooldownUntil - Date.now()) / 3_600_000).toFixed(1);
+    r3.querySelector('.rv').textContent = `${h}h left`;
+  } else {
+    r3.classList.add('ok'); r3.classList.remove('tripped');
+    r3.querySelector('.rv').textContent = '— inactive';
+  }
+
+  // Rule 5 — adding blocked iff a position exists in current direction
+  const r5 = $('rh-5');
+  if (state.position) {
+    r5.querySelector('.rv').textContent = `${state.position.side} held`;
+  } else {
+    r5.querySelector('.rv').textContent = 'enforced';
+  }
+
+  // gate the place button if any rule blocks a new order
+  const violation = checkRules({ type: 'placeOrder', side: state.side });
+  const banner = $('blocked');
+  const placeBtn = $('placeBtn');
+  if (violation) {
+    placeBtn.disabled = true;
+    placeBtn.textContent = 'Blocked · ' + violation.rule.replace(/_/g, ' ');
+    banner.classList.add('show');
+    $('blocked-rule').textContent = violation.rule.replace(/_/g, ' ');
+    $('blocked-msg').textContent = violation.message;
+  } else {
+    placeBtn.disabled = !!state.position;  // also disabled if a position is open (close first)
+    placeBtn.textContent = state.position ? 'Close current first' : `Place ${state.side}`;
+    placeBtn.className = 'place-btn ' + state.side;
+    banner.classList.remove('show');
+  }
+
+  // ── Update the sub-header rules badge (aggregate state) ──
+  const badge = document.getElementById('rulesBadge');
+  const count = document.getElementById('rulesBadgeCount');
+  if (badge && count) {
+    const tripped = document.querySelectorAll('.rule-line.tripped').length;
+    badge.classList.toggle('tripped', tripped > 0);
+    count.textContent = tripped > 0 ? `${tripped} TRIPPED` : `5/5 OK`;
+  }
+}
+
+// ─── side / mode bindings ─────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.mode = b.dataset.mode;
+    clampInputs();
+    recompute();
+  });
+});
+document.querySelectorAll('.side-tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.side-tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.side = b.dataset.side;
+    pollRules();
+    recompute();
+  });
+});
+['i-risk', 'i-stop', 'i-lev', 'probe'].forEach(id => $(id).addEventListener('input', () => {
+  const r = recompute();
+  // Defensive: ensure chart visuals always reflect current sliders.
+  // (recompute() already does this, but slider-drag is the fast path
+  //  where we never want to miss a paint frame.)
+  if (!state.position) {
+    drawLines(r.entry, r.stopPrice, r.liqPrice);
+    paintRiskZone(r.stopPrice, r.liqPrice);
+  }
+}));
+
+// ─── trade actions ────────────────────────────────────────────
+$('placeBtn').addEventListener('click', () => {
+  if (state.position) { toast('Close current position first', 'bad'); return; }
+  const violation = checkRules({ type: 'placeOrder', side: state.side });
+  if (violation) {
+    toast(`Blocked: ${violation.message}`, 'bad');
+    return;
+  }
+  const r = recompute();
+  state.position = {
+    coin: currentCoin,
+    side: state.side,
+    entry: r.entry,
+    notional: r.notional,
+    margin: r.margin,
+    leverage: r.leverage ?? +$('i-lev').value,
+    stopPrice: r.stopPrice,
+    liqPrice: r.liqPrice,
+    openedAt: Date.now(),
+    riskAtEntry: r.dollarRisk,
+  };
+  drawLines(r.entry, r.stopPrice, r.liqPrice);
+  paintRiskZone(r.stopPrice, r.liqPrice);
+  renderPosCard();
+  pollRules();
+  toast(`${state.side.toUpperCase()} opened @ $${r.entry.toFixed(1)}`, 'ok');
+});
+
+// ─── modify stop (Rule 04 enforcement) ────────────────────────
+function tryMoveStop(newStopPrice) {
+  if (!state.position) return false;
+  const v = checkRules({
+    type: 'modifyStop',
+    oldStop: state.position.stopPrice,
+    newStop: newStopPrice,
+    side: state.position.side,
+    entry: state.position.entry,
+  });
+  if (v) {
+    toast(v.message, 'warn');
+    return false;
+  }
+  state.position.stopPrice = newStopPrice;
+  drawLines(state.position.entry, state.position.stopPrice, state.position.liqPrice);
+  paintRiskZone(state.position.stopPrice, state.position.liqPrice);
+  toast('Stop tightened.', 'ok');
+  return true;
+}
+window.tryMoveStop = tryMoveStop; // exposed for the live position card buttons
+
+// ─── position rendering + lifecycle ───────────────────────────
+function renderPosCard() {
+  const slot = $('posCardSlot');
+  if (!state.position) { slot.innerHTML = ''; return; }
+  const p = state.position;
+  const dir = p.side === 'long' ? 1 : -1;
+  const movePct = ((lastClose - p.entry) * dir / p.entry) * 100;
+  const grossPnl = (movePct / 100) * p.notional;
+  const pnlCls  = grossPnl >= 0 ? 'up' : 'down';
+  const liqDist = Math.abs(((p.liqPrice - lastClose) / lastClose) * 100);
+
+  // Fees: 0.05% taker × 2 sides (entry already paid, exit estimated)
+  const entryFee = p.notional * 0.0005;
+  const exitFee  = p.notional * 0.0005;
+  const totalFee = entryFee + exitFee;
+
+  // Funding accrual — hourly rate from cached HL ctx, signed by direction.
+  // Long pays funding when rate > 0; short receives. (Negative = cost.)
+  const hourlyRate = +(marketsCache.byCoin[p.coin]?.funding || 0);
+  const heldHours = Math.max(0, (Date.now() - p.openedAt) / 3_600_000);
+  const fundingAccrued = -dir * p.notional * hourlyRate * heldHours;
+
+  const netPnl = grossPnl - totalFee + fundingAccrued;
+  const netPct = (netPnl / p.notional) * 100;
+  const netCls = netPnl >= 0 ? 'up' : 'down';
+
+  // BE state
+  const inProfit = movePct > 0;
+  const stopAtBE = Math.abs(p.stopPrice - p.entry) / p.entry < 0.0005;
+  const beDisabled = !inProfit || stopAtBE;
+  const beTitle = stopAtBE
+    ? 'Stop already at break-even'
+    : !inProfit
+      ? 'Available once trade is in profit'
+      : 'Move stop to entry — locks zero loss';
+
+  const fmtSigned$ = (n) => (n >= 0 ? '+' : '−') + '$' + Math.abs(n).toFixed(2);
+
+  slot.innerHTML = `
+    <div class="pos-card ${p.side}">
+      <div class="ph-grid">
+        <div class="pcell headline">
+          <div class="k">${(p.coin || currentCoin)}-USDC · ${p.side.toUpperCase()} · ${p.leverage}× · ${fmt0(p.notional)}</div>
+          <div class="v ${netCls}">${fmtSigned$(netPnl)} <span class="sub">${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}% net</span></div>
+        </div>
+        <div class="pcell"><span class="k">Entry</span><span class="v">$${p.entry.toLocaleString('en-US',{maximumFractionDigits:1})}</span></div>
+        <div class="pcell"><span class="k">Mark</span><span class="v ${pnlCls}">$${lastClose.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${movePct >= 0 ? '+' : ''}${movePct.toFixed(2)}%</span></span></div>
+        <div class="pcell"><span class="k">Stop${stopAtBE ? ' · BE' : ''}</span><span class="v ${stopAtBE ? 'up' : ''}">$${p.stopPrice.toLocaleString('en-US',{maximumFractionDigits:1})}</span></div>
+        <div class="pcell"><span class="k">Liq</span><span class="v down">$${p.liqPrice.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${liqDist.toFixed(2)}% away</span></span></div>
+        <div class="pcell"><span class="k">Gross PnL</span><span class="v ${pnlCls}">${fmtSigned$(grossPnl)}</span></div>
+        <div class="pcell"><span class="k">Fees (round-trip)</span><span class="v down">−$${totalFee.toFixed(2)}</span></div>
+        <div class="pcell"><span class="k">Funding · ${(hourlyRate*100).toFixed(4)}%/h</span><span class="v ${fundingAccrued >= 0 ? 'up' : 'down'}">${fmtSigned$(fundingAccrued)}</span></div>
+        <div class="pactions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:200px;">
+          <button onclick="window.moveToBE()" ${beDisabled ? 'disabled' : ''} title="${beTitle}" class="${!beDisabled ? 'be-btn' : ''}">${stopAtBE ? '✓ At BE' : 'Move to BE'}</button>
+          <button onclick="window.tightenStop()">Tighten 25%</button>
+          <button onclick="window.tryWidenStop()">Try widen</button>
+          <button class="close-btn" onclick="window.closePos('manual')">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updatePositionUI() {
+  const p = state.position;
+  if (!p) return;
+  const dir = p.side === 'long' ? 1 : -1;
+  const stopHit = dir === 1 ? lastClose <= p.stopPrice : lastClose >= p.stopPrice;
+  const liqHit  = dir === 1 ? lastClose <= p.liqPrice  : lastClose >= p.liqPrice;
+  if (liqHit)  { closePosition('liquidated'); return; }
+  if (stopHit) { closePosition('stop'); return; }
+
+  // Entry badge becomes a live PnL readout while position is open
+  if (entryLine) {
+    const movePct = ((lastClose - p.entry) * dir / p.entry) * 100;
+    const pnlUsd  = (movePct / 100) * p.notional;
+    const sign = pnlUsd >= 0 ? '+' : '−';
+    const absUsd = Math.abs(pnlUsd);
+    try {
+      entryLine.applyOptions({
+        title: `${sign}$${absUsd.toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`,
+        color: pnlUsd >= 0 ? '#a3f7bf' : '#ff7468',
+      });
+    } catch {}
+  }
+
+  renderPosCard();
+}
+
+function closePosition(reason) {
+  const p = state.position;
+  if (!p) return;
+  const dir = p.side === 'long' ? 1 : -1;
+  let exitPrice = lastClose;
+  if (reason === 'stop')       exitPrice = p.stopPrice;
+  if (reason === 'liquidated') exitPrice = p.liqPrice;
+  const movePct = ((exitPrice - p.entry) * dir / p.entry) * 100;
+  const pnl = (movePct / 100) * p.notional;
+
+  // demo fee model: 0.05% taker × 2 sides on the notional
+  const feesUsd = p.notional * 0.001;
+  // demo funding: 0 unless held overnight (24h+)
+  const heldHours = (Date.now() - p.openedAt) / 3_600_000;
+  const fundingUsd = heldHours > 1 ? -p.notional * 0.0001 * Math.floor(heldHours) : 0;
+  const netPnl = pnl - feesUsd + fundingUsd;
+  const netPct = (netPnl / p.notional) * 100;
+
+  // Persist trade for the dashboard History tab
+  try {
+    const log = JSON.parse(localStorage.getItem('hyperguard:trades') || '[]');
+    log.push({
+      coin: p.coin || currentCoin,
+      side: p.side,
+      entry: p.entry,
+      exit: exitPrice,
+      sizeUsd: p.notional,
+      entryTime: p.openedAt,
+      exitTime: Date.now(),
+      pnlUsd: pnl,
+      pnlPct: movePct,
+      feesUsd,
+      fundingUsd,
+      netPnl,
+      netPct,
+      reason,
+    });
+    // keep last 200
+    while (log.length > 200) log.shift();
+    localStorage.setItem('hyperguard:trades', JSON.stringify(log));
+  } catch (e) { console.warn('trade persist', e); }
+
+  state.equity   += netPnl;
+  state.todayPnL += netPnl;
+
+  $('equity').textContent = fmt$(state.equity);
+  const dailyPct = (state.todayPnL / state.startOfDayEquity) * 100;
+  const tp = $('today-pnl');
+  tp.textContent = (dailyPct >= 0 ? '+' : '') + dailyPct.toFixed(2) + '%';
+  tp.className = 'v ' + (dailyPct >= 0 ? 'up' : 'down');
+
+  // Rule 03 — meaningful loss triggers cooldown until tomorrow 8 AM
+  if (pnl < -state.startOfDayEquity * 0.02) {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    t.setHours(8, 0, 0, 0);
+    state.cooldownUntil = t.getTime();
+    toast('Loss cooldown engaged. Locked until 8 AM.', 'warn');
+  }
+
+  state.position = null;
+  clearLines();
+  zoneEl.style.opacity = '0';
+  $('posCardSlot').innerHTML = '';
+  pollRules();
+  recompute();
+
+  const reasonText = { manual: 'Closed manually', stop: 'Stopped out', liquidated: '☠ LIQUIDATED' }[reason];
+  toast(`${reasonText} · ${pnl >= 0 ? '+' : ''}${fmt$(pnl)}`, pnl >= 0 ? 'ok' : 'bad');
+}
+window.closePos = closePosition;
+
+// expose for in-card buttons
+window.tightenStop = () => {
+  if (!state.position) return;
+  const p = state.position;
+  const dir = p.side === 'long' ? 1 : -1;
+  const newStop = p.stopPrice + dir * Math.abs(p.entry - p.stopPrice) * 0.25;
+  tryMoveStop(newStop);
+};
+window.moveToBE = () => {
+  const p = state.position;
+  if (!p) return;
+  const dir = p.side === 'long' ? 1 : -1;
+  const inProfit = ((lastClose - p.entry) * dir / p.entry) > 0;
+  if (!inProfit) {
+    toast('BE only available when trade is in profit', 'warn');
+    return;
+  }
+  // tryMoveStop runs through Rule 04 — moving stop closer to entry from
+  // an out-of-money side is "tightening" so it passes; if user somehow
+  // tries this on a losing trade, it'd be widening and gets blocked.
+  const ok = tryMoveStop(p.entry);
+  if (ok) toast('Stop moved to break-even', 'ok');
+};
+window.tryWidenStop = () => {
+  if (!state.position) return;
+  const p = state.position;
+  const dir = p.side === 'long' ? 1 : -1;
+  const newStop = p.stopPrice - dir * Math.abs(p.entry - p.stopPrice) * 0.5;
+  tryMoveStop(newStop); // will be blocked + restored
+};
+
+// ─── wallet button ────────────────────────────────────────────
+$('walletBtn').addEventListener('click', async () => {
+  const btn = $('walletBtn');
+  if (state.walletAddress) return;
+  btn.textContent = 'Connecting…';
+  try {
+    const addr = await wallet.connect();
+    if (addr) {
+      applyConnectedUI(addr);
+      const provider = wallet.providerName() || 'Wallet';
+      toast(`${provider} connected · no custody`, 'ok');
+    } else {
+      btn.textContent = 'Connect wallet';
+      toast('No accounts returned', 'bad');
+    }
+  } catch (err) {
+    btn.textContent = 'Connect wallet';
+    if (err.code === 'NO_PROVIDER') {
+      toast('No wallet detected. Install MetaMask or Rabby.', 'bad');
+    } else if (err.code === 4001 || /reject/i.test(err.message || '')) {
+      toast('Connection rejected', 'warn');
+    } else {
+      toast('Connect failed: ' + (err.message || err), 'bad');
+    }
+  }
+});
+
+// Silent restore on page load — uses eth_accounts (no popup)
+(async () => {
+  const addr = await wallet.silentRestore();
+  if (addr) applyConnectedUI(addr);
+})();
+
+// ─── toast ────────────────────────────────────────────────────
+function toast(msg, cls = '') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + cls;
+  setTimeout(() => { t.className = 'toast ' + cls; }, 2600);
+}
+
+// ─── Rules popover — anchors to .rules-badge in sub-header ───
+function positionRulesPop() {
+  const pop = document.getElementById('rulesPop');
+  const trg = document.getElementById('rulesBadge');
+  if (!pop || !trg) return;
+  const r = trg.getBoundingClientRect();
+  const w = 380;
+  let left = r.right - w;
+  if (left < 8) left = 8;
+  if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
+  pop.style.top  = (r.bottom + 8) + 'px';
+  pop.style.left = left + 'px';
+}
+function openRulesPop() {
+  const pop = document.getElementById('rulesPop');
+  const trg = document.getElementById('rulesBadge');
+  if (!pop || !trg) return;
+  positionRulesPop();
+  pop.classList.add('open');
+  trg.classList.add('open');
+}
+function closeRulesPop() {
+  document.getElementById('rulesPop')?.classList.remove('open');
+  document.getElementById('rulesBadge')?.classList.remove('open');
+}
+document.getElementById('rulesBadge').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const pop = document.getElementById('rulesPop');
+  if (pop.classList.contains('open')) closeRulesPop();
+  else openRulesPop();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#rulesBadge') && !e.target.closest('#rulesPop')) closeRulesPop();
+});
+window.addEventListener('resize', () => {
+  if (document.getElementById('rulesPop')?.classList.contains('open')) positionRulesPop();
+});
+window.addEventListener('scroll', () => {
+  if (document.getElementById('rulesPop')?.classList.contains('open')) positionRulesPop();
+}, true);
+
+// ─── dropdown wiring ──────────────────────────────────────────
+document.getElementById('pairCoin').addEventListener('click', (e) => {
+  if (e.target.closest('.markets-dd')) return;
+  const dd = document.getElementById('marketsDd');
+  if (dd.classList.contains('open')) closeDropdown();
+  else openDropdown();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#pairCoin')) closeDropdown();
+});
+document.getElementById('ddSearch').addEventListener('input', renderDropdown);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDropdown();
+});
+
+// ─── boot ─────────────────────────────────────────────────────
+applyPairCoinUI();
+clampInputs();
+updatePriceUI();
+recompute();
+pollRules();
+
+// repaint risk zone on resize / scale
+chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+  const r = state.position
+    ? { stopPrice: state.position.stopPrice, liqPrice: state.position.liqPrice }
+    : (() => { const x = recompute(); return x; })();
+  paintRiskZone(r.stopPrice, r.liqPrice);
+});
+window.addEventListener('resize', () => {
+  setTimeout(() => {
+    const r = state.position
+      ? { stopPrice: state.position.stopPrice, liqPrice: state.position.liqPrice }
+      : (() => { const x = recompute(); return x; })();
+    paintRiskZone(r.stopPrice, r.liqPrice);
+  }, 50);
+});
+</script>
+
+</body>
+</html>
