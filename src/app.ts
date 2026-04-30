@@ -690,6 +690,8 @@ async function switchInterval(newInterval) {
   document.querySelectorAll('.tf-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tf === newInterval);
   });
+  // Snapshot lines that should survive the timeframe switch
+  const savedTp = tpPrice;
   try {
     await loadHyperliquidHistory(currentCoin);
     openHyperliquidStream(currentCoin);
@@ -698,9 +700,14 @@ async function switchInterval(newInterval) {
     console.warn('[HyperGuard] switchInterval failed', e);
     seedSynthetic();
   }
-  // Re-apply right-side padding — fitContent / setData can collapse it,
-  // and on D/W the bar count is small so the chart auto-fits flush.
   try { chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 }); } catch {}
+  // Re-apply position lines + TP after the candle data reload — setData
+  // can drop price-line references in some lightweight-charts versions.
+  if (state.position) {
+    drawLines(state.position.entry, state.position.stopPrice, state.position.liqPrice);
+    paintRiskZone(state.position.stopPrice, state.position.liqPrice);
+    if (savedTp != null) setTP(savedTp);
+  }
   recompute();
 }
 window.switchInterval = switchInterval;
@@ -917,8 +924,16 @@ window.clearTP = clearTP;
 function setTP(price) {
   if (!state.position) return;
   if (!isFinite(price)) return;
-  tpPrice = price;
   const p = state.position;
+  // Constraint: TP must be on the favorable side of entry.
+  //   Long  → TP > entry (above)
+  //   Short → TP < entry (below)
+  // Clamp to entry + tiny epsilon so a drag past entry snaps to the
+  // boundary rather than rejecting silently.
+  const eps = p.entry * 0.0001;  // ~1bp — invisible at chart scale
+  if (p.side === 'long'  && price <= p.entry) price = p.entry + eps;
+  if (p.side === 'short' && price >= p.entry) price = p.entry - eps;
+  tpPrice = price;
   const dir = p.side === 'long' ? 1 : -1;
   const movePct = ((price - p.entry) * dir / p.entry) * 100;
   const pnlUsd  = (movePct / 100) * p.notional;
@@ -964,8 +979,9 @@ function refreshTPLabel() {
 //   Click-vs-drag detection keeps native chart pan (5px / 400ms threshold).
 {
   const tipEl = document.getElementById('chartTip');
-  let _md = null;          // mousedown info for click-vs-drag
-  let _dragMode = null;    // null | 'tp' (dragging existing TP line)
+  let _md = null;            // mousedown info for click-vs-drag
+  let _dragMode = null;      // null | 'tp' | 'stop'
+  let _dragStartStop = 0;    // original stop price when stop-drag began
 
   function priceFromEvent(e) {
     const rect = chartEl.getBoundingClientRect();
@@ -977,12 +993,29 @@ function refreshTPLabel() {
     const tpY = candleSeries.priceToCoordinate(tpPrice);
     return tpY != null && Math.abs(y - tpY) <= 8;
   }
+  function stopYNear(y) {
+    if (!state.position) return false;
+    const sY = candleSeries.priceToCoordinate(state.position.stopPrice);
+    return sY != null && Math.abs(y - sY) <= 8;
+  }
   function pnlAt(price) {
     const p = state.position; if (!p) return null;
     const dir = p.side === 'long' ? 1 : -1;
     const movePct = ((price - p.entry) * dir / p.entry) * 100;
     const pnlUsd = (movePct / 100) * p.notional;
     return { movePct, pnlUsd };
+  }
+  // Tighten-only clamp for the stop drag — Rule 04 (no widening) is
+  // enforced live during drag instead of rejecting on commit.
+  //   long:  newStop ∈ [originalStop, entry]   (cannot widen below original, cannot cross entry)
+  //   short: newStop ∈ [entry, originalStop]   (mirror)
+  function clampStopTightening(rawPrice) {
+    const p = state.position; if (!p) return rawPrice;
+    if (p.side === 'long') {
+      return Math.min(p.entry, Math.max(_dragStartStop, rawPrice));
+    } else {
+      return Math.max(p.entry, Math.min(_dragStartStop, rawPrice));
+    }
   }
   function paintTip(x, y, price, dragging) {
     if (!state.position || price == null) { tipEl.classList.remove('show'); return; }
@@ -1028,8 +1061,30 @@ function refreshTPLabel() {
       chartEl.style.cursor = 'grabbing';
       return;
     }
+    if (_dragMode === 'stop' && state.position) {
+      // Tighten-only clamp — user can drag the stop closer to entry but
+      // not back away from it (Rule 04 enforced live during the gesture).
+      const newStop = clampStopTightening(px);
+      state.position.stopPrice = newStop;
+      drawLines(state.position.entry, newStop, state.position.liqPrice);
+      paintRiskZone(newStop, state.position.liqPrice);
+      renderPosCard();
+      // Show a hint with live $-saved if the stop now hits inside profit
+      tipEl.classList.add('show', 'dragging');
+      const saved = (newStop - _dragStartStop) * (state.position.side === 'long' ? 1 : -1) / state.position.entry * 100 * state.position.notional / 100;
+      tipEl.innerHTML = `<span class="lbl">Drag stop closer to entry</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+      const rect = chartEl.getBoundingClientRect();
+      const tipW = tipEl.offsetWidth || 240;
+      let nx = x + 14, ny = y + 14;
+      if (nx + tipW > rect.width - 8) nx = x - tipW - 14;
+      tipEl.style.left = nx + 'px';
+      tipEl.style.top  = ny + 'px';
+      chartEl.style.cursor = 'grabbing';
+      return;
+    }
     paintTip(x, y, px, false);
-    chartEl.style.cursor = tpYNear(y) ? 'grab' : 'crosshair';
+    // Cursor reflects whichever line is hoverable
+    chartEl.style.cursor = (tpYNear(y) || stopYNear(y)) ? 'grab' : 'crosshair';
   });
   chartEl.addEventListener('mouseleave', () => {
     if (_dragMode) return;
@@ -1042,6 +1097,13 @@ function refreshTPLabel() {
     if (e.target.closest('.legend, .chart-ohlc, .risk-zone, .chart-tip')) return;
     if (!state.position) return;
     const { y } = priceFromEvent(e);
+    // Stop has priority over TP if both happen to be at the same y (rare)
+    if (stopYNear(y)) {
+      _dragMode = 'stop';
+      _dragStartStop = state.position.stopPrice;
+      e.preventDefault();
+      return;
+    }
     if (tpYNear(y)) {
       _dragMode = 'tp';
       e.preventDefault();
@@ -1054,7 +1116,18 @@ function refreshTPLabel() {
     if (_dragMode === 'tp') {
       _dragMode = null;
       chartEl.style.cursor = '';
+      tipEl.classList.remove('show', 'dragging');
       toast('Take profit moved', 'ok');
+      return;
+    }
+    if (_dragMode === 'stop') {
+      _dragMode = null;
+      chartEl.style.cursor = '';
+      tipEl.classList.remove('show', 'dragging');
+      // Already clamped tighten-only during drag, so the move is always
+      // valid w.r.t. Rule 04 — no need to revert.
+      const moved = state.position && Math.abs(state.position.stopPrice - _dragStartStop) > 1e-6;
+      if (moved) toast('Stop tightened', 'ok');
       return;
     }
     if (!_md) return;

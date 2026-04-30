@@ -572,6 +572,7 @@ async function switchInterval(newInterval) {
   document.querySelectorAll(".tf-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.tf === newInterval);
   });
+  const savedTp = tpPrice;
   try {
     await loadHyperliquidHistory(currentCoin);
     openHyperliquidStream(currentCoin);
@@ -583,6 +584,11 @@ async function switchInterval(newInterval) {
   try {
     chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 });
   } catch {
+  }
+  if (state.position) {
+    drawLines(state.position.entry, state.position.stopPrice, state.position.liqPrice);
+    paintRiskZone(state.position.stopPrice, state.position.liqPrice);
+    if (savedTp != null) setTP(savedTp);
   }
   recompute();
 }
@@ -809,8 +815,11 @@ window.clearTP = clearTP;
 function setTP(price) {
   if (!state.position) return;
   if (!isFinite(price)) return;
-  tpPrice = price;
   const p = state.position;
+  const eps = p.entry * 1e-4;
+  if (p.side === "long" && price <= p.entry) price = p.entry + eps;
+  if (p.side === "short" && price >= p.entry) price = p.entry - eps;
+  tpPrice = price;
   const dir = p.side === "long" ? 1 : -1;
   const movePct = (price - p.entry) * dir / p.entry * 100;
   const pnlUsd = movePct / 100 * p.notional;
@@ -856,6 +865,10 @@ function refreshTPLabel() {
     if (tpPrice == null) return false;
     const tpY = candleSeries.priceToCoordinate(tpPrice);
     return tpY != null && Math.abs(y - tpY) <= 8;
+  }, stopYNear = function(y) {
+    if (!state.position) return false;
+    const sY = candleSeries.priceToCoordinate(state.position.stopPrice);
+    return sY != null && Math.abs(y - sY) <= 8;
   }, pnlAt = function(price) {
     const p = state.position;
     if (!p) return null;
@@ -863,6 +876,14 @@ function refreshTPLabel() {
     const movePct = (price - p.entry) * dir / p.entry * 100;
     const pnlUsd = movePct / 100 * p.notional;
     return { movePct, pnlUsd };
+  }, clampStopTightening = function(rawPrice) {
+    const p = state.position;
+    if (!p) return rawPrice;
+    if (p.side === "long") {
+      return Math.min(p.entry, Math.max(_dragStartStop, rawPrice));
+    } else {
+      return Math.max(p.entry, Math.min(_dragStartStop, rawPrice));
+    }
   }, paintTip = function(x, y, price, dragging) {
     if (!state.position || price == null) {
       tipEl.classList.remove("show");
@@ -895,6 +916,7 @@ function refreshTPLabel() {
   const tipEl = document.getElementById("chartTip");
   let _md = null;
   let _dragMode = null;
+  let _dragStartStop = 0;
   chartEl.addEventListener("mousemove", (e) => {
     if (!state.position) {
       tipEl.classList.remove("show");
@@ -916,8 +938,26 @@ function refreshTPLabel() {
       chartEl.style.cursor = "grabbing";
       return;
     }
+    if (_dragMode === "stop" && state.position) {
+      const newStop = clampStopTightening(px);
+      state.position.stopPrice = newStop;
+      drawLines(state.position.entry, newStop, state.position.liqPrice);
+      paintRiskZone(newStop, state.position.liqPrice);
+      renderPosCard();
+      tipEl.classList.add("show", "dragging");
+      const saved = (newStop - _dragStartStop) * (state.position.side === "long" ? 1 : -1) / state.position.entry * 100 * state.position.notional / 100;
+      tipEl.innerHTML = `<span class="lbl">Drag stop closer to entry</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+      const rect = chartEl.getBoundingClientRect();
+      const tipW = tipEl.offsetWidth || 240;
+      let nx = x + 14, ny = y + 14;
+      if (nx + tipW > rect.width - 8) nx = x - tipW - 14;
+      tipEl.style.left = nx + "px";
+      tipEl.style.top = ny + "px";
+      chartEl.style.cursor = "grabbing";
+      return;
+    }
     paintTip(x, y, px, false);
-    chartEl.style.cursor = tpYNear(y) ? "grab" : "crosshair";
+    chartEl.style.cursor = tpYNear(y) || stopYNear(y) ? "grab" : "crosshair";
   });
   chartEl.addEventListener("mouseleave", () => {
     if (_dragMode) return;
@@ -929,6 +969,12 @@ function refreshTPLabel() {
     if (e.target.closest(".legend, .chart-ohlc, .risk-zone, .chart-tip")) return;
     if (!state.position) return;
     const { y } = priceFromEvent(e);
+    if (stopYNear(y)) {
+      _dragMode = "stop";
+      _dragStartStop = state.position.stopPrice;
+      e.preventDefault();
+      return;
+    }
     if (tpYNear(y)) {
       _dragMode = "tp";
       e.preventDefault();
@@ -940,7 +986,16 @@ function refreshTPLabel() {
     if (_dragMode === "tp") {
       _dragMode = null;
       chartEl.style.cursor = "";
+      tipEl.classList.remove("show", "dragging");
       toast("Take profit moved", "ok");
+      return;
+    }
+    if (_dragMode === "stop") {
+      _dragMode = null;
+      chartEl.style.cursor = "";
+      tipEl.classList.remove("show", "dragging");
+      const moved = state.position && Math.abs(state.position.stopPrice - _dragStartStop) > 1e-6;
+      if (moved) toast("Stop tightened", "ok");
       return;
     }
     if (!_md) return;
