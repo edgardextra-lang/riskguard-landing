@@ -1,16 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- App-icon container, rounded corners -->
-  <rect width="32" height="32" rx="7" fill="#0a0b0e"/>
-  <!-- Shield: flat top, curved taper to pointed base -->
-  <path d="M7 6 L25 6 L25 18 Q25 26.5 16 30 Q7 26.5 7 18 Z"
-        fill="rgba(232,184,111,0.10)"
-        stroke="#e8b86f"
-        stroke-width="1.5"
-        stroke-linejoin="round"
-        stroke-linecap="round"/>
-  <!-- Stop bar — the block/cancel mark -->
-  <line x1="11" y1="16.5" x2="21" y2="16.5"
-        stroke="#e8b86f"
-        stroke-width="2.5"
-        stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="hg-mint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3f7bf"/>
+      <stop offset="100%" stop-color="#6fd49a"/>
+    </linearGradient>
+    <filter id="hg-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+  </defs>
+  <!-- Dark canvas, rounded -->
+  <rect width="32" height="32" rx="7" fill="#07090c"/>
+  <!-- Subtle outer glow halo -->
+  <rect x="5" y="5" width="22" height="22" rx="5.5" fill="url(#hg-mint)" filter="url(#hg-glow)" opacity="0.55"/>
+  <!-- Mint gradient frame -->
+  <rect x="5" y="5" width="22" height="22" rx="5" fill="url(#hg-mint)"/>
+  <!-- Dark center — echoes the topbar brand-mark inset -->
+  <rect x="10.5" y="10.5" width="11" height="11" rx="2.5" fill="#07090c"/>
 </svg>

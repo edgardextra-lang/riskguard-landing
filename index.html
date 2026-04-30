@@ -3,2032 +3,1921 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RiskGuard — The Telegram bot that enforces your rules on Hyperliquid</title>
-<meta name="description" content="95% of leveraged traders blow up. Not because of strategy — because of tilt. RiskGuard is the Telegram bot that cancels the trades that ruin your account, live on Hyperliquid." />
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<title>HyperGuard — Trade perps without blowing up.</title>
+<meta name="description" content="A guardian bot on top of Hyperliquid. Polls your account every 3 seconds and cancels rule violations before they become losses." />
+<link rel="icon" href="favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-<!-- Umami analytics -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <script defer src="https://cloud.umami.is/script.js" data-website-id="8aa836b4-cdd4-42d1-b25f-20d76c8b3b5f"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  /* ═══════════════════════════════════════════════════════════
+     DESIGN TOKENS — between hyena.trade × lighter.xyz
+     ═══════════════════════════════════════════════════════════ */
   :root {
-    --ink:        #0a0b0e;
-    --ink-2:      #111217;
-    --ink-3:      #1a1b21;
-    --paper:      #f4efe6;
-    --paper-2:    #d9d2c2;
-    --paper-dim:  #7a756a;
-    --paper-mute: #4f4b44;
-    --hair:       #24252a;
-    --hair-hi:    #2f3036;
-    --amber:      #e8b86f;
-    --amber-hi:   #f7d49a;
-    --rust:       #d4493d;
-    --sage:       #7fb77e;
-    --tg-blue:    #3fa9f5;
+    /* surface */
+    --bg:         #07090c;
+    --bg-2:       #0a0d12;
+    --surface:    #0f1319;
+    --surface-2:  #161b23;
+    --surface-3:  #1f262f;
 
-    --font-display: 'Instrument Serif', 'Times New Roman', serif;
-    --font-body:    'Inter Tight', -apple-system, sans-serif;
-    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+    /* hairlines */
+    --border:     #1a2029;
+    --border-2:   #242c37;
+    --border-hi:  #354050;
+
+    /* text */
+    --text:       #ecf0f5;
+    --text-2:     #aab2bd;
+    --text-3:     #6c7480;
+    --text-4:     #434a55;
+
+    /* accent — safety mint */
+    --mint:       #a3f7bf;
+    --mint-hi:    #c5fad6;
+    --mint-soft:  rgba(163, 247, 191, 0.12);
+    --mint-glow:  rgba(163, 247, 191, 0.18);
+
+    /* secondary */
+    --cream:      #ece7dd;
+    --danger:     #ff7468;
+    --warn:       #ffce6b;
+
+    /* radii */
+    --r-sm: 6px;
+    --r:    10px;
+    --r-lg: 16px;
+    --r-xl: 24px;
+
+    /* shadows */
+    --sh-sm:   0 1px 2px rgba(0,0,0,.4);
+    --sh:      0 8px 32px rgba(0,0,0,.5);
+    --sh-mint: 0 0 0 1px rgba(163,247,191,.18), 0 12px 40px rgba(163,247,191,.08);
+
+    /* fonts */
+    --f-sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    --f-mono: 'Geist Mono', ui-monospace, monospace;
   }
 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+
   body {
-    background: var(--ink);
-    color: var(--paper);
-    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-sans);
     font-weight: 400;
     line-height: 1.55;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv01', 'cv11', 'ss01', 'tnum';
   }
+
+  /* ambient gradient — drifts with scroll */
   body::before {
     content: '';
-    position: fixed; inset: 0;
-    background-image:
-      radial-gradient(circle at 15% 85%, rgba(232, 184, 111, 0.05), transparent 40%),
-      radial-gradient(circle at 85% 10%, rgba(212, 73, 61, 0.03), transparent 50%);
-    pointer-events: none;
-    z-index: 0;
+    position: fixed; inset: -10%;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 10%, rgba(163,247,191,.07), transparent 60%),
+      radial-gradient(ellipse 50% 35% at 90% 60%, rgba(163,247,191,.03), transparent 70%),
+      radial-gradient(ellipse 45% 30% at 10% 90%, rgba(255,116,104,.025), transparent 70%);
+    pointer-events: none; z-index: 0;
+    transform: translate3d(0, calc(var(--scrollY, 0) * -0.08px), 0);
+    will-change: transform;
+    transition: transform 60ms linear;
   }
+  /* faint grain */
   body::after {
     content: '';
     position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.94 0 0 0 0 0.82 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.85;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.025 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; mix-blend-mode: overlay;
   }
 
-  .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 40px; }
-  a { color: inherit; text-decoration: none; }
+  /* ─── Ambient drifting orbs (canvas-free, GPU friendly) ─── */
+  .ambient {
+    position: fixed; inset: 0;
+    z-index: 0; pointer-events: none;
+    overflow: hidden;
+  }
+  .ambient .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: .5;
+    transform: translate3d(0, calc(var(--scrollY, 0) * var(--rate, -0.05) * 1px), 0);
+    will-change: transform;
+    transition: transform 80ms linear;
+  }
+  .ambient .orb.o1 {
+    width: 540px; height: 540px;
+    top: 12%; left: -10%;
+    background: radial-gradient(circle, rgba(163,247,191,.18), transparent 70%);
+    --rate: -0.05;
+  }
+  .ambient .orb.o2 {
+    width: 420px; height: 420px;
+    top: 60%; right: -8%;
+    background: radial-gradient(circle, rgba(163,247,191,.10), transparent 70%);
+    --rate: -0.08;
+  }
+  .ambient .orb.o3 {
+    width: 360px; height: 360px;
+    top: 140%; left: 30%;
+    background: radial-gradient(circle, rgba(255,206,107,.06), transparent 70%);
+    --rate: -0.04;
+  }
+  .ambient .orb.o4 {
+    width: 480px; height: 480px;
+    top: 220%; right: 20%;
+    background: radial-gradient(circle, rgba(163,247,191,.10), transparent 70%);
+    --rate: -0.06;
+  }
+  .ambient .orb.o5 {
+    width: 380px; height: 380px;
+    top: 320%; left: -8%;
+    background: radial-gradient(circle, rgba(255,116,104,.05), transparent 70%);
+    --rate: -0.07;
+  }
 
-  /* ── Nav ────────────────────────────────────────────────────── */
-  nav {
+  /* fixed faint grid that drifts with scroll */
+  .ambient .grid {
+    position: absolute; inset: -10%;
+    background-image:
+      linear-gradient(rgba(163,247,191,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(163,247,191,.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: 0 calc(var(--scrollY, 0) * 0.15px);
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black, transparent 70%);
+    will-change: background-position;
+  }
+
+  /* scroll progress hairline (left edge) */
+  .scroll-rail {
     position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 1px;
+    background: var(--border);
+    z-index: 50;
+    pointer-events: none;
+    opacity: .6;
+  }
+  .scroll-rail::before {
+    content: '';
+    position: absolute;
     top: 0; left: 0; right: 0;
-    z-index: 100;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(10, 11, 14, 0.55);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    height: var(--scroll-progress, 0%);
+    background: linear-gradient(180deg, transparent, var(--mint));
+    box-shadow: 0 0 8px var(--mint-glow);
+    transition: height 80ms linear;
+  }
+  .scroll-rail::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: var(--scroll-progress, 0%);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 12px var(--mint), 0 0 24px var(--mint-glow);
+    transition: top 80ms linear;
+    transform: translateY(-50%);
+  }
+  @media (max-width: 720px) { .scroll-rail { display: none; } }
+
+  .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: var(--mint); color: var(--bg); }
+
+  /* ═══════════════════════════════════════════════════════════
+     NAV — lighter-style: tight, hairline border, glass blur
+     ═══════════════════════════════════════════════════════════ */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 18px 32px;
+    display: flex; align-items: center;
+    background: rgba(7, 9, 12, 0.6);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
     border-bottom: 1px solid transparent;
-    transition: background 0.25s ease, border-color 0.25s ease, padding 0.25s ease, box-shadow 0.25s ease;
+    transition: background .25s ease, border-color .25s ease, padding .25s ease;
   }
   nav.scrolled {
-    background: rgba(10, 11, 14, 0.88);
-    border-bottom-color: var(--hair);
-    padding: 12px 40px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    background: rgba(7, 9, 12, 0.85);
+    border-bottom-color: var(--border);
+    padding: 14px 32px;
   }
   .brand {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    color: var(--paper);
-    display: flex; align-items: center; gap: 14px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+    letter-spacing: -0.01em; color: var(--text);
   }
   .brand-mark {
-    width: 24px; height: 24px;
-    display: block;
-    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 16px rgba(163,247,191,.25);
   }
-  .brand-badge {
-    font-size: 10px; letter-spacing: 0.22em;
-    color: var(--paper-dim);
-    padding-left: 14px;
-    border-left: 1px solid var(--hair);
+  .brand-mark::after {
+    content: ''; position: absolute;
+    inset: 5px; border-radius: 3px;
+    background: var(--bg);
   }
   .nav-links {
-    display: flex; gap: 34px; align-items: center;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    color: var(--paper-dim);
-    list-style: none;
+    display: flex; gap: 32px; align-items: center;
+    margin-left: auto; margin-right: 24px;
+    font-size: 14px; color: var(--text-2);
   }
-  .nav-links a { transition: color 0.2s ease; }
-  .nav-links a:hover { color: var(--paper); }
-  .nav-cta {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    color: var(--ink);
-    background: var(--amber);
-    padding: 10px 18px;
-    border: 1px solid var(--amber);
-    transition: all 0.2s ease;
-    display: inline-flex; align-items: center; gap: 8px;
-    cursor: pointer;
-  }
-  .nav-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
-  .tg-icon {
-    width: 14px; height: 14px;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .tg-icon svg { width: 100%; height: 100%; }
+  .nav-links a { transition: color .15s ease; }
+  .nav-links a:hover { color: var(--text); }
 
-  /* ── Hero ────────────────────────────────────────────────── */
+  .btn {
+    font-family: var(--f-sans); font-size: 14px; font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 10px 18px;
+    border-radius: var(--r);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all .18s ease;
+    display: inline-flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--mint); color: var(--bg); border-color: var(--mint);
+    box-shadow: 0 0 0 1px var(--mint), 0 8px 28px rgba(163,247,191,.18);
+  }
+  .btn-primary:hover { background: var(--mint-hi); border-color: var(--mint-hi); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; color: var(--text);
+    border-color: var(--border-2);
+  }
+  .btn-ghost:hover { border-color: var(--border-hi); background: var(--surface); }
+  .btn-lg { padding: 14px 24px; font-size: 15px; border-radius: var(--r-lg); }
+
+  @media (max-width: 720px) {
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+    .wrap { padding: 0 20px; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     HERO
+     ═══════════════════════════════════════════════════════════ */
   .hero {
-    padding: 160px 0 90px;
-    border-bottom: 1px solid var(--hair);
+    padding: 200px 0 140px;
+    position: relative;
   }
   .hero-grid {
     display: grid;
-    grid-template-columns: 7fr 5fr;
-    gap: 72px;
-    align-items: flex-start;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 64px;
+    align-items: start;
   }
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin-bottom: 32px;
-    display: flex; align-items: center; gap: 14px;
-  }
-  .eyebrow::before {
-    content: '';
-    width: 32px; height: 1px;
-    background: var(--amber);
-  }
-  .online-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--sage);
-    box-shadow: 0 0 8px rgba(127, 183, 126, 0.65);
-    animation: pulse 1.8s ease-in-out infinite;
-    margin-left: auto;
-  }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-  .hero h1 {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: clamp(48px, 6.8vw, 100px);
-    line-height: 0.97;
-    letter-spacing: -0.02em;
-    color: var(--paper);
-    margin-bottom: 36px;
-  }
-  .hero h1 em { font-style: italic; color: var(--amber); }
-  .hero h1 .strike {
+  .hero-left { min-width: 0; }
+  .hero-right {
     position: relative;
-    color: var(--paper-dim);
-    display: inline-block;
+    padding-top: 60px;
   }
-  .hero h1 .strike::after {
-    content: '';
-    position: absolute;
-    top: 52%; left: -4%; right: -4%;
-    height: 3px;
-    background: var(--rust);
-    transform: rotate(-1.2deg);
-  }
-  .hero h1 .stat-line {
-    display: block;
-    font-size: 62%;
-    font-family: var(--font-mono);
-    font-style: normal;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-    font-weight: 400;
-    margin-top: 14px;
-    line-height: 1.5;
-  }
-
-  .hero-sub {
-    font-size: 18px;
-    line-height: 1.6;
-    color: var(--paper-2);
-    max-width: 540px;
-    margin-bottom: 40px;
-    font-weight: 300;
-  }
-  .hero-sub strong { color: var(--paper); font-weight: 500; }
-
-  .hero-actions {
-    display: flex; gap: 14px; align-items: center;
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-  }
-  .btn-primary {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    padding: 15px 24px;
-    background: var(--amber);
-    color: var(--ink);
-    border: 1px solid var(--amber);
-    transition: all 0.2s ease;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .btn-primary:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
-  .btn-ghost {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    letter-spacing: 0.06em;
-    padding: 15px 24px;
-    color: var(--paper);
-    border: 1px solid var(--hair-hi);
-    background: transparent;
-    transition: border-color 0.2s ease;
-  }
-  .btn-ghost:hover { border-color: var(--paper); }
-  .arrow { transition: transform 0.2s ease; }
-  .btn-primary:hover .arrow, .btn-ghost:hover .arrow { transform: translateX(4px); }
-
-  /* ── Social proof strip (below hero actions) ─────────────── */
-  .trust-strip {
-    padding: 20px 0 0;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 32px;
-  }
-  .trust-quote {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 20px;
-    color: var(--paper);
-    line-height: 1.5;
-    max-width: 520px;
-    border-left: 3px solid var(--amber);
-    padding-left: 18px;
-  }
-  .trust-handles {
-    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--paper-dim);
-    letter-spacing: 0.06em;
-  }
-  .trust-handle {
-    padding: 4px 10px;
-    border: 1px solid var(--hair-hi);
-    background: var(--ink-2);
-    color: var(--paper);
-  }
-  .trust-sep {
-    color: var(--paper-mute);
-    font-size: 10px;
-    letter-spacing: 0.04em;
-  }
-
-  .hero-meta {
-    display: flex; gap: 44px; flex-wrap: wrap;
-    padding-top: 26px;
-    border-top: 1px solid var(--hair);
-  }
-  .hero-meta-item {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--paper-dim);
-  }
-  .hero-meta-item strong {
-    display: block;
-    font-size: 22px;
-    color: var(--paper);
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    margin-bottom: 3px;
-  }
-
-  /* ── Telegram chat mockup (hero right) ────────────────────── */
-  .tg-mock {
-    background: var(--ink-2);
-    border: 1px solid var(--hair);
-    border-radius: 18px;
-    padding: 14px 14px 18px;
+  .hero-feature {
+    background: linear-gradient(180deg, rgba(255,116,104,.05), transparent 60%), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 36px 32px 28px;
     position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-  .tg-mock::before {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 48px; height: 1px;
-    background: var(--amber);
-  }
-  .tg-mock::after {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 1px; height: 48px;
-    background: var(--amber);
-  }
-  .tg-head {
-    display: flex; align-items: center; gap: 12px;
-    padding: 8px 10px 14px;
-    border-bottom: 1px solid var(--hair);
-    margin-bottom: 14px;
-  }
-  .tg-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--ink);
-    border: 1px solid rgba(232, 184, 111, 0.35);
-    display: flex; align-items: center; justify-content: center;
     overflow: hidden;
-    flex-shrink: 0;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
   }
-  .tg-avatar svg { width: 100%; height: 100%; display: block; }
-  .tg-title { flex: 1; }
-  .tg-name {
-    font-size: 14px;
-    color: var(--paper);
-    font-weight: 500;
-  }
-  .tg-status {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--sage);
-    letter-spacing: 0.04em;
-    display: flex; align-items: center; gap: 6px;
-    margin-top: 2px;
-  }
-  .tg-status .online-dot { margin-left: 0; }
-
-  .tg-messages {
-    max-height: 420px;
-    overflow: hidden;
-    padding: 0 4px;
-    position: relative;
-  }
-  .tg-messages::after {
+  .hero-feature::before {
     content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 50px;
-    background: linear-gradient(transparent, var(--ink-2));
-    pointer-events: none;
-    z-index: 2;
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--danger), transparent);
+    opacity: .5;
   }
-  .tg-messages-inner {
-    display: flex; flex-direction: column; gap: 10px;
-    animation: tg-scroll 11s ease-in-out infinite;
-    animation-delay: 0.6s;
-  }
-  @keyframes tg-scroll {
-    0%, 8%   { transform: translateY(0); }
-    50%, 80% { transform: translateY(-148px); }
-    100%     { transform: translateY(0); }
-  }
-  .tg-msg {
-    padding: 10px 14px;
-    border-radius: 12px;
-    max-width: 92%;
-    font-size: 13px;
-    line-height: 1.5;
-    position: relative;
-  }
-  .tg-msg.bot {
-    background: var(--ink-3);
-    border: 1px solid var(--hair);
-    color: var(--paper-2);
-    border-top-left-radius: 4px;
-    align-self: flex-start;
-  }
-  .tg-msg.user {
-    background: var(--tg-blue);
-    color: #e9f5fe;
-    border-top-right-radius: 4px;
-    align-self: flex-end;
-    opacity: 0.85;
-  }
-  .tg-msg.alert { border-color: var(--rust); background: rgba(212, 73, 61, 0.08); color: var(--paper); }
-  .tg-msg.lock  { border-color: var(--amber); background: rgba(232, 184, 111, 0.06); color: var(--paper); }
-  .tg-msg.ok    { border-color: var(--sage); background: rgba(127, 183, 126, 0.06); color: var(--paper); }
-  .tg-msg b { color: var(--paper); font-weight: 600; }
-  .tg-msg .tag {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    margin-bottom: 4px;
-    opacity: 0.85;
-  }
-  .tg-msg.alert .tag { color: var(--rust); }
-  .tg-msg.lock .tag  { color: var(--amber); }
-  .tg-msg.ok .tag    { color: var(--sage); }
-  .tg-msg .time {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    color: var(--paper-mute);
-    margin-top: 4px;
-  }
-  .tg-privacy {
-    margin-top: 10px;
-    padding: 7px 10px;
-    background: rgba(63, 169, 245, 0.05);
-    border: 1px solid rgba(63, 169, 245, 0.18);
-    border-radius: 6px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-    line-height: 1.5;
-  }
-
-  /* ── Activity marquee ──────────────────────────────────── */
-  .marquee {
-    border-top: 1px solid var(--hair);
-    border-bottom: 1px solid var(--hair);
-    padding: 16px 0;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .marquee-track {
-    display: inline-flex;
-    gap: 44px;
-    animation: marquee 48s linear infinite;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-  }
-  .marquee-item { display: inline-flex; align-items: center; gap: 10px; }
-  .marquee-item .ico { font-size: 14px; }
-  .marquee-item .tag { color: var(--amber); font-weight: 600; letter-spacing: 0.1em; font-size: 10.5px; }
-  .marquee-item.rust .tag { color: var(--rust); }
-  .marquee-item.sage .tag { color: var(--sage); }
-  .marquee-item b { color: var(--paper); font-weight: 600; }
-  .marquee-dot {
-    display: inline-block;
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: var(--paper-mute);
-    align-self: center;
-  }
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-
-  /* ── Section scaffold ─────────────────────────────────── */
-  section { position: relative; }
-  .sec-head {
-    padding-top: 88px;
-    padding-bottom: 56px;
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 48px;
-    align-items: flex-end;
-    border-top: 1px solid var(--hair);
-  }
-  .sec-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    color: var(--amber);
-    text-transform: uppercase;
-  }
-  .sec-label span { color: var(--paper-dim); }
-  .sec-title {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: clamp(40px, 4.8vw, 68px);
-    line-height: 1.02;
-    letter-spacing: -0.02em;
-    color: var(--paper);
-    max-width: 820px;
-  }
-  .sec-title em { font-style: italic; color: var(--amber); }
-
-  /* ── Stats ─────────────────────────────────────────── */
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    border-top: 1px solid var(--hair);
-    border-bottom: 1px solid var(--hair);
-  }
-  .stat {
-    padding: 48px 32px;
-    border-right: 1px solid var(--hair);
-  }
-  .stat:last-child { border-right: none; }
-  .stat-tag {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    color: var(--paper-dim);
-    text-transform: uppercase;
-    margin-bottom: 24px;
-  }
-  .stat-value {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: clamp(58px, 7.5vw, 104px);
-    line-height: 0.92;
-    letter-spacing: -0.03em;
-    color: var(--paper);
-    margin-bottom: 20px;
-  }
-  .stat-value sup {
-    font-size: 32%;
-    color: var(--amber);
-    vertical-align: super;
-    margin-left: 4px;
-    font-family: var(--font-mono);
-    font-weight: 500;
-    letter-spacing: 0;
-  }
-  .stat-caption {
-    font-size: 14.5px;
-    color: var(--paper-2);
-    line-height: 1.55;
-    max-width: 300px;
-  }
-  .stat-caption strong { color: var(--paper); font-weight: 500; }
-  .stat-dollar {
-    margin-top: 12px;
-    padding: 8px 12px;
-    background: rgba(212, 73, 61, 0.07);
-    border-left: 2px solid var(--rust);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--rust);
-    letter-spacing: 0.04em;
-    line-height: 1.5;
-  }
-  .stat-source {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--paper-mute);
-    letter-spacing: 0.06em;
-    margin-top: 14px;
-  }
-
-  /* ── Problem cards ─────────────────────────────────── */
-  .problem-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    border: 1px solid var(--hair);
-    border-bottom: 0;
-  }
-  .problem {
-    padding: 40px 32px 36px;
-    border-right: 1px solid var(--hair);
-    background: var(--ink);
-  }
-  .problem:last-child { border-right: none; }
-  .problem-num {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 54px;
-    line-height: 1;
-    color: var(--rust);
-    margin-bottom: 16px;
-  }
-  .problem h3 {
-    font-family: var(--font-display);
-    font-size: 28px;
-    line-height: 1.15;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.01em;
-    margin-bottom: 14px;
-  }
-  .problem h3 em { font-style: italic; color: var(--amber); }
-  .problem p {
-    font-size: 14.5px;
-    line-height: 1.6;
-    color: var(--paper-2);
-    margin-bottom: 18px;
-  }
-  .problem-stat {
-    padding-top: 16px;
-    border-top: 1px solid var(--hair);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--rust);
-    letter-spacing: 0.06em;
-  }
-  .problem-pullquote {
-    margin: 14px 0 0;
-    padding: 10px 14px;
-    border-left: 2px solid var(--amber);
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 14px;
-    color: var(--amber);
-    line-height: 1.45;
-    background: rgba(232, 184, 111, 0.05);
-  }
-
-  /* ── Advisory comparison ───────────────────────────── */
-  .advisory-bar {
-    margin-top: 0;
-    border: 1px solid var(--hair);
-    border-top: none;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-  }
-  .advisory-cell {
-    padding: 20px 32px;
-    border-right: 1px solid var(--hair);
-    display: flex; align-items: center; gap: 12px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.04em;
-  }
-  .advisory-cell:last-child { border-right: none; }
-  .advisory-cell .adv-label { color: var(--paper-dim); }
-  .advisory-cell .adv-verdict {
-    margin-left: auto;
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    padding: 3px 8px;
-  }
-  .adv-verdict.fail { color: var(--rust); border: 1px solid rgba(212,73,61,0.4); background: rgba(212,73,61,0.06); }
-  .adv-verdict.pass { color: var(--sage); border: 1px solid rgba(127,183,126,0.4); background: rgba(127,183,126,0.06); }
-
-  /* ── Rules ─────────────────────────────────────────── */
-  .rules { padding-bottom: 32px; }
-  .rule {
-    display: grid;
-    grid-template-columns: 90px 1fr 1fr 170px;
-    gap: 40px;
-    padding: 40px 0;
-    border-top: 1px solid var(--hair);
-    align-items: flex-start;
-  }
-  .rule:last-child { border-bottom: 1px solid var(--hair); }
-  .rule-num {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: 64px;
-    line-height: 1;
-    color: var(--amber);
-    letter-spacing: -0.02em;
-  }
-  .rule-title {
-    font-family: var(--font-display);
-    font-size: 32px;
-    line-height: 1.1;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.015em;
-  }
-  .rule-title em { font-style: italic; color: var(--paper-2); }
-  .rule-title .dash { color: var(--paper-mute); margin: 0 6px; }
-  .rule-title .val  { color: var(--amber); }
-  .rule-body {
-    font-size: 15.5px;
-    line-height: 1.6;
-    color: var(--paper-2);
-  }
-  .rule-tag {
-    justify-self: end;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    color: var(--amber);
-    text-transform: uppercase;
-    padding: 6px 12px;
-    border: 1px solid rgba(232, 184, 111, 0.4);
-    background: rgba(232, 184, 111, 0.05);
-    white-space: nowrap;
-  }
-  .rule-tag.rust { color: var(--rust); border-color: rgba(212, 73, 61, 0.4); background: rgba(212, 73, 61, 0.05); }
-
-  /* Notification feature row — visually separated from the 5 rules */
-  .rules-separator {
-    padding: 18px 0 8px;
-    display: flex; align-items: center; gap: 14px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    color: var(--paper-mute);
-  }
-  .rules-separator::before, .rules-separator::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--hair);
-  }
-  .rule.notify {
-    background: linear-gradient(90deg, rgba(63, 169, 245, 0.06), rgba(232, 184, 111, 0.03) 70%, transparent);
-    border-top-color: rgba(63, 169, 245, 0.2);
-  }
-  .rule.notify .rule-num { color: var(--tg-blue); font-size: 32px; letter-spacing: 0; }
-  .rule.notify .rule-tag { color: var(--tg-blue); border-color: rgba(63, 169, 245, 0.4); background: rgba(63, 169, 245, 0.06); }
-
-  /* Mid-section CTA after rules */
-  .rules-cta-row {
-    padding: 32px 0 8px;
-    display: flex; justify-content: center;
-  }
-
-  /* ── Steps (how it works) ─────────────────────────── */
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--hair);
-    border: 1px solid var(--hair);
-  }
-  .step {
-    padding: 40px 28px 36px;
-    background: var(--ink);
-    position: relative;
-  }
-  .step-num {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    color: var(--amber);
-    margin-bottom: 28px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .step-num::before {
-    content: '';
-    width: 18px; height: 1px;
-    background: var(--amber);
-  }
-  .step h3 {
-    font-family: var(--font-display);
-    font-size: 26px;
-    line-height: 1.15;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.01em;
-    margin-bottom: 14px;
-  }
-  .step h3 em { font-style: italic; color: var(--amber); }
-  .step p {
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--paper-2);
-  }
-  .step-note {
-    margin-top: 16px;
-    padding-top: 14px;
-    border-top: 1px solid var(--hair);
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.06em;
-    color: var(--paper-dim);
+  .hero-feature .hf-kicker {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 22px;
     display: flex; align-items: center; gap: 8px;
   }
-
-  /* ── Testimonials ──────────────────────────────────── */
-  .testimonial-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+  .hero-feature .hf-kicker::before {
+    content: ''; width: 14px; height: 1px; background: var(--text-3);
   }
-  .testimonial {
-    padding: 28px 28px 24px;
-    border: 1px solid var(--hair);
-    background: var(--ink-2);
-  }
-  .stars {
-    display: flex; gap: 2px;
-    color: var(--amber);
-    font-size: 13px;
-    margin-bottom: 18px;
-  }
-  .testimonial p {
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.45;
-    color: var(--paper);
-    margin-bottom: 22px;
-    font-style: italic;
-  }
-  .testimonial-who {
-    display: flex; align-items: center; gap: 12px;
-    padding-top: 18px;
-    border-top: 1px solid var(--hair);
-  }
-  .t-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--ink-3);
-    border: 1px solid var(--hair-hi);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    font-weight: 600;
-  }
-  .t-name {
-    font-size: 14px;
-    color: var(--paper);
-    font-weight: 500;
-  }
-  .t-role {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
-    margin-top: 2px;
-  }
-
-  /* ── Pricing / solo offer ─────────────────────────── */
-  .solo-offer {
-    display: flex;
-    justify-content: center;
-    padding: 16px 0 8px;
-  }
-  .solo-offer-inner {
-    max-width: 680px;
-    width: 100%;
-    padding: 48px 44px 40px;
-    background: var(--ink-2);
-    border: 1px solid var(--hair);
-    position: relative;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 1px rgba(232, 184, 111, 0.3);
-  }
-  .solo-offer-inner::before {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 72px; height: 1px;
-    background: var(--amber);
-  }
-  .solo-offer-inner::after {
-    content: '';
-    position: absolute;
-    top: -1px; left: -1px;
-    width: 1px; height: 72px;
-    background: var(--amber);
-  }
-
-  /* Seat counter */
-  .seat-counter {
-    margin-bottom: 28px;
-  }
-  .seat-bar-track {
-    height: 4px;
-    background: var(--hair);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
-  .seat-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--amber), var(--amber-hi));
-    border-radius: 2px;
-    width: 23%;
-    animation: seat-pulse 3s ease-in-out infinite;
-  }
-  @keyframes seat-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
-  .seat-counter-text {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--paper-2);
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .seat-counter-text b { color: var(--amber); }
-  .seat-counter-text .seat-urgency {
-    color: var(--rust);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-  }
-
-  .solo-badge {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    color: var(--sage);
-    margin-bottom: 24px;
-    padding: 6px 12px;
-    border: 1px solid rgba(127, 183, 126, 0.4);
-    background: rgba(127, 183, 126, 0.06);
-    text-transform: uppercase;
-  }
-  .solo-badge .online-dot { margin: 0; background: var(--sage); box-shadow: 0 0 8px rgba(127, 183, 126, 0.6); }
-  .solo-name {
-    font-family: var(--font-display);
-    font-size: 46px;
-    line-height: 1;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.02em;
+  .hero-feature .hf-stat {
+    font-family: var(--f-sans); font-weight: 500;
+    font-size: clamp(96px, 12vw, 160px);
+    letter-spacing: -0.05em;
+    line-height: .92;
+    color: var(--danger);
+    font-feature-settings: 'tnum';
     margin-bottom: 12px;
   }
-  .solo-byline {
-    font-size: 16px;
-    color: var(--paper-2);
+  .hero-feature .hf-stat .unit {
+    color: var(--text-3);
+    font-size: 0.32em; margin-left: 6px;
+    font-weight: 400; letter-spacing: -0.02em;
+  }
+  .hero-feature .hf-body {
+    font-size: 16px; line-height: 1.5;
+    color: var(--text-2);
+    margin-bottom: 22px;
+    max-width: 30ch;
+  }
+  .hero-feature .hf-body strong { color: var(--text); font-weight: 500; }
+  .hero-feature .hf-source {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+  }
+  .hero-feature .hf-source .src-link {
+    color: var(--text-3);
+    transition: color .15s ease;
+  }
+  .hero-feature .hf-source .src-link:hover { color: var(--mint); }
+
+  /* tiny decorative liquidation tick chart */
+  .hf-chart {
+    position: absolute; right: 24px; top: 24px;
+    width: 80px; height: 36px;
+    opacity: .55;
+  }
+  .hf-chart path {
+    fill: none; stroke: var(--danger); stroke-width: 1.3;
+    stroke-dasharray: 200; stroke-dashoffset: 200;
+    animation: hf-draw 4s ease-in-out infinite;
+  }
+  @keyframes hf-draw {
+    0%   { stroke-dashoffset: 200; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -200; }
+  }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+    .hero-right { padding-top: 0; }
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 6px 14px 6px 8px;
+    border: 1px solid var(--border-2);
+    border-radius: 100px;
+    background: var(--surface);
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 40px;
+  }
+  .hero-tag .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 0 4px rgba(163,247,191,.18);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(163,247,191,.18); }
+    50%      { box-shadow: 0 0 0 7px rgba(163,247,191,.06); }
+  }
+
+  h1.display {
+    font-family: var(--f-sans);
+    font-weight: 500;
+    font-size: clamp(48px, 7.5vw, 104px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: var(--text);
+    margin-bottom: 28px;
+    max-width: 16ch;
+  }
+  h1.display .accent { color: var(--mint); font-weight: 500; }
+  h1.display .quiet  { color: var(--text-3); font-weight: 300; }
+
+  .hero-sub {
+    font-size: 19px;
+    color: var(--text-2);
+    max-width: 580px;
     line-height: 1.55;
-    margin-bottom: 32px;
-    padding-bottom: 28px;
-    border-bottom: 1px solid var(--hair);
+    font-weight: 400;
+    margin-bottom: 44px;
   }
-  .solo-price-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 28px;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
+  .hero-cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  /* hero metrics — thin separators, big mono numerals */
+  .hero-metrics {
+    margin-top: 100px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
   }
-  .solo-price {
-    font-family: var(--font-display);
-    font-size: 88px;
-    color: var(--amber);
-    line-height: 0.92;
+  .hero-metric { padding-right: 32px; }
+  .hero-metric:not(:first-child) {
+    padding-left: 32px; border-left: 1px solid var(--border);
+  }
+  .hero-metric .label {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3); margin-bottom: 18px;
+    letter-spacing: 0;
+  }
+  .hero-metric .value {
+    font-family: var(--f-sans);
+    font-size: clamp(56px, 6.4vw, 88px);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    line-height: .95;
+    font-feature-settings: 'tnum';
+  }
+  .hero-metric .value .unit { color: var(--text-3); font-size: 0.45em; margin-left: 4px; font-weight: 400; }
+  .hero-metric .desc {
+    font-size: 14px; color: var(--text-3);
+    margin-top: 14px; line-height: 1.5;
+  }
+  @media (max-width: 720px) {
+    .hero-metrics { grid-template-columns: 1fr; gap: 24px; }
+    .hero-metric { padding: 24px 0 0; border-left: none !important; border-top: 1px solid var(--border); }
+    .hero-metric:first-child { border-top: none; padding-top: 0; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SECTION
+     ═══════════════════════════════════════════════════════════ */
+  section.block { padding: 140px 0; }
+  .section-tag {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--mint); margin-bottom: 20px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .section-tag::before {
+    content: ''; width: 18px; height: 1px; background: var(--mint);
+  }
+  h2.section-h {
+    font-family: var(--f-sans); font-weight: 500;
+    font-size: clamp(36px, 5.5vw, 64px);
+    line-height: 1.05;
     letter-spacing: -0.03em;
+    margin-bottom: 24px;
+    max-width: 18ch;
   }
-  .solo-price span {
-    font-size: 18px;
-    font-family: var(--font-mono);
-    color: var(--paper-dim);
-    letter-spacing: 0.04em;
+  h2.section-h .accent { color: var(--mint); }
+  h2.section-h .quiet { color: var(--text-3); font-weight: 400; }
+  .section-lede {
+    font-size: 18px; color: var(--text-2);
+    max-width: 620px; line-height: 1.6;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     COST OF NO RULES — stat-driven panels
+     ═══════════════════════════════════════════════════════════ */
+  .cost-quote {
+    margin-top: 8px;
+    margin-bottom: 56px;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--text);
+    max-width: 22ch;
+  }
+  .cost-quote .quiet { color: var(--text-3); }
+  .cost-quote .accent { color: var(--mint); }
+
+  .cost-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .cost-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 32px 28px 26px;
+    display: flex; flex-direction: column;
+    transition: border-color .2s ease, transform .2s ease, background .2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .cost-card:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+    background: var(--surface-2);
+  }
+  .cost-card .ckicker {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 28px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cost-card .ckicker::before {
+    content: ''; width: 16px; height: 1px; background: var(--text-3);
+  }
+  .cost-stat {
+    font-family: var(--f-sans);
+    font-weight: 500;
+    font-size: clamp(56px, 6vw, 80px);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 14px;
+    color: var(--text);
+    font-feature-settings: 'tnum';
+  }
+  .cost-card.danger .cost-stat { color: var(--danger); }
+  .cost-card.warn .cost-stat   { color: var(--warn); }
+  .cost-card.ok .cost-stat     { color: var(--mint); }
+  .cost-stat .unit {
+    color: var(--text-3); font-size: 0.45em; margin-left: 4px;
+    font-weight: 400; letter-spacing: -0.02em;
+  }
+  .cost-body {
+    font-size: 15px; color: var(--text-2);
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .cost-body strong { color: var(--text); font-weight: 500; }
+  .cost-meta {
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-4);
+  }
+  .cost-meta .src {
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color .15s ease;
+  }
+  .cost-meta .src:hover { color: var(--mint); }
+  @media (max-width: 900px) { .cost-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════════════════════════════════════════════
+     COMPARE — them / us
+     ═══════════════════════════════════════════════════════════ */
+  .compare {
+    margin-top: 56px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 8px;
+  }
+  .col.us {
+    border-color: var(--mint-soft);
+    background: linear-gradient(180deg, rgba(163,247,191,.04), transparent 70%), var(--surface);
+    box-shadow: var(--sh-mint);
+  }
+  .col-head {
+    padding: 18px 22px 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--f-mono); font-size: 12px;
+  }
+  .col-head .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .col.them .col-head { color: var(--text-3); }
+  .col.them .col-head .dot { background: var(--text-4); }
+  .col.us .col-head { color: var(--mint); }
+  .col.us .col-head .dot { background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+  .col-row {
+    padding: 18px 22px;
+    border-radius: var(--r);
+    margin-bottom: 4px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .col.them .col-row { color: var(--text-3); }
+  .col.us .col-row {
+    background: rgba(163,247,191,.04);
+    color: var(--text);
+  }
+  .col.us .col-row .accent { color: var(--mint); }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════════════════════════════════════════════
+     STEPS — illustrated + animated
+     ═══════════════════════════════════════════════════════════ */
+  .steps {
+    margin-top: 64px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .step:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+  }
+  .step-illo {
+    position: relative;
+    height: 220px;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 100%, rgba(163,247,191,.08), transparent 70%),
+      var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .step-illo::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(163,247,191,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(163,247,191,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent 75%);
+  }
+  .step-body { padding: 28px 28px 30px; }
+  .step .stepnum {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--mint);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .step .stepnum .ring {
+    width: 22px; height: 22px;
+    border: 1px solid var(--mint-soft);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--mint);
+    background: rgba(163,247,191,.06);
+    font-size: 11px;
+  }
+  .step h4 {
+    font-family: var(--f-sans); font-size: 22px;
+    font-weight: 500; letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+  .step p { font-size: 15px; color: var(--text-2); line-height: 1.55; }
+  @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
+
+  /* ── ILLUSTRATION 1 — wallet plug ─────────────────────── */
+  .illo-wallet { position: absolute; inset: 0; display: grid; place-items: center; }
+  .illo-wallet .plug {
+    position: relative; width: 180px; height: 80px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .illo-wallet .node {
+    width: 56px; height: 56px;
+    border: 1px solid var(--border-2);
+    border-radius: 14px;
+    background: var(--surface);
+    display: grid; place-items: center;
+    color: var(--text-2);
+    font-family: var(--f-mono); font-size: 11px;
+    z-index: 2; position: relative;
+  }
+  .illo-wallet .node.mint {
+    border-color: var(--mint-soft);
+    color: var(--mint);
+    background: rgba(163,247,191,.06);
+    box-shadow: 0 0 24px var(--mint-glow);
+  }
+  .illo-wallet .wire {
+    position: absolute; left: 50%; top: 50%;
+    width: 80px; height: 1px;
+    transform: translate(-50%, -50%);
+    background: var(--border-2);
+    overflow: visible;
+  }
+  .illo-wallet .wire::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: 0;
+    width: 14px; height: 5px; border-radius: 4px;
+    background: var(--mint);
+    box-shadow: 0 0 12px var(--mint);
+    animation: data-flow 2.4s cubic-bezier(.5,.0,.5,1) infinite;
+  }
+  @keyframes data-flow {
+    0%   { left: -8px; opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { left: calc(100% - 6px); opacity: 0; }
+  }
+
+  /* ── ILLUSTRATION 2 — three-mode bars ─────────────────── */
+  .illo-modes { position: absolute; inset: 0; display: grid; place-items: center; }
+  .illo-modes .bars {
+    display: flex; gap: 10px; align-items: flex-end;
+    height: 130px;
+  }
+  .illo-modes .bar {
+    width: 38px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 8px 8px 4px 4px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .3s ease;
+  }
+  .illo-modes .bar .fill {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    border-radius: 0 0 4px 4px;
+    transition: height .8s cubic-bezier(.5,.0,.2,1);
+  }
+  .illo-modes .bar.b1 { height: 60px; }
+  .illo-modes .bar.b1 .fill { background: var(--mint); height: 75%; box-shadow: 0 0 12px var(--mint-glow); }
+  .illo-modes .bar.b2 {
+    height: 95px;
+    border-color: rgba(236,231,221,.25);
+  }
+  .illo-modes .bar.b2 .fill { background: var(--cream); height: 80%; box-shadow: 0 0 12px rgba(236,231,221,.2); }
+  .illo-modes .bar.b3 {
+    height: 130px;
+    border-color: rgba(255,206,107,.25);
+  }
+  .illo-modes .bar.b3 .fill { background: var(--warn); height: 82%; box-shadow: 0 0 12px rgba(255,206,107,.2); }
+  .illo-modes .bar .lbl {
+    position: absolute; top: 8px; left: 0; right: 0;
+    text-align: center;
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--text-3);
+  }
+  .step:hover .illo-modes .bar.b1 { border-color: var(--mint-soft); }
+  .step:hover .illo-modes .bar.b2 { border-color: rgba(236,231,221,.4); }
+  .step:hover .illo-modes .bar.b3 { border-color: rgba(255,206,107,.4); }
+
+  .illo-modes .selector {
+    position: absolute;
+    bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .illo-modes .selector::after {
+    content: '';
+    position: absolute;
+    top: -3px; left: 50%;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--cream);
+    transform: translateX(-50%);
+    box-shadow: 0 0 8px rgba(236,231,221,.4);
+    animation: selector-slide 4s ease-in-out infinite;
+  }
+  @keyframes selector-slide {
+    0%, 100% { left: 17%; }
+    33%      { left: 50%; }
+    66%      { left: 83%; }
+  }
+
+  /* ── ILLUSTRATION 3 — guard bouncing off stop ─────────── */
+  .illo-guard { position: absolute; inset: 0; }
+  .illo-guard .chart-wrap {
+    position: absolute; inset: 24px;
+  }
+  .illo-guard .stopline {
+    position: absolute; left: 0; right: 0;
+    bottom: 32%;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 12px);
+    opacity: .8;
+  }
+  .illo-guard .stopline::before {
+    content: 'STOP';
+    position: absolute; right: 0; top: -16px;
+    font-family: var(--f-mono); font-size: 9px;
+    color: var(--warn);
+    letter-spacing: 0.1em;
+  }
+  .illo-guard .liqline {
+    position: absolute; left: 0; right: 0;
+    bottom: 14%;
+    height: 1px;
+    background: var(--danger);
+    opacity: .35;
+  }
+  .illo-guard .liqline::before {
+    content: 'LIQ';
+    position: absolute; right: 0; top: -16px;
+    font-family: var(--f-mono); font-size: 9px;
+    color: var(--danger);
+    letter-spacing: 0.1em;
+  }
+  .illo-guard .pricepath {
+    position: absolute; inset: 0;
+    overflow: visible;
+  }
+  .illo-guard .pricepath path {
+    fill: none;
+    stroke: var(--mint);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 6px var(--mint-glow));
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    animation: draw-line 4s ease-in-out infinite;
+  }
+  @keyframes draw-line {
+    0%   { stroke-dashoffset: 600; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .illo-guard .shield {
+    position: absolute;
+    bottom: 32%;
+    left: 70%;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--mint);
+    transform: translate(-50%, 50%) scale(0);
+    box-shadow: 0 0 0 0 var(--mint-glow);
+    animation: shield-pop 4s ease-in-out infinite;
+    display: grid; place-items: center;
+    color: var(--bg);
+    font-size: 14px; font-weight: 600;
+  }
+  @keyframes shield-pop {
+    0%, 50%   { transform: translate(-50%, 50%) scale(0); opacity: 0; }
+    60%       { transform: translate(-50%, 50%) scale(1.2); opacity: 1; box-shadow: 0 0 0 0 rgba(163,247,191,.5); }
+    75%       { transform: translate(-50%, 50%) scale(1); opacity: 1; box-shadow: 0 0 0 14px rgba(163,247,191,0); }
+    100%      { transform: translate(-50%, 50%) scale(1); opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     INTERACTIVE DEMO — the killer section
+     ═══════════════════════════════════════════════════════════ */
+  .demo {
+    margin-top: 56px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    display: grid; grid-template-columns: 5fr 7fr;
+    box-shadow: var(--sh);
+  }
+  .demo-controls {
+    padding: 36px;
+    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .demo-pair {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 28px;
+    font-family: var(--f-mono); font-size: 13px;
+    color: var(--text-2);
+  }
+  .demo-pair .pside {
+    color: var(--mint);
+    padding: 3px 9px;
+    border: 1px solid var(--mint-soft);
+    border-radius: var(--r-sm);
+    background: rgba(163,247,191,.06);
+    font-size: 11px;
+  }
+
+  .field { margin-bottom: 22px; }
+  .field-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-3);
+  }
+  .field-label .field-val {
+    font-family: var(--f-mono); font-size: 14px;
+    color: var(--text); font-feature-settings: 'tnum';
+  }
+  .slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: var(--surface-3);
+    outline: none; border-radius: 2px;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--mint);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--mint), 0 0 12px var(--mint-glow);
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--mint); border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--mint), 0 0 12px var(--mint-glow);
+    cursor: pointer;
+  }
+
+  .demo-readout { padding: 36px; display: flex; flex-direction: column; }
+  .risk-pill {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    border: 1px solid var(--border-2);
+    border-radius: 100px;
+    background: var(--surface);
+    font-family: var(--f-mono); font-size: 12px;
+    margin-bottom: 28px;
+    transition: all .25s ease;
+  }
+  .risk-pill .rdot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-3);
+    transition: all .25s ease;
+  }
+  .risk-pill .rscore { font-feature-settings: 'tnum'; color: var(--text); }
+
+  .lines { font-family: var(--f-mono); font-size: 13px; }
+  .lines .ln {
+    display: flex; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .lines .ln:last-child { border-bottom: none; }
+  .lines .lbl { color: var(--text-3); }
+  .lines .v { color: var(--text); font-feature-settings: 'tnum'; }
+  .lines .v.ok   { color: var(--mint); }
+  .lines .v.bad  { color: var(--danger); }
+  .lines .v.warn { color: var(--warn); }
+
+  .verdict {
+    margin-top: 24px;
+    padding: 20px 22px;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-2);
+    background: var(--surface);
+    transition: all .3s ease;
+  }
+  .verdict.safe   { border-color: var(--mint-soft); background: rgba(163,247,191,.04); }
+  .verdict.warn   { border-color: rgba(255,206,107,.25); background: rgba(255,206,107,.04); }
+  .verdict.danger { border-color: rgba(255,116,104,.3);  background: rgba(255,116,104,.05); }
+  .verdict .vh {
+    font-family: var(--f-mono); font-size: 11px;
+    margin-bottom: 8px; color: var(--text-3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .verdict.safe .vh   { color: var(--mint); }
+  .verdict.warn .vh   { color: var(--warn); }
+  .verdict.danger .vh { color: var(--danger); }
+  .verdict .vh .pip { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .verdict .vbody {
+    font-size: 17px; line-height: 1.4;
+    color: var(--text); letter-spacing: -0.01em;
+  }
+
+  @media (max-width: 900px) {
+    .demo { grid-template-columns: 1fr; }
+    .demo-controls { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PROOF SECTION — real-data panels with animations
+     ═══════════════════════════════════════════════════════════ */
+  .proof-grid {
+    margin-top: 56px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .proof-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .proof-card:hover {
+    border-color: var(--border-hi);
+    transform: translateY(-2px);
+  }
+  .proof-illo {
+    position: relative;
+    height: 200px;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 100%, rgba(163,247,191,.08), transparent 70%),
+      var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .proof-illo::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(163,247,191,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(163,247,191,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent 75%);
+  }
+  .proof-body {
+    padding: 26px 28px 24px;
+    display: flex; flex-direction: column; flex: 1;
+  }
+  .proof-kicker {
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .proof-kicker::before {
+    content: ''; width: 14px; height: 1px; background: var(--text-3);
+  }
+  .proof-stat {
+    font-family: var(--f-sans); font-weight: 500;
+    font-size: clamp(56px, 6vw, 80px);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--mint);
+    margin-bottom: 14px;
+    font-feature-settings: 'tnum';
+  }
+  .proof-stat.warn   { color: var(--warn); }
+  .proof-stat.danger { color: var(--danger); }
+  .proof-stat .unit {
+    color: var(--text-3); font-size: 0.45em; margin-left: 4px;
+    font-weight: 400; letter-spacing: -0.02em;
+  }
+  .proof-body p {
+    font-size: 15px; color: var(--text-2);
+    line-height: 1.55; margin-bottom: 14px;
+  }
+  .proof-body p strong { color: var(--text); font-weight: 500; }
+  .proof-meta {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-3);
+  }
+  .proof-meta a {
+    color: var(--text-3); text-decoration: none;
+    transition: color .15s ease;
+  }
+  .proof-meta a:hover { color: var(--mint); }
+  @media (max-width: 900px) { .proof-grid { grid-template-columns: 1fr; } }
+
+  /* ── Illustration 1 — Win/Loss bars ─────────────────── */
+  .illo-trades {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .illo-trades .bars {
+    display: flex; gap: 8px; align-items: flex-end;
+    height: 110px;
+  }
+  .illo-trades .bar {
+    width: 14px;
+    border-radius: 3px 3px 1px 1px;
+    transform-origin: bottom;
+    animation: bar-rise 4s cubic-bezier(.4,.0,.2,1) infinite;
+    animation-delay: var(--d, 0s);
+  }
+  .illo-trades .bar.w {
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint-glow);
+    height: 28px;
+  }
+  .illo-trades .bar.l {
+    background: var(--danger);
+    box-shadow: 0 0 8px rgba(255,116,104,.25);
+    height: 64px;
+  }
+  @keyframes bar-rise {
+    0%   { transform: scaleY(0); opacity: 0; }
+    10%  { transform: scaleY(1); opacity: 1; }
+    85%  { transform: scaleY(1); opacity: 1; }
+    100% { transform: scaleY(1); opacity: 0; }
+  }
+
+  /* ── Illustration 2 — Asymmetry bars ─────────────────── */
+  .illo-asym {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 28px;
+    gap: 18px;
+  }
+  .illo-asym .row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .illo-asym .lbl {
+    width: 40px;
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .illo-asym .track {
+    flex: 1; height: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .illo-asym .fill {
+    height: 100%;
+    border-radius: 5px;
+    transform-origin: left;
+    animation: fill-grow 4s cubic-bezier(.4,.0,.2,1) infinite;
+  }
+  .illo-asym .fill.win {
+    background: var(--mint);
+    width: 38%;
+    box-shadow: 0 0 10px var(--mint-glow);
+    animation-delay: 0.3s;
+  }
+  .illo-asym .fill.loss {
+    background: var(--danger);
+    width: 60%;
+    box-shadow: 0 0 10px rgba(255,116,104,.25);
+    animation-delay: 0.9s;
+  }
+  .illo-asym .val {
+    font-family: var(--f-mono); font-size: 11px;
+    width: 50px; text-align: right;
+    font-feature-settings: 'tnum';
+  }
+  .illo-asym .val.win  { color: var(--mint); }
+  .illo-asym .val.loss { color: var(--danger); }
+  @keyframes fill-grow {
+    0%   { transform: scaleX(0); }
+    25%  { transform: scaleX(1); }
+    85%  { transform: scaleX(1); }
+    100% { transform: scaleX(1); opacity: 0.5; }
+  }
+
+  /* ── Illustration 3 — Diverging curves ─────────────── */
+  .illo-curves {
+    position: absolute; inset: 0;
+  }
+  .illo-curves svg {
+    position: absolute;
+    top: 24px; left: 24px;
+    width: calc(100% - 48px);
+    height: calc(100% - 48px);
+  }
+  .illo-curves .curve-up,
+  .illo-curves .curve-down {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 600; stroke-dashoffset: 600;
+    animation: curve-draw 4s cubic-bezier(.5,.0,.5,1) infinite;
+  }
+  .illo-curves .curve-up {
+    stroke: var(--mint);
+    filter: drop-shadow(0 0 4px var(--mint-glow));
+  }
+  .illo-curves .curve-down {
+    stroke: var(--danger);
+    opacity: .55;
+    filter: drop-shadow(0 0 3px rgba(255,116,104,.3));
+  }
+  @keyframes curve-draw {
+    0%   { stroke-dashoffset: 600; opacity: 0; }
+    15%  { opacity: 1; }
+    70%  { stroke-dashoffset: 0; }
+    90%  { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .illo-curves .endpoint-up,
+  .illo-curves .endpoint-down {
+    position: absolute;
+    width: 8px; height: 8px; border-radius: 50%;
+    opacity: 0;
+    animation: endpoint-pop 4s cubic-bezier(.5,.0,.5,1) infinite;
+  }
+  .illo-curves .endpoint-up {
+    right: 24px; top: 30px;
+    background: var(--mint);
+    box-shadow: 0 0 12px var(--mint), 0 0 20px var(--mint-glow);
+  }
+  .illo-curves .endpoint-down {
+    right: 24px; bottom: 30px;
+    background: var(--danger);
+    box-shadow: 0 0 12px var(--danger);
+  }
+  @keyframes endpoint-pop {
+    0%, 65% { opacity: 0; transform: scale(0); }
+    75%     { opacity: 1; transform: scale(1.3); }
+    85%     { opacity: 1; transform: scale(1); }
+    100%    { opacity: 0; transform: scale(1); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     MODE CARDS
+     ═══════════════════════════════════════════════════════════ */
+  .modes {
+    margin-top: 56px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .mode {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 28px;
+    transition: all .2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-line), transparent);
+    opacity: .6;
+  }
+  .mode.conservative { --accent-line: var(--mint); }
+  .mode.balanced     { --accent-line: var(--cream); }
+  .mode.aggressive   { --accent-line: var(--warn); }
+  .mode:hover { transform: translateY(-2px); border-color: var(--border-hi); }
+
+  .mode-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .mode-name { font-size: 18px; font-weight: 500; letter-spacing: -0.015em; }
+  .mode-pill {
+    font-family: var(--f-mono); font-size: 11px;
+    padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--border-2);
+    color: var(--text-3);
+  }
+  .mode.balanced .mode-pill { color: var(--cream); border-color: rgba(236,231,221,.2); }
+
+  .mode-rows { display: flex; flex-direction: column; gap: 0; }
+  .mode-row {
+    display: flex; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--f-mono); font-size: 13px;
+  }
+  .mode-row:last-child { border-bottom: none; }
+  .mode-row .k { color: var(--text-3); }
+  .mode-row .v { color: var(--text); font-feature-settings: 'tnum'; }
+
+  @media (max-width: 900px) { .modes { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════════════════════════════════════════════
+     RULES — five enforced rules, editorial list
+     ═══════════════════════════════════════════════════════════ */
+  .rules-list {
+    margin-top: 56px;
+    border-top: 1px solid var(--border);
+  }
+  .rule-row {
+    display: grid;
+    grid-template-columns: 90px 1.4fr 1.6fr auto;
+    align-items: center;
+    gap: 32px;
+    padding: 36px 0;
+    border-bottom: 1px solid var(--border);
+    transition: background .25s ease;
+  }
+  .rule-row:hover { background: linear-gradient(90deg, transparent, rgba(163,247,191,.02), transparent); }
+  .rule-num {
+    font-family: var(--f-sans);
+    font-size: 44px; font-weight: 400; font-style: italic;
+    color: var(--mint);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-align: left;
+    opacity: .85;
+  }
+  .rule-title {
+    font-family: var(--f-sans);
+    font-size: clamp(22px, 2.4vw, 30px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+  }
+  .rule-title .v {
+    color: var(--mint);
     font-weight: 500;
     margin-left: 4px;
   }
-  .solo-vs {
-    display: flex; flex-direction: column; gap: 4px;
-    padding-bottom: 12px;
+  .rule-title .v.italic { font-style: italic; }
+  .rule-title .dash { color: var(--text-3); margin: 0 8px; }
+  .rule-desc {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-2);
+    max-width: 48ch;
   }
-  .solo-vs-strike {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--paper-mute);
-    text-decoration: line-through;
-    letter-spacing: 0.04em;
+  .rule-badge {
+    font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    padding: 7px 12px;
+    border: 1px solid;
+    border-radius: var(--r-sm);
+    white-space: nowrap;
   }
-  .solo-vs-lock {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--amber);
-    letter-spacing: 0.08em;
+  .rule-badge.hard {
+    color: var(--danger);
+    border-color: rgba(255,116,104,.3);
+    background: rgba(255,116,104,.04);
   }
-  .solo-feats {
-    list-style: none;
-    padding: 0;
+  .rule-badge.auto {
+    color: var(--mint);
+    border-color: rgba(163,247,191,.3);
+    background: rgba(163,247,191,.04);
+  }
+  .rule-badge.cancel {
+    color: var(--warn);
+    border-color: rgba(255,206,107,.3);
+    background: rgba(255,206,107,.04);
+  }
+  @media (max-width: 900px) {
+    .rule-row {
+      grid-template-columns: 60px 1fr;
+      gap: 16px 24px;
+      padding: 28px 0;
+    }
+    .rule-num { font-size: 32px; }
+    .rule-desc { grid-column: 2; }
+    .rule-badge { grid-column: 2; justify-self: start; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     AUDIENCE
+     ═══════════════════════════════════════════════════════════ */
+  .audience {
+    margin-top: 56px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .aud-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 32px;
+  }
+  .aud-col.no  { opacity: .65; }
+  .aud-col.yes {
+    border-color: var(--mint-soft);
+    background: linear-gradient(180deg, rgba(163,247,191,.03), transparent 50%), var(--surface);
+  }
+  .aud-col h4 {
+    font-family: var(--f-mono); font-size: 12px;
     margin-bottom: 24px;
-    display: grid;
-    gap: 12px;
+    display: flex; align-items: center; gap: 10px;
   }
-  .solo-feats li {
-    font-size: 14.5px;
-    line-height: 1.55;
-    color: var(--paper-2);
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--hair);
+  .aud-col.no h4  { color: var(--text-3); }
+  .aud-col.yes h4 { color: var(--mint); }
+  .aud-col h4 .icn {
+    width: 18px; height: 18px; border-radius: var(--r-sm);
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 600;
   }
-  .solo-feats li:last-child { border-bottom: none; }
-  .solo-feats li::before {
-    content: '✓';
-    color: var(--amber);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    flex-shrink: 0;
+  .aud-col.no h4 .icn { background: var(--surface-3); color: var(--text-3); }
+  .aud-col.yes h4 .icn {
+    background: var(--mint); color: var(--bg);
+    box-shadow: 0 0 12px var(--mint-glow);
   }
-  .solo-feats li b { color: var(--paper); font-weight: 500; }
-  .solo-feats li strong { color: var(--amber); font-weight: 500; }
+  .aud-col ul { list-style: none; }
+  .aud-col li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+  }
+  .aud-col li:last-child { border-bottom: none; }
+  .aud-col.no li { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--text-4); }
+  .aud-col.yes li { color: var(--text); }
+  @media (max-width: 720px) { .audience { grid-template-columns: 1fr; } }
 
-  /* Guarantee block */
-  .guarantee-block {
-    margin-bottom: 28px;
-    padding: 16px 18px;
-    border: 1px solid rgba(127, 183, 126, 0.3);
-    background: rgba(127, 183, 126, 0.05);
-    display: flex; gap: 14px; align-items: flex-start;
-  }
-  .guarantee-block .g-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .guarantee-block .g-text {
-    font-size: 13.5px;
-    color: var(--paper-2);
-    line-height: 1.55;
-  }
-  .guarantee-block .g-text strong { color: var(--sage); font-weight: 500; }
-
-  .solo-cta {
-    display: flex; align-items: center; justify-content: center; gap: 12px;
-    width: 100%;
-    padding: 20px;
-    background: var(--amber);
-    color: var(--ink);
-    border: 1px solid var(--amber);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    letter-spacing: 0.1em;
-    font-weight: 700;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-  .solo-cta:hover { background: var(--amber-hi); border-color: var(--amber-hi); }
-  .solo-cta .arrow { transition: transform 0.2s ease; }
-  .solo-cta:hover .arrow { transform: translateX(4px); }
-  .solo-cta .tg-icon { width: 16px; height: 16px; }
-  .solo-foot {
-    margin-top: 18px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    text-align: center;
-    letter-spacing: 0.04em;
-  }
-  @media (max-width: 720px) {
-    .solo-offer-inner { padding: 32px 24px 28px; }
-    .solo-name { font-size: 36px; }
-    .solo-price { font-size: 64px; }
-    .solo-price-row { gap: 16px; }
-  }
-
-  /* ── FAQ ──────────────────────────────────────────── */
-  .faq-list { padding-bottom: 40px; }
-  .faq-item {
-    border-top: 1px solid var(--hair);
-  }
-  .faq-item:last-child { border-bottom: 1px solid var(--hair); }
-  .faq-question {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 28px 0;
-    cursor: pointer;
-    gap: 32px;
-  }
-  .faq-q-text {
-    font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 400;
-    color: var(--paper);
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-  }
-  .faq-toggle {
-    flex-shrink: 0;
-    width: 28px; height: 28px;
-    border: 1px solid var(--hair-hi);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 18px;
-    color: var(--amber);
-    transition: transform 0.25s ease, background 0.2s ease;
-  }
-  .faq-item.open .faq-toggle {
-    transform: rotate(45deg);
-    background: var(--ink-2);
-  }
-  .faq-answer {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease;
-  }
-  .faq-item.open .faq-answer { max-height: 500px; }
-  .faq-answer-inner {
-    padding: 0 0 32px 0;
-    font-size: 15.5px;
-    line-height: 1.7;
-    color: var(--paper-2);
-    max-width: 720px;
-  }
-  .faq-answer-inner strong { color: var(--paper); font-weight: 500; }
-  .faq-answer-inner code {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--amber);
-    background: var(--ink-2);
-    padding: 2px 6px;
-    border-radius: 3px;
-  }
-
-  /* ── CTA ─────────────────────────────────────── */
-  .cta {
-    padding: 130px 0 110px;
-    border-top: 1px solid var(--hair);
+  /* ═══════════════════════════════════════════════════════════
+     FINAL CTA
+     ═══════════════════════════════════════════════════════════ */
+  .final {
+    padding: 160px 0;
     text-align: center;
     position: relative;
-    overflow: hidden;
   }
-  .cta::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--amber) 50%, transparent);
+  .final::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(163,247,191,.06), transparent 70%);
+    pointer-events: none;
   }
-  .cta h2 {
-    font-family: var(--font-display);
-    font-size: clamp(56px, 8.5vw, 128px);
-    line-height: 0.96;
-    font-weight: 400;
-    letter-spacing: -0.03em;
-    color: var(--paper);
-    margin-bottom: 28px;
+  .final h2 {
+    font-family: var(--f-sans); font-weight: 500;
+    font-size: clamp(40px, 7vw, 84px);
+    line-height: 1.02; letter-spacing: -0.035em;
+    margin-bottom: 20px;
+    position: relative;
   }
-  .cta h2 em { font-style: italic; color: var(--amber); }
-  .cta-sub {
-    font-size: 17px;
-    color: var(--paper-2);
-    max-width: 560px;
-    margin: 0 auto 44px;
-    line-height: 1.5;
+  .final h2 .accent { color: var(--mint); }
+  .final p {
+    font-size: 18px; color: var(--text-2);
+    max-width: 540px; margin: 0 auto 36px;
+    position: relative;
   }
-  .cta-sub strong { color: var(--paper); }
-  .cta-note {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--paper-dim);
-    margin-top: 18px;
-    letter-spacing: 0.04em;
-  }
+  .final-cta { position: relative; }
 
-  /* ── Footer ────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════ */
   footer {
-    border-top: 1px solid var(--hair);
-    padding: 36px 0;
+    padding: 40px 0 60px;
+    border-top: 1px solid var(--border);
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--text-3);
   }
-  .footer-grid {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 24px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--paper-dim);
-  }
-  .footer-grid a { transition: color 0.2s; }
-  .footer-grid a:hover { color: var(--paper); }
+  .foot-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .foot-links { display: flex; gap: 24px; }
+  .foot-links a:hover { color: var(--text); }
 
-  /* ── Reveal ──────────────────────────────── */
-  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.9s ease, transform 0.9s ease; }
+  /* ═══════════════════════════════════════════════════════════
+     MOTION
+     ═══════════════════════════════════════════════════════════ */
+  .reveal { opacity: 0; transform: translateY(16px); transition: all .8s cubic-bezier(.2,.7,.3,1); }
   .reveal.in { opacity: 1; transform: translateY(0); }
-
-  /* ── Responsive ──────────────────────────── */
-  @media (max-width: 1000px) {
-    .hero-grid { grid-template-columns: 1fr; gap: 48px; }
-    .sec-head { grid-template-columns: 1fr; gap: 20px; padding-top: 68px; padding-bottom: 36px; }
-    .stat-grid, .problem-grid, .steps, .testimonial-grid { grid-template-columns: 1fr; }
-    .advisory-bar { grid-template-columns: 1fr; }
-    .advisory-cell { border-right: none; border-bottom: 1px solid var(--hair); }
-    .advisory-cell:last-child { border-bottom: none; }
-    .stat, .problem, .step { border-right: none; border-bottom: 1px solid var(--hair); }
-    .stat:last-child, .problem:last-child, .step:last-child { border-bottom: none; }
-    .rule { grid-template-columns: 60px 1fr; gap: 20px; padding: 28px 0; }
-    .rule-body, .rule-tag { grid-column: 1 / -1; }
-    .rule-body { padding-left: 80px; }
-    .rule-tag { padding: 6px 12px; width: fit-content; margin-left: 80px; justify-self: start; }
-    .nav-links { display: none; }
-    .wrap { padding: 0 22px; }
-    nav { padding: 14px 22px; }
-    nav.scrolled { padding: 10px 22px; }
-    .footer-grid { flex-direction: column; text-align: center; }
-    .trust-strip { flex-direction: column; align-items: flex-start; }
-    .faq-q-text { font-size: 19px; }
-  }
-
-  /* ── Mobile (≤640px) ─────────────────────── */
-  @media (max-width: 640px) {
-    /* Nav — collapse badge + tighten CTA so it fits at 375px */
-    .brand-badge { display: none; }
-    .brand { font-size: 12px; gap: 10px; }
-    .brand-mark { width: 18px; height: 18px; }
-    .nav-cta { padding: 9px 12px; font-size: 10.5px; gap: 6px; }
-
-    /* Hero */
-    .hero { padding: 108px 0 60px; }
-    .hero-grid { gap: 36px; }
-    .eyebrow { font-size: 10px; letter-spacing: 0.16em; margin-bottom: 22px; line-height: 1.4; flex-wrap: wrap; }
-    .eyebrow::before { width: 20px; }
-    .hero h1 { font-size: clamp(40px, 10.6vw, 56px); line-height: 1; margin-bottom: 24px; }
-    .hero-sub { font-size: 15.5px; margin-bottom: 26px; line-height: 1.55; }
-    .hero-actions { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 28px; }
-    .btn-primary, .btn-ghost { justify-content: center; font-size: 12px; padding: 14px 18px; letter-spacing: 0.05em; }
-
-    /* Trust strip */
-    .trust-strip { gap: 14px; margin-bottom: 24px; padding-top: 16px; }
-    .trust-quote { font-size: 16px; max-width: 100%; padding-left: 14px; border-left-width: 2px; line-height: 1.45; }
-    .trust-handles { font-size: 10px; gap: 6px; }
-    .trust-handle { padding: 3px 8px; }
-
-    /* Hero meta */
-    .hero-meta { gap: 18px 28px; padding-top: 20px; }
-    .hero-meta-item { font-size: 10px; }
-    .hero-meta-item strong { font-size: 17px; margin-bottom: 2px; }
-
-    /* Telegram mock */
-    .tg-mock { padding: 10px 10px 14px; border-radius: 14px; }
-    .tg-head { padding: 6px 8px 12px; margin-bottom: 12px; }
-    .tg-avatar { width: 32px; height: 32px; font-size: 12px; }
-    .tg-messages { max-height: 360px; }
-    .tg-messages-inner { gap: 8px; }
-    .tg-msg { font-size: 12.5px; padding: 9px 12px; }
-    .tg-msg .tag { font-size: 9.5px; }
-    .tg-privacy { font-size: 9.5px; padding: 6px 9px; margin-top: 8px; }
-
-    /* Section heads */
-    .sec-head { padding-top: 52px; padding-bottom: 26px; gap: 14px; }
-    .sec-label { font-size: 10px; letter-spacing: 0.18em; }
-    .sec-title { font-size: clamp(30px, 7.8vw, 42px); line-height: 1.05; }
-
-    /* Stats */
-    .stat { padding: 32px 22px; }
-    .stat-tag { font-size: 9.5px; letter-spacing: 0.18em; margin-bottom: 18px; }
-    .stat-value { font-size: 56px; margin-bottom: 16px; }
-    .stat-caption { font-size: 14px; }
-    .stat-dollar { font-size: 10.5px; padding: 7px 10px; }
-
-    /* Problem cards */
-    .problem { padding: 30px 22px 26px; }
-    .problem-num { font-size: 42px; margin-bottom: 12px; }
-    .problem h3 { font-size: 23px; margin-bottom: 12px; }
-    .problem p { font-size: 14px; margin-bottom: 14px; }
-    .problem-pullquote { font-size: 13px; padding: 8px 12px; margin-top: 12px; }
-    .problem-stat { font-size: 10.5px; }
-
-    /* Advisory */
-    .advisory-cell { padding: 14px 22px; font-size: 11px; }
-    .advisory-cell .adv-verdict { font-size: 9.5px; letter-spacing: 0.12em; }
-
-    /* Rules */
-    .rule { grid-template-columns: 46px 1fr; gap: 14px; padding: 24px 0; }
-    .rule-num { font-size: 46px; line-height: 0.95; }
-    .rule-title { font-size: 22px; line-height: 1.15; }
-    .rule-body { padding-left: 60px; font-size: 14px; }
-    .rule-tag { margin-left: 60px; padding: 5px 10px; font-size: 9.5px; }
-    .rules-separator { font-size: 9.5px; letter-spacing: 0.18em; padding: 14px 0 6px; gap: 10px; }
-    .rule.notify .rule-num { font-size: 26px; }
-    .rules-cta-row { padding: 24px 0 4px; }
-
-    /* Steps */
-    .step { padding: 32px 22px 28px; }
-    .step-num { margin-bottom: 20px; font-size: 10.5px; }
-    .step h3 { font-size: 22px; margin-bottom: 12px; }
-    .step p { font-size: 13.5px; }
-
-    /* Testimonials */
-    .testimonial { padding: 22px 22px 20px; }
-    .testimonial p { font-size: 16px; margin-bottom: 18px; }
-    .testimonial-who { padding-top: 14px; }
-
-    /* Offer */
-    .solo-offer-inner { padding: 28px 22px 24px; }
-    .seat-counter { margin-bottom: 22px; }
-    .seat-counter-text { flex-direction: column; align-items: flex-start; gap: 4px; font-size: 10.5px; }
-    .solo-badge { font-size: 9.5px; padding: 5px 10px; margin-bottom: 20px; }
-    .solo-name { font-size: 32px; }
-    .solo-byline { font-size: 15px; margin-bottom: 22px; padding-bottom: 20px; }
-    .solo-price { font-size: 52px; }
-    .solo-price span { font-size: 14px; }
-    .solo-price-row { gap: 12px; margin-bottom: 22px; }
-    .solo-feats { margin-bottom: 20px; gap: 8px; }
-    .solo-feats li { font-size: 13.5px; padding: 8px 0; gap: 10px; }
-    .guarantee-block { padding: 12px 14px; gap: 10px; margin-bottom: 22px; }
-    .guarantee-block .g-icon { font-size: 18px; }
-    .guarantee-block .g-text { font-size: 12.5px; line-height: 1.5; }
-    .solo-cta { padding: 16px; font-size: 12.5px; letter-spacing: 0.08em; }
-
-    /* FAQ */
-    .faq-question { padding: 22px 0; gap: 14px; }
-    .faq-q-text { font-size: 17px; }
-    .faq-answer-inner { font-size: 14.5px; padding-bottom: 24px; line-height: 1.65; }
-    .faq-toggle { width: 26px; height: 26px; font-size: 16px; }
-
-    /* Final CTA */
-    .cta { padding: 72px 0 60px; }
-    .cta h2 { font-size: clamp(42px, 11vw, 68px); margin-bottom: 20px; }
-    .cta-sub { font-size: 15.5px; margin-bottom: 32px; }
-
-    /* Footer */
-    footer { padding: 28px 0; }
-    .footer-grid { font-size: 10.5px; gap: 10px; }
-
-    /* Marquee */
-    .marquee { padding: 12px 0; }
-    .marquee-track { font-size: 11px; gap: 28px; }
-    .marquee-item .tag { font-size: 9.5px; }
-
-  }
-
-  /* ── Tiny phones (≤380px, iPhone SE etc.) ── */
-  @media (max-width: 380px) {
-    .wrap { padding: 0 16px; }
-    nav { padding: 12px 16px; }
-    nav.scrolled { padding: 9px 16px; }
-    .nav-cta { padding: 8px 10px; font-size: 10px; }
-    .nav-cta .tg-icon { display: none; }
-    .hero h1 { font-size: 38px; }
-    .sec-title { font-size: 28px; }
-    .stat-value { font-size: 48px; }
-    .solo-name { font-size: 28px; }
-    .solo-price { font-size: 46px; }
-    .cta h2 { font-size: 40px; }
-  }
-
-  /* ── Reduced motion — respect user preference ── */
-  @media (prefers-reduced-motion: reduce) {
-    .tg-messages-inner,
-    .marquee-track,
-    .seat-bar-fill,
-    .online-dot { animation: none !important; }
-    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
-    html { scroll-behavior: auto; }
-  }
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="#" class="brand" aria-label="RiskGuard home">
-    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M7 6 L25 6 L25 18 Q25 26.5 16 30 Q7 26.5 7 18 Z"
-            fill="rgba(232,184,111,0.10)"
-            stroke="#e8b86f"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-            stroke-linecap="round"/>
-      <line x1="11" y1="16.5" x2="21" y2="16.5"
-            stroke="#e8b86f"
-            stroke-width="2.5"
-            stroke-linecap="round"/>
-    </svg>
-    RISKGUARD
-    <span class="brand-badge">Hyperliquid · Telegram</span>
+<div class="ambient" aria-hidden="true">
+  <div class="grid"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="orb o4"></div>
+  <div class="orb o5"></div>
+</div>
+<div class="scroll-rail" aria-hidden="true"></div>
+
+<nav id="topnav">
+  <a class="brand" href="/">
+    <span class="brand-mark"></span>
+    <span>HyperGuard</span>
   </a>
-  <ul class="nav-links">
-    <li><a href="#rules">Rules</a></li>
-    <li><a href="#how">How it works</a></li>
-    <li><a href="#faq">FAQ</a></li>
-  </ul>
-  <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="nav-cta" data-umami-event="cta-nav-install">
-    <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-    Install the guard
-  </a>
+  <div class="nav-links">
+    <a href="#proof">Proof</a>
+    <a href="#rules">Rules</a>
+    <a href="#how">How it works</a>
+    <a href="#modes">Modes</a>
+  </div>
+  <a class="btn btn-primary" href="app.html">Launch app →</a>
 </nav>
 
-<!-- ───────────────── HERO ───────────────── -->
-<section class="hero">
+<header class="hero">
   <div class="wrap">
     <div class="hero-grid">
-
-      <div>
-        <div class="eyebrow reveal">
-          Telegram bot · live on Hyperliquid · cancel-only API · founder seats open
-          <span class="online-dot"></span>
+      <div class="hero-left">
+        <div class="hero-tag">
+          <span class="pulse"></span>
+          <span>Anti-liquidation layer · live on Hyperliquid</span>
         </div>
-        <h1 class="reveal">
-          95% of leveraged<br>
-          traders blow up.<br>
-          <em>The 5% have rules<br>they can't break.</em>
+        <h1 class="display">
+          Trade perps<br/>
+          <span class="quiet">without</span> <span class="accent">blowing up.</span>
         </h1>
-        <p class="hero-sub reveal">
-          RiskGuard cancels your <strong>revenge entries, widened stops, and tilt pyramids</strong> on Hyperliquid — 3 seconds after you place them. Cancel-only API. Your keys stay yours. <strong>Free for the first 100 traders.</strong>
+        <p class="hero-sub">
+          HyperGuard sits between you and Hyperliquid. Position sizing, leverage caps, and liquidation buffers — enforced before every order. Discipline as a default, not a checkbox.
         </p>
-        <div class="hero-actions reveal">
-          <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="btn-primary" data-umami-event="cta-hero-install">
-            <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-            Install the guard — 60 seconds
-            <span class="arrow">→</span>
-          </a>
-          <a href="#rules" class="btn-ghost" data-umami-event="cta-hero-see-rules">
-            See the 5 rules
-            <span class="arrow">↓</span>
-          </a>
-        </div>
-
-        <div class="trust-strip reveal">
-          <div class="trust-quote">"The SL-restore thing saved me once already. I widened my stop in a panic — five seconds later the order was cancelled and the original was back."</div>
-          <div class="trust-handles">
-            <span class="trust-handle">jk_alpha</span>
-            <span class="trust-handle">mvrx</span>
-            <span class="trust-handle">0xzero</span>
-            <span class="trust-sep">early HL traders</span>
-          </div>
-        </div>
-
-        <div class="hero-meta reveal">
-          <div class="hero-meta-item">
-            <strong>5</strong>
-            rules hard-enforced
-          </div>
-          <div class="hero-meta-item">
-            <strong>3s</strong>
-            polling interval
-          </div>
-          <div class="hero-meta-item">
-            <strong>0 custody</strong>
-            cancel-only API scope
-          </div>
-          <div class="hero-meta-item">
-            <strong>24/7</strong>
-            cloud-monitored
-          </div>
+        <div class="hero-cta-row">
+          <a class="btn btn-primary btn-lg" href="app.html">Launch app →</a>
         </div>
       </div>
 
-      <div class="reveal">
-        <div class="tg-mock">
-          <div class="tg-head">
-            <div class="tg-avatar" aria-hidden="true">
-              <svg viewBox="0 0 36 36">
-                <path d="M8 8 L28 8 L28 22 Q28 31 18 34 Q8 31 8 22 Z"
-                      fill="rgba(232,184,111,0.10)"
-                      stroke="#e8b86f" stroke-width="1.8"
-                      stroke-linejoin="round" stroke-linecap="round"/>
-                <line x1="12" y1="20" x2="24" y2="20"
-                      stroke="#e8b86f" stroke-width="2.6" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <div class="tg-title">
-              <div class="tg-name">RiskGuard Bot</div>
-              <div class="tg-status"><span class="online-dot"></span>guard online · watching your account</div>
-            </div>
-          </div>
-          <div class="tg-messages">
-            <div class="tg-messages-inner">
-              <div class="tg-msg bot">
-                <span class="tag">SETUP COMPLETE</span>
-                ✅ Watching <b>0xe91a…b8d4</b><br>
-                Rules active: 5 · Polling: 3s · Alerts: on
-                <span class="time">09:14</span>
-              </div>
-              <div class="tg-msg alert">
-                <span class="tag">🛑 SL WIDENING BLOCKED</span>
-                <b>BTC</b> trigger #8472930 cancelled — stop moved $97,200 → $96,100.<br>
-                Original SL re-placed. No gap in coverage.
-                <span class="time">14:22</span>
-              </div>
-              <div class="tg-msg alert">
-                <span class="tag">🚫 PYRAMIDING BLOCKED</span>
-                <b>ETH</b> buy #8473104 cancelled — you're already long 1.2, order would add size.
-                <span class="time">15:48</span>
-              </div>
-              <div class="tg-msg lock">
-                <span class="tag">🔒 DAILY LOSS LOCK</span>
-                Account down <b>−5.2%</b>. All 7 orders cancelled.<br>
-                Trading locked until 00:00 EDT. Come back tomorrow.
-                <span class="time">17:03</span>
-              </div>
-              <div class="tg-msg lock">
-                <span class="tag">🧊 COOLDOWN ACTIVE</span>
-                <b>SOL</b> short cancelled — cooldown after loss.<br>
-                New entries blocked until 08:00 EDT.
-                <span class="time">17:06</span>
-              </div>
-              <div class="tg-msg ok">
-                <span class="tag">✓ ALLOWED</span>
-                <b>ETH</b> reduce-only sell #8473512 — managing open position.
-                <span class="time">17:12</span>
-              </div>
-            </div>
-          </div>
-          <div class="tg-privacy">
-            🔒 Your wallet address is shown only in your private Telegram chat. The bot sees cancel permissions only — no withdrawals, no personal data.
+      <div class="hero-right">
+        <div class="hero-feature">
+          <svg class="hf-chart" viewBox="0 0 80 36" preserveAspectRatio="none">
+            <path d="M 0 8 L 12 14 L 24 10 L 36 18 L 48 16 L 60 26 L 72 32 L 80 36" />
+          </svg>
+          <div class="hf-kicker">Leveraged account outcome</div>
+          <div class="hf-stat">95.2<span class="unit">%</span></div>
+          <p class="hf-body">of leveraged crypto accounts are <strong>liquidated within their lifetime.</strong> The survivors are the ones with rules they don't break.</p>
+          <div class="hf-source">
+            <a class="src-link" href="https://ccaf.io/" target="_blank" rel="noopener">Src: CCAF, 2020–2023 ↗</a>
+            <span style="color: var(--danger)">● critical</span>
           </div>
         </div>
       </div>
+    </div>
 
+    <div class="hero-metrics">
+      <div class="hero-metric">
+        <div class="label">// liquidation root cause</div>
+        <div class="value">97<span class="unit">%</span></div>
+        <div class="desc">are sizing errors. Not bad calls.</div>
+      </div>
+      <div class="hero-metric">
+        <div class="label">// risk profiles</div>
+        <div class="value">3</div>
+        <div class="desc">Conservative · Balanced · Aggressive</div>
+      </div>
+      <div class="hero-metric">
+        <div class="label">// noise</div>
+        <div class="value">0</div>
+        <div class="desc">No indicators. No signals. Guardrails.</div>
+      </div>
     </div>
   </div>
-</section>
+</header>
 
-<!-- ───────────────── MARQUEE ───────────────── -->
-<div class="marquee">
-  <div class="marquee-track">
-    <span class="marquee-item"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>BTC</b> SL widened</span><span class="marquee-dot"></span>
-    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">RESTORED</span> <b>BTC</b> original SL replaced</span><span class="marquee-dot"></span>
-    <span class="marquee-item rust"><span class="ico">🚫</span><span class="tag">BLOCKED</span> <b>ETH</b> pyramid entry</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">LOCKED</span> daily loss cap hit</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">🧊</span><span class="tag">COOLDOWN</span> revenge trade stopped</span><span class="marquee-dot"></span>
-    <span class="marquee-item rust"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>SOL</b> flip order blocked</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">📲</span><span class="tag">ALERT SENT</span> Telegram notification</span><span class="marquee-dot"></span>
-    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">PASSED</span> reduce-only order allowed</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">PROFIT LOCK</span> day gains protected</span><span class="marquee-dot"></span>
-    <!-- duplicate for seamless loop -->
-    <span class="marquee-item"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>BTC</b> SL widened</span><span class="marquee-dot"></span>
-    <span class="marquee-item sage"><span class="ico">✓</span><span class="tag">RESTORED</span> <b>BTC</b> original SL replaced</span><span class="marquee-dot"></span>
-    <span class="marquee-item rust"><span class="ico">🚫</span><span class="tag">BLOCKED</span> <b>ETH</b> pyramid entry</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">🔒</span><span class="tag">LOCKED</span> daily loss cap hit</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">🧊</span><span class="tag">COOLDOWN</span> revenge trade stopped</span><span class="marquee-dot"></span>
-    <span class="marquee-item rust"><span class="ico">🛑</span><span class="tag">CANCELLED</span> <b>SOL</b> flip order blocked</span><span class="marquee-dot"></span>
-    <span class="marquee-item"><span class="ico">📲</span><span class="tag">ALERT SENT</span> Telegram notification</span>
-  </div>
-</div>
-
-<!-- ───────────────── STATS ───────────────── -->
-<section id="problem">
+<section class="block reveal" id="proof">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 01 <span>/ the cost of no rules</span></div>
-      <h2 class="sec-title">Emotion is the real market killer. <em>Not the market.</em></h2>
-    </div>
+    <div class="section-tag">// proof, not promise</div>
+    <h2 class="section-h">You don't need to <span class="quiet">predict better.</span><br/>You need to <span class="accent">size better.</span></h2>
+    <p class="section-lede">Real retail-trader data — across 12 million live trades and 25,000 accounts — shows traders pick correctly more often than not. The reason most still lose: a single losing trade undoes two winners. Risk rules close that gap. Here's the math.</p>
 
-    <div class="stat-grid">
-      <div class="stat">
-        <div class="stat-tag">Leveraged account outcome</div>
-        <div class="stat-value">95.2<sup>%</sup></div>
-        <div class="stat-caption"><strong>of leveraged crypto accounts</strong> are liquidated within their lifetime. The survivors are the ones with rules they don't break.</div>
-        <div class="stat-source">Src: CCAF 2020–2023</div>
+    <div class="proof-grid">
+      <!-- ── Panel 1 — Win rate ── -->
+      <div class="proof-card">
+        <div class="proof-illo">
+          <div class="illo-trades">
+            <div class="bars">
+              <div class="bar w" style="--d: 0s"></div>
+              <div class="bar l" style="--d: 0.08s"></div>
+              <div class="bar w" style="--d: 0.16s"></div>
+              <div class="bar w" style="--d: 0.24s"></div>
+              <div class="bar l" style="--d: 0.32s"></div>
+              <div class="bar w" style="--d: 0.4s"></div>
+              <div class="bar l" style="--d: 0.48s"></div>
+              <div class="bar w" style="--d: 0.56s"></div>
+              <div class="bar w" style="--d: 0.64s"></div>
+              <div class="bar l" style="--d: 0.72s"></div>
+            </div>
+          </div>
+        </div>
+        <div class="proof-body">
+          <div class="proof-kicker">Average retail win rate</div>
+          <div class="proof-stat">53<span class="unit">%</span></div>
+          <p>Retail traders win <strong>more than half their trades</strong> across every major pair. The picks aren't the problem — the math after the picks is.</p>
+          <div class="proof-meta">
+            <a href="https://www.dailyfx.com/" target="_blank" rel="noopener">Src: DailyFX · 12M trades, 25K accounts ↗</a>
+          </div>
+        </div>
       </div>
-      <div class="stat">
-        <div class="stat-tag">Blown accounts cause</div>
-        <div class="stat-value">40<sup>%+</sup></div>
-        <div class="stat-caption"><strong>of account blowups</strong> trace back to a single decision: the trader moved their stop further from entry mid-trade.</div>
-        <div class="stat-dollar">The average widened stop costs $2,400 on a $10K account at 10x. The bot pays for itself the first time it cancels one.</div>
-        <div class="stat-source">Src: retail-trader surveys, 2023–2024</div>
+
+      <!-- ── Panel 2 — Asymmetry ── -->
+      <div class="proof-card">
+        <div class="proof-illo">
+          <div class="illo-asym">
+            <div class="row">
+              <span class="lbl">WIN</span>
+              <div class="track"><div class="fill win"></div></div>
+              <span class="val win">$1.00</span>
+            </div>
+            <div class="row">
+              <span class="lbl">LOSS</span>
+              <div class="track"><div class="fill loss"></div></div>
+              <span class="val loss">−$1.60</span>
+            </div>
+          </div>
+        </div>
+        <div class="proof-body">
+          <div class="proof-kicker">Loss-to-win size ratio</div>
+          <div class="proof-stat danger">1.6<span class="unit">×</span></div>
+          <p>The average loss is <strong>1.6× the average win</strong>. Even at 53% accuracy, the asymmetry compounds into account decay. One rule — cap losses at 1× wins — flips the curve.</p>
+          <div class="proof-meta">
+            <a href="https://www.dailyfx.com/" target="_blank" rel="noopener">Src: DailyFX, retail FX ↗</a>
+          </div>
+        </div>
       </div>
-      <div class="stat">
-        <div class="stat-tag">What the guard does</div>
-        <div class="stat-value">3<sup>s</sup></div>
-        <div class="stat-caption"><strong>between rule checks.</strong> RiskGuard polls your Hyperliquid account every 3 seconds and cancels violations before they become losses.</div>
-        <div class="stat-source">Src: live production instance</div>
+
+      <!-- ── Panel 3 — Profitability multiplier ── -->
+      <div class="proof-card">
+        <div class="proof-illo">
+          <div class="illo-curves">
+            <svg viewBox="0 0 240 120" preserveAspectRatio="none">
+              <path class="curve-up"   d="M 0 95 C 60 85, 120 50, 240 12" />
+              <path class="curve-down" d="M 0 25 C 60 45, 120 80, 240 108" />
+            </svg>
+            <div class="endpoint-up"></div>
+            <div class="endpoint-down"></div>
+          </div>
+        </div>
+        <div class="proof-body">
+          <div class="proof-kicker">Profitability with R:R ≥ 1</div>
+          <div class="proof-stat">3<span class="unit">×</span></div>
+          <p>Traders enforcing reward ≥ risk on every position are <strong>3× more likely to be profitable</strong> than those without sizing rules. Same skill, same picks — different math.</p>
+          <div class="proof-meta">
+            <a href="https://www.dailyfx.com/" target="_blank" rel="noopener">Src: DailyFX traits study ↗</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───────────────── PROBLEM ───────────────── -->
-<section>
+<section class="block reveal" id="rules">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 02 <span>/ the three self-sabotages</span></div>
-      <h2 class="sec-title">You know exactly how you blow up. <em>You do it anyway.</em></h2>
-    </div>
+    <div class="section-tag">// the rules, enforced</div>
+    <h2 class="section-h">Five rules. <span class="accent">Hard-wired.</span></h2>
+    <p class="section-lede">These aren't suggestions, settings, or notifications you can ignore. They run server-side, every 3 seconds, against your live Hyperliquid account. You can't override them in tilt — that's the point.</p>
 
-    <div class="problem-grid">
-      <div class="problem reveal">
-        <div class="problem-num">01</div>
-        <h3>Moving the <em>stop</em>.</h3>
-        <p>Price runs against you, you widen the SL "just this once." One trade later it doesn't come back. The single most destructive habit in retail trading — and the hardest to stop manually.</p>
-        <div class="problem-stat">→ Cause of 40%+ of retail account blowups</div>
-      </div>
-      <div class="problem reveal">
-        <div class="problem-num">02</div>
-        <h3>Revenge <em>trades</em>.</h3>
-        <p>A loss stings, so you size up on the next entry to "get it back." Statistics don't care about your feelings — and neither does the market.</p>
-        <div class="problem-pullquote">Your frontal cortex isn't driving the next order. The amygdala is.</div>
-        <div class="problem-stat">→ ~40% of traders blow up in the session after a loss</div>
-      </div>
-      <div class="problem reveal">
-        <div class="problem-num">03</div>
-        <h3>No <em>hard limits</em>.</h3>
-        <p>Stops, alerts, journals, coaches — all advisory. The moment you're tilted, the advice is the first thing that goes. You need a system that cancels orders, not one that asks nicely.</p>
-        <div class="problem-stat">→ Advisory tools have 0% enforcement</div>
-      </div>
-    </div>
-
-    <!-- Advisory comparison strip -->
-    <div class="advisory-bar reveal">
-      <div class="advisory-cell">
-        <span class="adv-label">TradingView alerts / journals</span>
-        <span class="adv-verdict fail">ADVISORY</span>
-      </div>
-      <div class="advisory-cell">
-        <span class="adv-label">Hyperliquid built-in position limits</span>
-        <span class="adv-verdict fail">PRE-TRADE ONLY</span>
-      </div>
-      <div class="advisory-cell">
-        <span class="adv-label">RiskGuard — cancels the actual order</span>
-        <span class="adv-verdict pass">ENFORCING</span>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ───────────────── RULES ───────────────── -->
-<section id="rules">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 03 <span>/ the five rules</span></div>
-      <h2 class="sec-title">Your rules. <em>The bot enforces them.</em></h2>
-    </div>
-
-    <div class="rules">
-
-      <div class="rule reveal">
+    <div class="rules-list">
+      <div class="rule-row">
         <div class="rule-num">01</div>
-        <div class="rule-title">Max Daily Loss <span class="dash">—</span> <span class="val">5%</span></div>
-        <div class="rule-body">Account drops 5%? All orders cancelled. Trading locked for the day. Come back tomorrow with a clear head.</div>
-        <div class="rule-tag rust">Hard stop</div>
+        <div class="rule-title">Max Daily Loss<span class="dash">—</span><span class="v">5%</span></div>
+        <div class="rule-desc">Account drops 5%? All open orders cancelled, trading locked for the day. Come back tomorrow with a clear head.</div>
+        <div class="rule-badge hard">Hard stop</div>
       </div>
 
-      <div class="rule reveal">
+      <div class="rule-row">
         <div class="rule-num">02</div>
-        <div class="rule-title">Max Daily Profit <span class="dash">—</span> <span class="val">100%</span></div>
-        <div class="rule-body">Doubled your account today? Locked. You won't give those gains back by overtrading a good day.</div>
-        <div class="rule-tag rust">Hard stop</div>
+        <div class="rule-title">Max Daily Profit<span class="dash">—</span><span class="v">100%</span></div>
+        <div class="rule-desc">Doubled your account today? Locked. You won't give those gains back by overtrading a good day.</div>
+        <div class="rule-badge hard">Hard stop</div>
       </div>
 
-      <div class="rule reveal">
+      <div class="rule-row">
         <div class="rule-num">03</div>
-        <div class="rule-title">Loss Cooldown <span class="dash">—</span> <span class="val">Until 8 AM</span></div>
-        <div class="rule-body">Any meaningful loss triggers a cooldown until the next morning. No revenge trades. No tilt spirals. Period.</div>
-        <div class="rule-tag">Auto-enforced</div>
+        <div class="rule-title">Loss Cooldown<span class="dash">—</span><span class="v">Until 8 AM</span></div>
+        <div class="rule-desc">Any meaningful loss triggers a cooldown until next morning. No revenge trades. No tilt spirals. Period.</div>
+        <div class="rule-badge auto">Auto-enforced</div>
       </div>
 
-      <div class="rule reveal">
+      <div class="rule-row">
         <div class="rule-num">04</div>
-        <div class="rule-title">SL Discipline <span class="dash">—</span> <em>No Widening</em></div>
-        <div class="rule-body">You can tighten your stop. You cannot widen it. If you try, the guard cancels the new order and auto-restores the original.</div>
-        <div class="rule-tag">Cancel + auto-restore</div>
+        <div class="rule-title">SL Discipline<span class="dash">—</span><span class="v italic">No widening</span></div>
+        <div class="rule-desc">You can tighten your stop. You cannot widen it. If you try, the guard cancels the new order and auto-restores the original.</div>
+        <div class="rule-badge cancel">Cancel + restore</div>
       </div>
 
-      <div class="rule reveal">
+      <div class="rule-row">
         <div class="rule-num">05</div>
-        <div class="rule-title">No Adding to <em>Positions</em></div>
-        <div class="rule-body">Manage the trade you have. No pyramiding, no averaging down. New orders in the same direction are instantly cancelled.</div>
-        <div class="rule-tag rust">Hard stop</div>
-      </div>
-
-    </div>
-
-    <div class="rules-separator">PLUS REAL-TIME PUSH NOTIFICATIONS</div>
-
-    <div class="rules">
-      <div class="rule notify reveal">
-        <div class="rule-num">+</div>
-        <div class="rule-title">Telegram <em>notifications</em></div>
-        <div class="rule-body">Every time a rule fires, you get a push alert with full context — which rule, which order ID, what the bot did. Nothing happens on your account that you don't see in chat.</div>
-        <div class="rule-tag">Realtime push</div>
+        <div class="rule-title">No Adding to <span class="v italic">Positions</span></div>
+        <div class="rule-desc">Manage the trade you have. No pyramiding, no averaging down. New orders in the same direction are instantly cancelled.</div>
+        <div class="rule-badge hard">Hard stop</div>
       </div>
     </div>
-
-    <div class="rules-cta-row">
-      <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="btn-primary" data-umami-event="cta-rules-turn-on">
-        <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-        Turn these rules on — free
-        <span class="arrow">→</span>
-      </a>
-    </div>
-
   </div>
 </section>
 
-<!-- ───────────────── HOW IT WORKS ───────────────── -->
-<section id="how">
+<section class="block reveal" id="diff">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 04 <span>/ how it works</span></div>
-      <h2 class="sec-title">Up and running in <em>60 seconds.</em></h2>
+    <div class="section-tag">The difference</div>
+    <h2 class="section-h">HyperGuard doesn't <span class="quiet">show</span> risk.<br/>It <span class="accent">controls</span> it.</h2>
+    <p class="section-lede">Other UIs surface a liquidation price and call it a day. HyperGuard treats unsafe trades as invalid, sizes them down, or blocks them — before the order ever reaches the exchange.</p>
+
+    <div class="compare">
+      <div class="col them">
+        <div class="col-head"><span class="dot"></span>Other perp UIs</div>
+        <div class="col-row">"Here's your liquidation price. Good luck."</div>
+        <div class="col-row">"Adjustable leverage: 1× — 50×."</div>
+        <div class="col-row">"You filled. PnL: −$320."</div>
+      </div>
+      <div class="col us">
+        <div class="col-head"><span class="dot"></span>HyperGuard</div>
+        <div class="col-row">"That's a 3% buffer. <span class="accent">Reducing</span> to 6× — you keep the trade, you don't get blown out."</div>
+        <div class="col-row">"Mode = Balanced. Cap is <span class="accent">5×</span>. Pick a profile, not a number."</div>
+        <div class="col-row">"Sized correctly. Without the cap this loss would have been <span class="accent">−$760</span>."</div>
+      </div>
     </div>
+  </div>
+</section>
+
+<section class="block reveal" id="how">
+  <div class="wrap">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-h">Three steps. <span class="quiet">No setup tax.</span></h2>
 
     <div class="steps">
-
-      <div class="step reveal">
-        <div class="step-num">STEP 01</div>
-        <h3>Open the <em>Telegram bot</em>.</h3>
-        <p>Message <b>@Risk_guardapp_bot</b> and tap <b>/connect</b>. A one-time secure webview walks you through pairing your Hyperliquid account via a scoped agent key — cancel and reduce-only permission, no withdrawal rights, ever.</p>
-        <div class="step-note">⏱ ~30 seconds</div>
-      </div>
-
-      <div class="step reveal">
-        <div class="step-num">STEP 02</div>
-        <h3>Set your <em>rules</em>.</h3>
-        <p>Pick your daily loss cap, profit lock, cooldown window, and which rules to enforce. Defaults: 5% / 100% / 8 AM EDT / all on. Change any threshold at any time via <b>/rules</b>.</p>
-        <div class="step-note">⏱ ~20 seconds</div>
-      </div>
-
-      <div class="step reveal">
-        <div class="step-num">STEP 03</div>
-        <h3>Trade <em>normally</em>.</h3>
-        <p>Place orders on Hyperliquid exactly as you do today — web, mobile, TradingView. The bot polls every 3 seconds and cancels any order that violates your rules before it can damage you.</p>
-        <div class="step-note">⏱ zero workflow change</div>
-      </div>
-
-      <div class="step reveal">
-        <div class="step-num">STEP 04</div>
-        <h3>Monitor on <em>Telegram</em>.</h3>
-        <p>Every cancel, lock, and restored stop pushed straight to your chat. Ask <b>/status</b> for live P&L, <b>/log</b> for today's actions, <b>/pause</b> to disable temporarily. Your dashboard lives in a thread.</p>
-        <div class="step-note">⏱ always-on</div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ───────────────── TESTIMONIALS ───────────────── -->
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 05 <span>/ early traders</span></div>
-      <h2 class="sec-title">Built with Hyperliquid traders <em>actually using it.</em></h2>
-    </div>
-
-    <div class="testimonial-grid">
-      <div class="testimonial reveal">
-        <div class="stars">★★★★★</div>
-        <p>"The SL-restore thing saved me once already. I widened my stop in a panic, five seconds later the order was cancelled and the original was back. I would have blown the account."</p>
-        <div class="testimonial-who">
-          <div class="t-avatar">JK</div>
-          <div>
-            <div class="t-name">jk_alpha</div>
-            <div class="t-role">HL trader · 6 months</div>
+      <div class="step">
+        <div class="step-illo">
+          <div class="illo-wallet">
+            <div class="plug">
+              <div class="node">YOU</div>
+              <div class="wire"></div>
+              <div class="node mint">HL</div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="testimonial reveal">
-        <div class="stars">★★★★★</div>
-        <p>"Cooldown after loss is the killer feature. I can't tell myself 'one more trade' at 2 AM anymore — the bot just won't let the order through. The frustration is the point."</p>
-        <div class="testimonial-who">
-          <div class="t-avatar">MV</div>
-          <div>
-            <div class="t-name">mvrx</div>
-            <div class="t-role">HL trader · 14 months</div>
-          </div>
+        <div class="step-body">
+          <div class="stepnum"><span class="ring">1</span> CONNECT</div>
+          <h4>Connect wallet</h4>
+          <p>Permissionless. Your keys, your funds. HyperGuard never custodies — it's a guardian sitting between your intent and the exchange.</p>
         </div>
       </div>
-      <div class="testimonial reveal">
-        <div class="stars">★★★★★</div>
-        <p>"I've used every risk app. They're all advisory. This is the first one that actually cancels the order. Cancel-only permission means the keys never leave my custody either."</p>
-        <div class="testimonial-who">
-          <div class="t-avatar">0x</div>
-          <div>
-            <div class="t-name">0xzero</div>
-            <div class="t-role">HL trader · prop desk</div>
+
+      <div class="step">
+        <div class="step-illo">
+          <div class="illo-modes">
+            <div class="bars">
+              <div class="bar b1"><span class="lbl">CON</span><div class="fill"></div></div>
+              <div class="bar b2"><span class="lbl">BAL</span><div class="fill"></div></div>
+              <div class="bar b3"><span class="lbl">AGG</span><div class="fill"></div></div>
+            </div>
+            <div class="selector"></div>
           </div>
+        </div>
+        <div class="step-body">
+          <div class="stepnum"><span class="ring">2</span> CONFIGURE</div>
+          <h4>Pick a mode</h4>
+          <p>Conservative, Balanced, or Aggressive. Each enforces leverage caps, risk-per-trade limits, and liquidation buffers automatically.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-illo">
+          <div class="illo-guard">
+            <div class="chart-wrap">
+              <div class="liqline"></div>
+              <div class="stopline"></div>
+              <svg class="pricepath" viewBox="0 0 280 160" preserveAspectRatio="none">
+                <path d="M 0 60 L 50 70 L 90 90 L 130 105 L 170 110 L 200 100 L 240 80 L 280 60" />
+              </svg>
+              <div class="shield">✓</div>
+            </div>
+          </div>
+        </div>
+        <div class="step-body">
+          <div class="stepnum"><span class="ring">3</span> GUARD</div>
+          <h4>Bot polls every 3 seconds</h4>
+          <p>HyperGuard checks your account every 3s. Stop widened mid-trade? Cancelled. Risk over budget? Resized. You still ape — you just don't die doing it.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───────────────── FOUNDER ACCESS ───────────────── -->
-<section id="founder-access">
+<section class="block reveal" id="modes">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 06 <span>/ founder access</span></div>
-      <h2 class="sec-title">Free for the first <em>100 traders.</em> No catch.</h2>
+    <div class="section-tag">Modes</div>
+    <h2 class="section-h">Three preset profiles. <span class="accent">Pick one.</span></h2>
+    <p class="section-lede">No custom-leverage knob. No "advanced settings." Constraint is the feature.</p>
+
+    <div class="modes">
+      <div class="mode conservative">
+        <div class="mode-head">
+          <div class="mode-name">Conservative</div>
+          <span class="mode-pill">Income</span>
+        </div>
+        <div class="mode-rows">
+          <div class="mode-row"><span class="k">Max leverage</span><span class="v">3×</span></div>
+          <div class="mode-row"><span class="k">Risk per trade</span><span class="v">1%</span></div>
+          <div class="mode-row"><span class="k">Min liq buffer</span><span class="v">20%</span></div>
+          <div class="mode-row"><span class="k">Stop required</span><span class="v">Yes</span></div>
+          <div class="mode-row"><span class="k">Open positions</span><span class="v">≤ 3</span></div>
+        </div>
+      </div>
+      <div class="mode balanced">
+        <div class="mode-head">
+          <div class="mode-name">Balanced</div>
+          <span class="mode-pill">Default</span>
+        </div>
+        <div class="mode-rows">
+          <div class="mode-row"><span class="k">Max leverage</span><span class="v">5×</span></div>
+          <div class="mode-row"><span class="k">Risk per trade</span><span class="v">2%</span></div>
+          <div class="mode-row"><span class="k">Min liq buffer</span><span class="v">15%</span></div>
+          <div class="mode-row"><span class="k">Stop required</span><span class="v">Yes</span></div>
+          <div class="mode-row"><span class="k">Open positions</span><span class="v">≤ 5</span></div>
+        </div>
+      </div>
+      <div class="mode aggressive">
+        <div class="mode-head">
+          <div class="mode-name">Aggressive</div>
+          <span class="mode-pill">Capped</span>
+        </div>
+        <div class="mode-rows">
+          <div class="mode-row"><span class="k">Max leverage</span><span class="v">10×</span></div>
+          <div class="mode-row"><span class="k">Risk per trade</span><span class="v">5%</span></div>
+          <div class="mode-row"><span class="k">Min liq buffer</span><span class="v">10%</span></div>
+          <div class="mode-row"><span class="k">Stop required</span><span class="v">Yes</span></div>
+          <div class="mode-row"><span class="k">Open positions</span><span class="v">≤ 8</span></div>
+        </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <div class="solo-offer">
-      <div class="solo-offer-inner">
+<section class="block reveal" id="audience">
+  <div class="wrap">
+    <div class="section-tag">Who this is for</div>
+    <h2 class="section-h">Not for degens. <span class="accent">For traders who want to last.</span></h2>
 
-        <div class="seat-counter">
-          <div class="seat-bar-track"><div class="seat-bar-fill"></div></div>
-          <div class="seat-counter-text">
-            <span><b>23 of 100</b> founder seats claimed</span>
-            <span class="seat-urgency">77 remaining</span>
-          </div>
-        </div>
-
-        <div class="solo-badge"><span class="online-dot"></span>FOUNDING-MEMBER SEATS · OPEN NOW</div>
-        <h3 class="solo-name">Founder access</h3>
-        <div class="solo-byline">The first 100 Hyperliquid traders get the full guard — free, forever. Not a trial. Not a discount. Free.</div>
-
-        <div class="solo-price-row">
-          <div class="solo-price">$0<span>/forever</span></div>
-          <div class="solo-vs">
-            <div class="solo-vs-strike">$29/mo at launch</div>
-            <div class="solo-vs-lock">Locked in for founders</div>
-          </div>
-        </div>
-
-        <ul class="solo-feats">
-          <li>All <b>5 hard-enforced rules</b> on your Hyperliquid account</li>
-          <li>Telegram <b>push alert</b> on every rule fire — cancel, lock, cooldown, SL restore</li>
-          <li><b>3-second</b> polling · SL auto-restore · daily P&L tracking</li>
-          <li><b>Cancel-only</b> API scope — zero withdrawal access, revoke any time from Hyperliquid</li>
-          <li>Every cancel is <b>verifiable on-chain</b> via Hyperliquid's public API</li>
-          <li>Direct line to the <b>team</b> on Telegram — no support queue, no bots answering bots</li>
-          <li>Free <strong>forever</strong> — no payment details, no trial timer</li>
+    <div class="audience">
+      <div class="aud-col no">
+        <h4><span class="icn">×</span>Not your wedge</h4>
+        <ul>
+          <li>Degens hunting 100× rugs</li>
+          <li>"I'll override every warning"</li>
+          <li>Indicator junkies</li>
+          <li>Casino mode by default</li>
         </ul>
-
-        <div class="guarantee-block">
-          <div class="g-icon">🤝</div>
-          <div class="g-text">
-            <strong>Our commitment:</strong> If the bot fails to cancel a rule-violating order and you lose money because of it, we make it right. No fine print.
-          </div>
-        </div>
-
-        <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="solo-cta" data-umami-event="cta-offer-claim-seat">
-          <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-          Claim your founder seat
-          <span class="arrow">→</span>
-        </a>
-
-        <div class="solo-foot">No credit card · no trial timer · revoke agent key any time from Hyperliquid</div>
+      </div>
+      <div class="aud-col yes">
+        <h4><span class="icn">✓</span>Built for</h4>
+        <ul>
+          <li>Traders who got liquidated and are done with it</li>
+          <li>Semi-serious operators who want discipline as a default</li>
+          <li>New entrants who don't trust themselves yet</li>
+          <li>Anyone tired of UIs that pretend to be neutral</li>
+        </ul>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ───────────────── FAQ ───────────────── -->
-<section id="faq">
+<section class="final reveal">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="sec-label">§ 07 <span>/ questions</span></div>
-      <h2 class="sec-title">What you're probably <em>wondering.</em></h2>
+    <h2>You can still ape.<br/>You just <span class="accent">won't die</span> doing it.</h2>
+    <p>Connect a wallet, pick a mode, place a trade. Early access is open.</p>
+    <div class="final-cta">
+      <a class="btn btn-primary btn-lg" href="app.html">Launch app →</a>
     </div>
-
-    <div class="faq-list">
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">What if the bot fails during a critical moment?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            RiskGuard runs on a cloud instance that polls 24/7. If a connection disruption occurs, you receive an <strong>immediate Telegram alert</strong> so you can manage positions manually. The guard's status is visible at any time via <code>/status</code>. We also publish uptime logs so you can verify operational history before connecting.
-          </div>
-        </div>
-      </div>
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">How is this different from Hyperliquid's built-in risk settings?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            HL's built-in limits are <strong>pre-trade position caps</strong> — they stop you from opening above a size. RiskGuard enforces <strong>behavioral rules post-intent</strong>: if you widen a stop, it cancels the new order and restores the original. If you try to add to a losing position, it cancels it. Hyperliquid's settings can't detect SL widening or tilt pyramiding — that's what RiskGuard is built for.
-          </div>
-        </div>
-      </div>
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">Can I override a rule when I have a legitimate reason?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            Yes. Type <code>/pause</code> to suspend the guard temporarily, or <code>/rules</code> to change any threshold. <strong>You're always in control</strong> — the bot enforces what you set, not what we think is right. The point is to give your sober self veto power over your tilted self. If you consciously choose to change a rule, that's legitimate. If you're about to widen your stop in a panic, the bot cancels it before you can.
-          </div>
-        </div>
-      </div>
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">What happens to my open positions when the daily loss cap hits?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            <strong>Your existing positions remain open</strong> — RiskGuard never closes positions. It only cancels new orders. Your reduce-only and position-close orders are always allowed through regardless of any active rule. The lock prevents you from adding new risk while emotional. It does not force you to exit positions you're already managing.
-          </div>
-        </div>
-      </div>
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">What can the bot actually see and do on my account?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            The agent key grants <strong>cancel and reduce-only permissions only</strong>. The bot can cancel pending orders and reduce open positions. It <strong>cannot</strong> withdraw funds, open new positions, transfer assets, or read any personal data beyond your Hyperliquid open order book. You can verify the exact permission scope in your Hyperliquid account settings and revoke the key in a single click at any time — no contact with us required.
-          </div>
-        </div>
-      </div>
-
-      <div class="faq-item reveal">
-        <div class="faq-question">
-          <span class="faq-q-text">How do I know the bot is actually running and cancelling things?</span>
-          <span class="faq-toggle">+</span>
-        </div>
-        <div class="faq-answer">
-          <div class="faq-answer-inner">
-            Every cancel the bot fires is a real transaction on Hyperliquid's public API — it's independently verifiable on-chain. You also get a Telegram push notification for every single action. Use <code>/log</code> to see today's full action history, or <code>/status</code> for a live snapshot. Nothing happens silently.
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ───────────────── CTA ───────────────── -->
-<section class="cta" id="cta">
-  <div class="wrap">
-    <h2>Your rules.<br><em>Starting now.</em></h2>
-    <p class="cta-sub">
-      Open Telegram, tap <strong>@Risk_guardapp_bot</strong>, send <strong>/start</strong>.
-      Guard is watching your Hyperliquid account in under 60 seconds. Cancel-only key. Free for the first 100 traders.
-    </p>
-    <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" class="solo-cta" style="max-width:440px;margin:0 auto;" data-umami-event="cta-final-guard">
-      <span class="tg-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.95 4.3L18.4 20.85c-.27 1.2-.97 1.5-1.97.93l-5.45-4.02-2.63 2.53c-.29.29-.54.54-1.1.54l.4-5.58 10.13-9.16c.44-.39-.1-.6-.68-.22L4.6 12.76l-5.4-1.69c-1.17-.37-1.2-1.17.24-1.73L20.42 2.5c.98-.36 1.84.22 1.53 1.8z"/></svg></span>
-      Guard my Hyperliquid account
-      <span class="arrow">→</span>
-    </a>
-    <div class="cta-note" style="margin-top:22px;">Revoke access any time from Hyperliquid · cancel-only agent key · zero withdrawal scope · 23 of 100 founder seats claimed</div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <div class="footer-grid">
-      <span>RISKGUARD · HYPERLIQUID TELEGRAM BOT · 2026</span>
-      <span>
-        <a href="#rules">Rules</a> &nbsp;·&nbsp;
-        <a href="#how">How it works</a> &nbsp;·&nbsp;
-        <a href="#faq">FAQ</a> &nbsp;·&nbsp;
-        <a href="https://t.me/Risk_guardapp_bot" target="_blank" rel="noopener" data-umami-event="cta-footer-bot">Bot</a> &nbsp;·&nbsp;
-        <a href="dex.html" data-umami-event="link-dex-operators">For DEX operators →</a>
-      </span>
+    <div class="foot-row">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span>HyperGuard · 2026</span>
+      </div>
+      <div class="foot-links">
+        <a href="#">Built on Hyperliquid</a>
+        <a href="#">Docs</a>
+        <a href="#">X</a>
+      </div>
     </div>
   </div>
 </footer>
 
 <script>
-  // Sticky nav scroll-state
-  const navEl = document.querySelector('nav');
-  let lastScrolled = false;
-  window.addEventListener('scroll', () => {
-    const scrolled = window.scrollY > 20;
-    if (scrolled !== lastScrolled) {
-      navEl.classList.toggle('scrolled', scrolled);
-      lastScrolled = scrolled;
-    }
-  }, { passive: true });
-
-  // Reveal on scroll
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  // Nav scroll + ambient parallax + scroll-rail progress
+  const nav = document.getElementById('topnav');
+  let _scrollTicking = false;
+  function onScroll() {
+    if (_scrollTicking) return;
+    _scrollTicking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(100, (y / max) * 100) : 0;
+      document.documentElement.style.setProperty('--scrollY', y);
+      document.documentElement.style.setProperty('--scroll-progress', progress + '%');
+      nav.classList.toggle('scrolled', y > 24);
+      _scrollTicking = false;
     });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reveal
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
   }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach((el, i) => {
-    el.style.transitionDelay = (i % 5) * 70 + 'ms';
-    io.observe(el);
-  });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  // FAQ accordion + tracking
-  document.querySelectorAll('.faq-question').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item = btn.closest('.faq-item');
-      const wasOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
-      if (!wasOpen) {
-        item.classList.add('open');
-        const q = btn.querySelector('.faq-q-text')?.textContent?.trim() || '';
-        if (window.umami) window.umami.track('faq-opened', { question: q });
-      }
-    });
-  });
+  // Demo
+  const $ = id => document.getElementById(id);
+  const els = {
+    acct: $('d-acct'), lev: $('d-lev'), stop: $('d-stop'), risk: $('d-risk'),
+    acctV: $('d-acct-v'), levV: $('d-lev-v'), stopV: $('d-stop-v'), riskV: $('d-risk-v'),
+    score: $('d-score'), pill: $('d-pill'), rdot: $('d-rdot'),
+    size: $('d-size'), notional: $('d-notional'), liqdist: $('d-liqdist'),
+    loss: $('d-loss'), ratio: $('d-ratio'),
+    verdict: $('d-verdict'), vh: $('d-vh'), vbody: $('d-vbody')
+  };
+  const fmt = n => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmt2 = n => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
-  // Scroll depth tracking — fires once per 25% milestone per session
-  (function() {
-    const fired = new Set();
-    const milestones = [25, 50, 75, 100];
-    function checkScroll() {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (docHeight <= 0) return;
-      const pct = Math.min(100, Math.round((scrollTop / docHeight) * 100));
-      milestones.forEach(m => {
-        if (pct >= m && !fired.has(m)) {
-          fired.add(m);
-          if (window.umami) window.umami.track('scroll-depth', { percent: m });
-        }
-      });
-    }
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(() => { checkScroll(); ticking = false; });
-        ticking = true;
-      }
-    }, { passive: true });
-  })();
+  function recompute() {
+    const acct = +els.acct.value;
+    const lev  = +els.lev.value;
+    const stop = +els.stop.value;
+    const risk = +els.risk.value;
 
-  // Section-view tracking — fires once when each major section enters viewport
-  (function() {
-    const sections = [
-      { sel: '#problem',        name: 'stats' },
-      { sel: '#rules',          name: 'rules' },
-      { sel: '#how',            name: 'how-it-works' },
-      { sel: '#founder-access', name: 'offer' },
-      { sel: '#faq',            name: 'faq' },
-      { sel: '#cta',            name: 'final-cta' },
-    ];
-    const sio = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          const name = e.target.dataset.section;
-          if (name && window.umami) window.umami.track('section-view', { section: name });
-          sio.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.35 });
-    sections.forEach(s => {
-      const el = document.querySelector(s.sel);
-      if (el) { el.dataset.section = s.name; sio.observe(el); }
-    });
-  })();
+    els.acctV.textContent = fmt(acct);
+    els.levV.textContent  = lev;
+    els.stopV.textContent = stop;
+    els.riskV.textContent = risk;
+
+    const dollarRisk  = acct * (risk / 100);
+    const notional    = dollarRisk / (stop / 100);
+    const margin      = notional / lev;
+    const liqDistPct  = (1 / lev) * 100 * 0.95;
+    const liqStopRatio= liqDistPct / stop;
+
+    els.size.textContent     = `$${fmt(margin)} margin`;
+    els.notional.textContent = `$${fmt(notional)}`;
+    els.liqdist.textContent  = `${fmt2(liqDistPct)}%`;
+    els.loss.textContent     = `$${fmt(dollarRisk)} (${risk}%)`;
+    els.ratio.textContent    = `${fmt2(liqStopRatio)}×`;
+
+    const levScore   = Math.min(50, Math.pow(lev / 10, 1.4) * 35);
+    const ratioScore = liqStopRatio < 1 ? 40 : liqStopRatio < 2 ? 25 : liqStopRatio < 3 ? 12 : 4;
+    const riskScore  = Math.min(40, Math.pow(risk / 2, 1.2) * 18);
+    let score = Math.round(levScore + ratioScore + riskScore);
+    score = Math.max(0, Math.min(100, score));
+
+    els.score.textContent = score;
+
+    let color, vh, vbody, vclass;
+    if (score < 30)      { color = 'var(--mint)';   vclass = 'safe';   vh = 'SAFE';    vbody = `Clean trade. Liquidation is ${fmt2(liqStopRatio)}× wider than your stop — your stop fires first, not the exchange.`; }
+    else if (score < 65) { color = 'var(--warn)';   vclass = 'warn';   vh = 'CAUTION'; vbody = `Acceptable, but tightening up. ${liqStopRatio < 2 ? 'Liq buffer is thin' : 'Risk per trade is on the high side'}.`; }
+    else                 { color = 'var(--danger)'; vclass = 'danger'; vh = 'BLOCKED'; vbody = `HyperGuard would auto-resize this. ${lev > 10 ? `Cap leverage to ${Math.min(lev, 10)}×.` : ''} Liq buffer too thin (${fmt2(liqStopRatio)}× stop). Use a wider stop or lower leverage.`; }
+
+    els.rdot.style.background = color;
+    els.rdot.style.boxShadow  = `0 0 8px ${color}`;
+    els.pill.style.borderColor = color;
+
+    els.verdict.classList.remove('safe', 'warn', 'danger');
+    els.verdict.classList.add(vclass);
+    els.vh.textContent = vh;
+    els.vbody.textContent = vbody;
+
+    $('d-ratio').className = 'v ' + (liqStopRatio >= 2.5 ? 'ok' : liqStopRatio >= 1.5 ? '' : 'bad');
+    $('d-liqdist').className = 'v ' + (liqDistPct >= 15 ? 'ok' : liqDistPct >= 8 ? '' : 'bad');
+  }
+  ['acct', 'lev', 'stop', 'risk'].forEach(k => els[k].addEventListener('input', recompute));
+  recompute();
 </script>
 
 </body>
