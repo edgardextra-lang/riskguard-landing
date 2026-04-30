@@ -1550,6 +1550,8 @@ function applyDisconnectedUI() {
   if (!btn) return;
   delete btn.dataset.connectedAddr;
   btn.classList.remove('connected');
+  // Refresh place button → "Connect wallet to trade"
+  setTimeout(() => { try { pollRules(); } catch {} }, 0);
   btn.textContent = 'Connect wallet';
   document.getElementById('equityPill').style.display = 'none';
   document.getElementById('todayPill').style.display  = 'none';
@@ -1628,6 +1630,12 @@ const chart = LightweightCharts.createChart(chartEl, {
     timeVisible: true,
     secondsVisible: false,
     tickMarkFormatter: _tickMarkFormatter,
+    // Reserve empty space on the right of the latest candle so the live
+    // price action breathes away from the price axis. ~6 bars feels right
+    // across all timeframes (15m / 4h / D / W).
+    rightOffset: 6,
+    barSpacing: 8,
+    minBarSpacing: 2,
   },
   localization: {
     timeFormatter: _crosshairTimeFormatter,
@@ -1902,6 +1910,9 @@ async function switchInterval(newInterval) {
     console.warn('[HyperGuard] switchInterval failed', e);
     seedSynthetic();
   }
+  // Re-apply right-side padding — fitContent / setData can collapse it,
+  // and on D/W the bar count is small so the chart auto-fits flush.
+  try { chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 }); } catch {}
   recompute();
 }
 window.switchInterval = switchInterval;
@@ -1933,6 +1944,8 @@ async function loadHyperliquidHistory(coin = currentCoin) {
   }
   lastClose = candles[candles.length - 1].close;
   candleSeries.setData(candles);
+  // Preserve right-side breathing room — setData can collapse rightOffset
+  try { chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 }); } catch {}
 }
 
 let _ws = null;
@@ -2053,6 +2066,8 @@ function seedSynthetic() {
     lastClose = close;
   }
   candleSeries.setData(candles);
+  // Preserve right-side breathing room — setData can collapse rightOffset
+  try { chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 }); } catch {}
   liveSource = 'fallback';
 }
 function syntheticTick() {
@@ -2115,22 +2130,24 @@ function setTP(price) {
   if (!state.position) return;
   if (!isFinite(price)) return;
   tpPrice = price;
-  if (tpLine) { try { candleSeries.removePriceLine(tpLine); } catch {} tpLine = null; }
   const p = state.position;
   const dir = p.side === 'long' ? 1 : -1;
   const movePct = ((price - p.entry) * dir / p.entry) * 100;
   const pnlUsd  = (movePct / 100) * p.notional;
-  const profitable = pnlUsd > 0;
+  const color = pnlUsd >= 0 ? '#a3f7bf' : '#ff7468';
   const sign = pnlUsd >= 0 ? '+' : '−';
   const title = `TP  ${sign}$${Math.abs(pnlUsd).toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`;
-  tpLine = candleSeries.createPriceLine({
-    price,
-    color: profitable ? '#a3f7bf' : '#ff7468',
-    lineWidth: 2,
-    lineStyle: LightweightCharts.LineStyle.Dotted,
-    axisLabelVisible: true,
-    title,
-  });
+  // In-place update — same flicker fix as drawLines
+  if (tpLine) {
+    tpLine.applyOptions({ price, color, title });
+  } else {
+    tpLine = candleSeries.createPriceLine({
+      price, color, lineWidth: 2,
+      lineStyle: LightweightCharts.LineStyle.Dotted,
+      axisLabelVisible: true,
+      title,
+    });
+  }
   renderPosCard();
 }
 window.setTP = setTP;
@@ -2212,24 +2229,8 @@ function refreshTPLabel() {
     const { y, px, x } = priceFromEvent(e);
     if (px == null) { tipEl.classList.remove('show'); return; }
     if (_dragMode === 'tp') {
-      // Live drag: update tpPrice, redraw line + label, repaint position card
-      tpPrice = px;
-      // Reuse setTP logic but skip toast (it sets the line)
-      if (tpLine) { try { candleSeries.removePriceLine(tpLine); } catch {} tpLine = null; }
-      const p = state.position;
-      const dir = p.side === 'long' ? 1 : -1;
-      const movePct = ((px - p.entry) * dir / p.entry) * 100;
-      const pnlUsd  = (movePct / 100) * p.notional;
-      const sign = pnlUsd >= 0 ? '+' : '−';
-      tpLine = candleSeries.createPriceLine({
-        price: px,
-        color: pnlUsd >= 0 ? '#a3f7bf' : '#ff7468',
-        lineWidth: 2,
-        lineStyle: LightweightCharts.LineStyle.Dotted,
-        axisLabelVisible: true,
-        title: `TP  ${sign}$${Math.abs(pnlUsd).toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`,
-      });
-      renderPosCard();
+      // Delegate to setTP — applyOptions in place, no DOM thrash
+      setTP(px);
       paintTip(x, y, px, true);
       chartEl.style.cursor = 'grabbing';
       return;
@@ -2281,18 +2282,25 @@ function refreshTPLabel() {
   });
 }
 function drawLines(entry, stop, liq) {
-  clearLines();
-  entryLine = candleSeries.createPriceLine({
+  // In-place price updates — was destroying + recreating the three
+  // PriceLine objects via removePriceLine/createPriceLine on every
+  // WS tick. At real-BTC trade rates (10-20+/sec), the right-axis
+  // labels (ENTRY/STOP/LIQ badges) flickered visibly. applyOptions
+  // mutates the existing line — no DOM thrash.
+  if (entryLine) entryLine.applyOptions({ price: entry });
+  else entryLine = candleSeries.createPriceLine({
     price: entry, color: '#a3f7bf', lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Dashed,
     axisLabelVisible: true, title: 'ENTRY',
   });
-  stopLine = candleSeries.createPriceLine({
+  if (stopLine) stopLine.applyOptions({ price: stop });
+  else stopLine = candleSeries.createPriceLine({
     price: stop, color: '#ffce6b', lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Dashed,
     axisLabelVisible: true, title: 'STOP',
   });
-  liqLine = candleSeries.createPriceLine({
+  if (liqLine) liqLine.applyOptions({ price: liq });
+  else liqLine = candleSeries.createPriceLine({
     price: liq, color: '#ff7468', lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Solid,
     axisLabelVisible: true, title: 'LIQ',
@@ -2545,9 +2553,15 @@ function pollRules() {
     $('blocked-rule').textContent = violation.rule.replace(/_/g, ' ');
     $('blocked-msg').textContent = violation.message;
   } else {
-    placeBtn.disabled = !!state.position;  // also disabled if a position is open (close first)
-    placeBtn.textContent = state.position ? 'Close current first' : `Place ${state.side}`;
-    placeBtn.className = 'place-btn ' + state.side;
+    if (!state.walletAddress) {
+      placeBtn.disabled = true;
+      placeBtn.textContent = 'Connect wallet to trade';
+      placeBtn.className = 'place-btn';
+    } else {
+      placeBtn.disabled = !!state.position;
+      placeBtn.textContent = state.position ? 'Close current first' : `Place ${state.side}`;
+      placeBtn.className = 'place-btn ' + state.side;
+    }
     banner.classList.remove('show');
   }
 

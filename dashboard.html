@@ -509,14 +509,14 @@
     <!-- RIGHT COLUMN — chart -->
     <div class="card-chart">
       <div class="chart-head">
-        <div class="chart-tabs">
-          <button class="tab active">Balance</button>
-          <button class="tab">PnL</button>
-          <button class="tab">USDe Rewards</button>
+        <div class="chart-tabs" id="chartSeriesTabs">
+          <button class="tab active" data-series="accountValueHistory">Balance</button>
+          <button class="tab" data-series="pnlHistory">PnL</button>
+          <button class="tab" data-series="rewards">USDe Rewards</button>
         </div>
-        <div class="range-toggle">
-          <button class="active">Week</button>
-          <button>Month</button>
+        <div class="range-toggle" id="chartRangeToggle">
+          <button class="active" data-range="week">Week</button>
+          <button data-range="month">Month</button>
         </div>
       </div>
       <div class="chart-svg-wrap">
@@ -527,25 +527,17 @@
               <stop offset="100%" stop-color="#a3f7bf" stop-opacity="0"/>
             </linearGradient>
           </defs>
-          <g class="chart-grid">
-            <line x1="0"   x2="800" y1="60"  y2="60"/>
-            <line x1="0"   x2="800" y1="140" y2="140"/>
-            <line x1="0"   x2="800" y1="220" y2="220"/>
-            <line x1="0"   x2="800" y1="300" y2="300"/>
-          </g>
-          <text class="chart-axis-label" x="6" y="58">$600</text>
-          <text class="chart-axis-label" x="6" y="138">$500</text>
-          <text class="chart-axis-label" x="6" y="218">$400</text>
-          <text class="chart-axis-label" x="6" y="298">$300</text>
-          <text class="chart-axis-label" x="6" y="370">$200</text>
-          <!-- area + line — Apr 24 → Apr 30 ($310 → $415) -->
-          <path class="chart-area" d="M 60 290 C 100 240, 160 215, 220 218 L 320 220 L 420 224 L 520 218 L 620 215 L 720 200 L 760 175 L 760 380 L 60 380 Z"/>
-          <path class="chart-line" d="M 60 290 C 100 240, 160 215, 220 218 L 320 220 L 420 224 L 520 218 L 620 215 L 720 200 L 760 175"/>
+          <g class="chart-grid" id="balanceChartGrid"></g>
+          <g id="balanceChartLabels"></g>
+          <path class="chart-area" id="balanceChartArea" d="" />
+          <path class="chart-line" id="balanceChartLine" d="" />
+          <text id="balanceChartEmpty" x="400" y="190" text-anchor="middle"
+                style="fill: var(--text-3); font-family: var(--f-mono); font-size: 12px;">
+            Connect a wallet to view your equity curve
+          </text>
         </svg>
       </div>
-      <div class="x-labels">
-        <span>Apr 24</span><span>Apr 25</span><span>Apr 26</span><span>Apr 27</span><span>Apr 28</span><span>Apr 29</span><span>Apr 30</span>
-      </div>
+      <div class="x-labels" id="balanceChartXLabels"></div>
     </div>
   </div>
 
@@ -694,7 +686,12 @@
     set('b-rewards', '$0.00');
     set('b-evm', '$0.00');
 
-    const [perp, spot] = await Promise.all([fetchHlAccount(addr), fetchHlSpot(addr)]);
+    const [perp, spot, _portfolio] = await Promise.all([
+      fetchHlAccount(addr),
+      fetchHlSpot(addr),
+      fetchHlPortfolio(addr),  // populates _portfolioCache
+    ]);
+    renderEquityChart();        // paint the equity curve from real data
 
     const accountValue = perp ? perp.accountValue : 0;
     const withdrawable = perp ? perp.withdrawable : 0;
@@ -828,6 +825,133 @@
       return false;
     }
   }
+
+  // ── Real equity curve from HL portfolio endpoint ──
+  // Returns the full portfolio history grouped by period:
+  //   [["day", {accountValueHistory: [[ts,"v"],..], pnlHistory: [...], vlm}],
+  //    ["week", {...}], ["month", {...}], ["allTime", {...}], ...]
+  let _portfolioCache = null;
+  let _chartSeries = 'accountValueHistory';   // | 'pnlHistory' | 'rewards'
+  let _chartRange  = 'week';                  // | 'month'
+  async function fetchHlPortfolio(addr) {
+    try {
+      const res = await fetch('https://api.hyperliquid.xyz/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'portfolio', user: addr }),
+      });
+      if (!res.ok) throw new Error(`HL portfolio ${res.status}`);
+      _portfolioCache = await res.json();
+      return _portfolioCache;
+    } catch (e) {
+      console.warn('[HyperGuard] HL portfolio failed:', e.message || e);
+      return null;
+    }
+  }
+
+  function renderEquityChart() {
+    const empty = document.getElementById('balanceChartEmpty');
+    const linePath = document.getElementById('balanceChartLine');
+    const areaPath = document.getElementById('balanceChartArea');
+    const grid     = document.getElementById('balanceChartGrid');
+    const labels   = document.getElementById('balanceChartLabels');
+    const xLabels  = document.getElementById('balanceChartXLabels');
+
+    // USDe Rewards: HL doesn't expose this — show empty state
+    if (_chartSeries === 'rewards') {
+      linePath.setAttribute('d', '');
+      areaPath.setAttribute('d', '');
+      grid.innerHTML = ''; labels.innerHTML = ''; xLabels.innerHTML = '';
+      empty.textContent = 'No USDe rewards history yet';
+      empty.style.display = '';
+      return;
+    }
+
+    if (!_portfolioCache) {
+      linePath.setAttribute('d', ''); areaPath.setAttribute('d', '');
+      grid.innerHTML = ''; labels.innerHTML = ''; xLabels.innerHTML = '';
+      empty.textContent = 'Connect a wallet to view your equity curve';
+      empty.style.display = '';
+      return;
+    }
+
+    // Find the right period bucket
+    const bucket = _portfolioCache.find(([k]) => k === _chartRange);
+    const series = bucket?.[1]?.[_chartSeries];
+    if (!Array.isArray(series) || series.length < 2) {
+      linePath.setAttribute('d', ''); areaPath.setAttribute('d', '');
+      grid.innerHTML = ''; labels.innerHTML = ''; xLabels.innerHTML = '';
+      empty.textContent = 'Not enough history yet — start trading to populate the curve';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Map [[ts, "value"]] → SVG path. Viewbox 800 × 380 with 60px left margin.
+    const W = 800, H = 380, padL = 60, padR = 20, padT = 30, padB = 40;
+    const xs = series.map(p => +p[0]);
+    const ys = series.map(p => +p[1]);
+    const xMin = xs[0], xMax = xs[xs.length - 1];
+    let yMin = Math.min(...ys), yMax = Math.max(...ys);
+    if (yMax - yMin < 0.01) { yMax = yMin + 1; }   // flat-line guard
+    const padPct = 0.08;
+    const yRange = yMax - yMin;
+    yMin -= yRange * padPct; yMax += yRange * padPct;
+    const sx = (t) => padL + ((t - xMin) / (xMax - xMin || 1)) * (W - padL - padR);
+    const sy = (v) => padT + (1 - (v - yMin) / (yMax - yMin || 1)) * (H - padT - padB);
+
+    // Path
+    let d = '';
+    series.forEach((p, i) => {
+      const x = sx(+p[0]), y = sy(+p[1]);
+      d += (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`);
+    });
+    linePath.setAttribute('d', d);
+    // Area fills below the line down to the chart bottom
+    const last = series[series.length - 1];
+    const first = series[0];
+    areaPath.setAttribute('d', `${d} L ${sx(+last[0]).toFixed(1)} ${(H - padB).toFixed(1)} L ${sx(+first[0]).toFixed(1)} ${(H - padB).toFixed(1)} Z`);
+
+    // Y-axis grid + labels (4 horizontal lines)
+    const yTicks = 4;
+    let gridHtml = '', labelHtml = '';
+    for (let i = 0; i <= yTicks; i++) {
+      const y = padT + (i / yTicks) * (H - padT - padB);
+      const v = yMax - (i / yTicks) * (yMax - yMin);
+      gridHtml += `<line x1="${padL}" x2="${W - padR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+      labelHtml += `<text class="chart-axis-label" x="6" y="${(y + 4).toFixed(1)}">$${v.toLocaleString('en-US',{maximumFractionDigits:0})}</text>`;
+    }
+    grid.innerHTML = gridHtml;
+    labels.innerHTML = labelHtml;
+
+    // X-axis date labels (5 evenly spaced)
+    const N = 5;
+    let xHtml = '';
+    for (let i = 0; i < N; i++) {
+      const t = xMin + (i / (N - 1)) * (xMax - xMin);
+      const d = new Date(t);
+      xHtml += `<span>${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`;
+    }
+    xLabels.innerHTML = xHtml;
+  }
+
+  // Wire chart tab switches (after DOM is ready — these IDs exist now)
+  document.getElementById('chartSeriesTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-series]');
+    if (!btn) return;
+    document.querySelectorAll('#chartSeriesTabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _chartSeries = btn.dataset.series;
+    renderEquityChart();
+  });
+  document.getElementById('chartRangeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-range]');
+    if (!btn) return;
+    document.querySelectorAll('#chartRangeToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _chartRange = btn.dataset.range;
+    renderEquityChart();
+  });
 
   // Real EIP-1193 wallet integration with silent restore + listeners
   const WALLET_KEY = 'hyperguard:wallet';
