@@ -2451,66 +2451,37 @@ function tryMoveStop(newStopPrice) {
 window.tryMoveStop = tryMoveStop; // exposed for the live position card buttons
 
 // ─── position rendering + lifecycle ───────────────────────────
-function renderPosCard() {
+// ── Position card: mount once, update text on every tick ──
+//   Was rebuilding the entire DOM via innerHTML on every WS trade tick
+//   (10-20+ times per second on real BTC) — that destroy-and-recreate
+//   is what was making the whole app flicker. Now the DOM is mounted
+//   once when the position opens (or coin/side changes) and subsequent
+//   ticks only patch the text content + class of named spans.
+const _pcKey = (p) => p ? (p.coin + ':' + p.side + ':' + p.leverage + ':' + p.notional + ':' + p.openedAt) : '';
+let _pcMountedKey = '';
+let _pcLastTpState = null;  // 'set' | 'unset' — gates only when TP cell structure flips
+
+const fmtSigned$ = (n) => (n >= 0 ? '+' : '−') + '$' + Math.abs(n).toFixed(2);
+
+function mountPosCard(p) {
   const slot = $('posCardSlot');
-  if (!state.position) { slot.innerHTML = ''; return; }
-  const p = state.position;
-  const dir = p.side === 'long' ? 1 : -1;
-  const movePct = ((lastClose - p.entry) * dir / p.entry) * 100;
-  const grossPnl = (movePct / 100) * p.notional;
-  const pnlCls  = grossPnl >= 0 ? 'up' : 'down';
-  const liqDist = Math.abs(((p.liqPrice - lastClose) / lastClose) * 100);
-
-  // Fees: 0.05% taker × 2 sides (entry already paid, exit estimated)
-  const entryFee = p.notional * 0.0005;
-  const exitFee  = p.notional * 0.0005;
-  const totalFee = entryFee + exitFee;
-
-  // Funding accrual — hourly rate from cached HL ctx, signed by direction.
-  // Long pays funding when rate > 0; short receives. (Negative = cost.)
-  const hourlyRate = +(marketsCache.byCoin[p.coin]?.funding || 0);
-  const heldHours = Math.max(0, (Date.now() - p.openedAt) / 3_600_000);
-  const fundingAccrued = -dir * p.notional * hourlyRate * heldHours;
-
-  const netPnl = grossPnl - totalFee + fundingAccrued;
-  const netPct = (netPnl / p.notional) * 100;
-  const netCls = netPnl >= 0 ? 'up' : 'down';
-
-  // BE state
-  const inProfit = movePct > 0;
-  const stopAtBE = Math.abs(p.stopPrice - p.entry) / p.entry < 0.0005;
-  const beDisabled = !inProfit || stopAtBE;
-  const beTitle = stopAtBE
-    ? 'Stop already at break-even'
-    : !inProfit
-      ? 'Available once trade is in profit'
-      : 'Move stop to entry — locks zero loss';
-
-  const fmtSigned$ = (n) => (n >= 0 ? '+' : '−') + '$' + Math.abs(n).toFixed(2);
-
   slot.innerHTML = `
     <div class="pos-card ${p.side}">
       <div class="ph-grid">
         <div class="pcell headline">
           <div class="k">${(p.coin || currentCoin)}-USDC · ${p.side.toUpperCase()} · ${p.leverage}× · ${fmt0(p.notional)}</div>
-          <div class="v ${netCls}">${fmtSigned$(netPnl)} <span class="sub">${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}% net</span></div>
+          <div class="v" id="pc-net">—</div>
         </div>
-        <div class="pcell"><span class="k">Entry</span><span class="v">$${p.entry.toLocaleString('en-US',{maximumFractionDigits:1})}</span></div>
-        <div class="pcell"><span class="k">Mark</span><span class="v ${pnlCls}">$${lastClose.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${movePct >= 0 ? '+' : ''}${movePct.toFixed(2)}%</span></span></div>
-        <div class="pcell"><span class="k">Stop${stopAtBE ? ' · BE' : ''}</span><span class="v ${stopAtBE ? 'up' : ''}">$${p.stopPrice.toLocaleString('en-US',{maximumFractionDigits:1})}</span></div>
-        <div class="pcell"><span class="k">Liq</span><span class="v down">$${p.liqPrice.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${liqDist.toFixed(2)}% away</span></span></div>
-        <div class="pcell"><span class="k">Gross PnL</span><span class="v ${pnlCls}">${fmtSigned$(grossPnl)}</span></div>
-        <div class="pcell"><span class="k">Fees (round-trip)</span><span class="v down">−$${totalFee.toFixed(2)}</span></div>
-        <div class="pcell"><span class="k">Funding · ${(hourlyRate*100).toFixed(4)}%/h</span><span class="v ${fundingAccrued >= 0 ? 'up' : 'down'}">${fmtSigned$(fundingAccrued)}</span></div>
-        ${tpPrice != null ? (() => {
-          const tpDir = p.side === 'long' ? 1 : -1;
-          const tpMove = ((tpPrice - p.entry) * tpDir / p.entry) * 100;
-          const tpUsd  = (tpMove / 100) * p.notional;
-          const tpCls = tpUsd >= 0 ? 'up' : 'down';
-          return `<div class="pcell"><span class="k">Take Profit @ $${tpPrice.toFixed(1)} <span style="color:var(--mint);cursor:pointer;margin-left:6px;" onclick="window.clearTP()">✕</span></span><span class="v ${tpCls}">${fmtSigned$(tpUsd)} <span class="sub">${tpMove >= 0 ? '+' : ''}${tpMove.toFixed(2)}%</span></span></div>`;
-        })() : `<div class="pcell"><span class="k" style="color:var(--mint);">💡 Click chart to set TP</span><span class="v" style="color:var(--text-3);">— not set</span></div>`}
+        <div class="pcell"><span class="k">Entry</span><span class="v" id="pc-entry">—</span></div>
+        <div class="pcell"><span class="k">Mark</span><span class="v" id="pc-mark">—</span></div>
+        <div class="pcell"><span class="k" id="pc-stop-k">Stop</span><span class="v" id="pc-stop">—</span></div>
+        <div class="pcell"><span class="k">Liq</span><span class="v down" id="pc-liq">—</span></div>
+        <div class="pcell"><span class="k">Gross PnL</span><span class="v" id="pc-gross">—</span></div>
+        <div class="pcell"><span class="k">Fees (round-trip)</span><span class="v down" id="pc-fees">—</span></div>
+        <div class="pcell"><span class="k" id="pc-fund-k">Funding</span><span class="v" id="pc-fund">—</span></div>
+        <div class="pcell" id="pc-tp-cell"><span class="k" style="color:var(--mint);">💡 Click chart to set TP</span><span class="v" style="color:var(--text-3);">— not set</span></div>
         <div class="pactions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:200px;">
-          <button onclick="window.moveToBE()" ${beDisabled ? 'disabled' : ''} title="${beTitle}" class="${!beDisabled ? 'be-btn' : ''}">${stopAtBE ? '✓ At BE' : 'Move to BE'}</button>
+          <button id="pc-be" onclick="window.moveToBE()">Move to BE</button>
           <button onclick="window.tightenStop()">Tighten 25%</button>
           <button onclick="window.tryWidenStop()">Try widen</button>
           <button class="close-btn" onclick="window.closePos('manual')">Close</button>
@@ -2518,6 +2489,113 @@ function renderPosCard() {
       </div>
     </div>
   `;
+  // Static cells set once
+  $('pc-entry').textContent = '$' + p.entry.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  $('pc-fees').textContent  = '−$' + (p.notional * 0.001).toFixed(2);
+  _pcLastTpState = null;     // force TP cell sync on first paint
+}
+
+function _patchClass(el, prefix, cls) {
+  // Replace classes that match prefix without touching unrelated ones
+  el.className = (el.className.split(/\s+/).filter(c => !c.startsWith(prefix) && c !== 'up' && c !== 'down' && c !== 'warn').join(' ') + ' ' + cls).trim();
+}
+
+function renderPosCard() {
+  const slot = $('posCardSlot');
+  if (!state.position) {
+    if (_pcMountedKey) { slot.innerHTML = ''; _pcMountedKey = ''; _pcLastTpState = null; }
+    return;
+  }
+  const p = state.position;
+  const key = _pcKey(p);
+  if (key !== _pcMountedKey) {
+    mountPosCard(p);
+    _pcMountedKey = key;
+  }
+
+  // Live values
+  const dir = p.side === 'long' ? 1 : -1;
+  const movePct = ((lastClose - p.entry) * dir / p.entry) * 100;
+  const grossPnl = (movePct / 100) * p.notional;
+  const pnlCls  = grossPnl >= 0 ? 'up' : 'down';
+  const liqDist = Math.abs(((p.liqPrice - lastClose) / lastClose) * 100);
+  const totalFee = p.notional * 0.001;
+  const hourlyRate = +(marketsCache.byCoin[p.coin]?.funding || 0);
+  const heldHours = Math.max(0, (Date.now() - p.openedAt) / 3_600_000);
+  const fundingAccrued = -dir * p.notional * hourlyRate * heldHours;
+  const netPnl = grossPnl - totalFee + fundingAccrued;
+  const netPct = (netPnl / p.notional) * 100;
+  const netCls = netPnl >= 0 ? 'up' : 'down';
+  const inProfit = movePct > 0;
+  const stopAtBE = Math.abs(p.stopPrice - p.entry) / p.entry < 0.0005;
+  const beDisabled = !inProfit || stopAtBE;
+
+  // Patch only the dynamic spans — no innerHTML on the card root
+  const net = $('pc-net');
+  net.innerHTML = `${fmtSigned$(netPnl)} <span class="sub">${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}% net</span>`;
+  net.className = 'v ' + netCls;
+
+  const mark = $('pc-mark');
+  mark.innerHTML = `$${lastClose.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${movePct >= 0 ? '+' : ''}${movePct.toFixed(2)}%</span>`;
+  mark.className = 'v ' + pnlCls;
+
+  $('pc-stop-k').textContent = stopAtBE ? 'Stop · BE' : 'Stop';
+  const stopEl = $('pc-stop');
+  stopEl.textContent = '$' + p.stopPrice.toLocaleString('en-US',{maximumFractionDigits:1});
+  stopEl.className = 'v ' + (stopAtBE ? 'up' : '');
+
+  $('pc-liq').innerHTML = `$${p.liqPrice.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${liqDist.toFixed(2)}% away</span>`;
+
+  const gross = $('pc-gross');
+  gross.textContent = fmtSigned$(grossPnl);
+  gross.className = 'v ' + pnlCls;
+
+  $('pc-fund-k').textContent = `Funding · ${(hourlyRate*100).toFixed(4)}%/h`;
+  const fund = $('pc-fund');
+  fund.textContent = fmtSigned$(fundingAccrued);
+  fund.className = 'v ' + (fundingAccrued >= 0 ? 'up' : 'down');
+
+  // BE button — only restructure when its enabled state actually flips
+  const beBtn = $('pc-be');
+  if (beBtn) {
+    beBtn.disabled = beDisabled;
+    beBtn.className = beDisabled ? '' : 'be-btn';
+    beBtn.textContent = stopAtBE ? '✓ At BE' : 'Move to BE';
+    beBtn.title = stopAtBE
+      ? 'Stop already at break-even'
+      : !inProfit
+        ? 'Available once trade is in profit'
+        : 'Move stop to entry — locks zero loss';
+  }
+
+  // TP cell — two structural states (set vs unset). Only re-render the
+  // cell when flipping between them; otherwise just patch the values.
+  const tpCell = $('pc-tp-cell');
+  const wantState = tpPrice != null ? 'set' : 'unset';
+  if (wantState !== _pcLastTpState) {
+    if (wantState === 'set') {
+      tpCell.innerHTML = `
+        <span class="k">Take Profit @ <span id="pc-tp-px">—</span> <span style="color:var(--mint);cursor:pointer;margin-left:6px;" onclick="window.clearTP()">✕</span></span>
+        <span class="v" id="pc-tp-v">—</span>`;
+    } else {
+      tpCell.innerHTML = `
+        <span class="k" style="color:var(--mint);">💡 Click chart to set TP</span>
+        <span class="v" style="color:var(--text-3);">— not set</span>`;
+    }
+    _pcLastTpState = wantState;
+  }
+  if (wantState === 'set') {
+    const tpMove = ((tpPrice - p.entry) * dir / p.entry) * 100;
+    const tpUsd  = (tpMove / 100) * p.notional;
+    const tpCls = tpUsd >= 0 ? 'up' : 'down';
+    const pxEl = $('pc-tp-px');
+    if (pxEl) pxEl.textContent = '$' + tpPrice.toFixed(1);
+    const vEl = $('pc-tp-v');
+    if (vEl) {
+      vEl.innerHTML = `${fmtSigned$(tpUsd)} <span class="sub">${tpMove >= 0 ? '+' : ''}${tpMove.toFixed(2)}%</span>`;
+      vEl.className = 'v ' + tpCls;
+    }
+  }
 }
 
 function updatePositionUI() {
