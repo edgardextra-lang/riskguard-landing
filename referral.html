@@ -551,7 +551,13 @@
         if (!accs || !accs.length) { try { localStorage.removeItem(WALLET_KEY); } catch {}; setDisconnected(); }
         else { try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}; setConnected(accs[0]); }
       });
-      eth.on('chainChanged', () => location.reload());
+      // Only reload on a *real* chain change (avoid wallet-emit-on-connect reload loop)
+      let _lastChainId = null;
+      try { eth.request({ method: 'eth_chainId' }).then(id => { _lastChainId = id; }).catch(() => {}); } catch {}
+      eth.on('chainChanged', (id) => {
+        if (_lastChainId != null && _lastChainId !== id) location.reload();
+        _lastChainId = id;
+      });
     }
   })();
 

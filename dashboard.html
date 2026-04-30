@@ -736,7 +736,14 @@
           applyConnected(accs[0]);
         }
       });
-      eth.on('chainChanged', () => location.reload());
+      // Only reload on a *real* chain change. Some wallets emit chainChanged
+      // on initial connect with the current chain — would cause a reload loop.
+      let _lastChainId = null;
+      try { eth.request({ method: 'eth_chainId' }).then(id => { _lastChainId = id; }).catch(() => {}); } catch {}
+      eth.on('chainChanged', (id) => {
+        if (_lastChainId != null && _lastChainId !== id) location.reload();
+        _lastChainId = id;
+      });
     }
   })();
 

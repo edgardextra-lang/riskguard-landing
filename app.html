@@ -1346,18 +1346,28 @@ const wallet = {
 function applyConnectedUI(addr) {
   const btn = document.getElementById('walletBtn');
   if (!btn) return;
+  // Idempotent — same address → no-op. Was a flicker source: every
+  // accountsChanged tick was zeroing equity → NaN cascade in pollRules
+  // (NaN%) and recompute (notional=0), and re-rendering the whole UI.
+  if (btn.dataset.connectedAddr === addr) return;
+  btn.dataset.connectedAddr = addr;
   btn.classList.add('connected');
   btn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
-  state.equity = 0;
-  state.startOfDayEquity = 0;
-  document.getElementById('equity').textContent = '$0.00';
-  document.getElementById('today-pnl').textContent = '+0.00%';
+  // Keep equity at its existing demo baseline so risk math doesn't divide
+  // by zero. Real-mode would fetch HL clearinghouseState here.
+  document.getElementById('equity').textContent = fmt$(state.equity);
+  const dailyPct = state.startOfDayEquity > 0
+    ? (state.todayPnL / state.startOfDayEquity) * 100
+    : 0;
+  document.getElementById('today-pnl').textContent =
+    (dailyPct >= 0 ? '+' : '') + dailyPct.toFixed(2) + '%';
   document.getElementById('equityPill').style.display = '';
   document.getElementById('todayPill').style.display  = '';
 }
 function applyDisconnectedUI() {
   const btn = document.getElementById('walletBtn');
   if (!btn) return;
+  delete btn.dataset.connectedAddr;
   btn.classList.remove('connected');
   btn.textContent = 'Connect wallet';
   document.getElementById('equityPill').style.display = 'none';
@@ -1372,16 +1382,31 @@ if (window.ethereum && typeof window.ethereum.on === 'function') {
       applyDisconnectedUI();
       toast('Wallet disconnected', 'warn');
     } else {
+      // Skip if address didn't actually change — silent restore + a fresh
+      // accountsChanged on connect can otherwise cascade twice.
+      if (state.walletAddress === accs[0]) return;
       state.walletAddress = accs[0];
       try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}
       applyConnectedUI(accs[0]);
       toast('Account changed', 'ok');
     }
   });
-  window.ethereum.on('chainChanged', () => {
-    // Simplest correct behavior: full reload so all data fetches re-run.
-    location.reload();
+  // Track chain — only reload on a *real* change. Some wallets emit
+  // chainChanged on initial connect with the current chain, which would
+  // trigger an infinite reload loop.
+  let _lastChainId = null;
+  window.ethereum.on('chainChanged', (chainId) => {
+    if (_lastChainId != null && _lastChainId !== chainId) {
+      location.reload();
+    }
+    _lastChainId = chainId;
   });
+  // Seed the last chain id so the very first event isn't treated as a change
+  try {
+    window.ethereum.request({ method: 'eth_chainId' })
+      .then((id) => { _lastChainId = id; })
+      .catch(() => {});
+  } catch {}
 }
 
 // ─── chart wrapper ────────────────────────────────────────────
