@@ -457,10 +457,10 @@
     z-index: 5;
     min-width: 200px;
   }
-  /* Timeframe toggle — sits top-right of chart */
+  /* Timeframe toggle — top-left of chart, OHLC sits to its right */
   .chart-tf {
     position: absolute;
-    top: 14px; right: 76px;
+    top: 14px; left: 14px;
     z-index: 5;
     display: inline-flex;
     background: rgba(15,19,25,.85);
@@ -485,7 +485,7 @@
   .chart-tf .tf-btn:hover { color: var(--text); }
   .chart-tf .tf-btn.active { background: var(--surface-3); color: var(--mint); }
   @media (max-width: 720px) {
-    .chart-tf { right: 14px; top: auto; bottom: 14px; }
+    .chart-tf { left: 14px; top: auto; bottom: 14px; }
   }
 
   /* Cursor-following hint when a position is open */
@@ -517,7 +517,7 @@
   /* OHLC strip — sits to the right of the legend */
   .chart-ohlc {
     position: absolute;
-    top: 14px; left: 14px;
+    top: 14px; left: 184px;   /* sits right of the .chart-tf toggle */
     z-index: 5;
     display: inline-flex; align-items: center; gap: 14px;
     padding: 9px 14px;
@@ -1180,7 +1180,7 @@
           <span>Stop-loss distance <span class="hint">drag to keep risk constant</span></span>
           <span class="field-val">−<span id="i-stop-v">4</span>%</span>
         </div>
-        <input id="i-stop" class="slider" type="range" min="1" max="15" step="0.5" value="4" />
+        <input id="i-stop" class="slider" type="range" min="0.25" max="15" step="0.25" value="4" />
       </div>
 
       <div>
@@ -2370,8 +2370,12 @@ function updatePriceUI() {
   const m = document.getElementById('ps-mark');
   if (m) m.textContent = formatPx(lastClose);
 
-  // 24h Change uses prevDayPx from cached HL ctx if available, else first candle
-  const prev = (marketsCache.byCoin['BTC'] && +marketsCache.byCoin['BTC'].prevDayPx) || candles[0].close;
+  // 24h Change uses prevDayPx from cached HL ctx for the *current* coin
+  // (was hard-coded to 'BTC'), falling back to the first loaded candle.
+  // candles[] is empty until HL history resolves, so guard the fallback.
+  const ctx = marketsCache.byCoin[currentCoin];
+  const prev = (ctx && +ctx.prevDayPx) || (candles.length ? candles[0].close : lastClose);
+  if (!prev || !isFinite(prev) || !isFinite(lastClose)) return;
   const delta = lastClose - prev;
   const pct = (delta / prev) * 100;
   const cEl = document.getElementById('ps-change');
