@@ -369,6 +369,7 @@
   #chart {
     flex: 1; min-height: 200px;
     position: relative;
+    overflow: hidden;          /* clip the risk-zone overlay to chart bounds */
   }
   /* Position panel — always visible below chart while in trade */
   .pos-panel {
@@ -456,6 +457,32 @@
     z-index: 5;
     min-width: 200px;
   }
+  /* Cursor-following hint when a position is open */
+  .chart-tip {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+    background: rgba(15,19,25,.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--mint-soft);
+    border-radius: var(--r);
+    padding: 6px 10px;
+    font-family: var(--f-mono); font-size: 11px;
+    color: var(--text-2);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity .12s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,.5);
+    max-width: 320px;
+  }
+  .chart-tip.show { opacity: 1; }
+  .chart-tip .lbl   { color: var(--text-3); margin-right: 4px; }
+  .chart-tip .px    { color: var(--text); }
+  .chart-tip .pnl.up   { color: var(--mint); margin-left: 8px; }
+  .chart-tip .pnl.down { color: var(--danger); margin-left: 8px; }
+  .chart-tip.dragging { border-color: var(--mint); }
+  .chart-tip.dragging .lbl { color: var(--mint); }
+
   /* OHLC strip — sits to the right of the legend */
   .chart-ohlc {
     position: absolute;
@@ -848,31 +875,50 @@
   }
   .pos-card .ph-grid {
     display: grid;
-    grid-template-columns: minmax(160px, auto) repeat(7, minmax(72px, 1fr)) auto;
-    gap: 14px 22px;
-    align-items: center;
+    grid-template-columns: minmax(180px, auto) repeat(7, minmax(80px, 1fr)) auto;
+    gap: 0 22px;
+    align-items: start;     /* labels at top of row, values flow below */
     margin-bottom: 12px;
   }
-  .pos-card .pcell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .pos-card .pcell {
+    display: flex; flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    text-align: left;       /* explicit alignment — was inheriting */
+  }
   .pos-card .pcell .k {
     font-family: var(--f-mono); font-size: 9px;
     color: var(--text-3);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    line-height: 14px;       /* fixed so labels align across the row */
+    height: 14px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .pos-card .pcell .v {
     font-family: var(--f-mono); font-size: 13px;
     color: var(--text);
     font-feature-settings: 'tnum';
-    line-height: 1.15;
+    line-height: 1.25;
+    min-height: 16px;
+    white-space: nowrap;
   }
   .pos-card .pcell .v.up   { color: var(--mint); }
   .pos-card .pcell .v.down { color: var(--danger); }
   .pos-card .pcell .v.warn { color: var(--warn); }
-  .pos-card .pcell .v .sub { color: var(--text-3); font-size: 10px; margin-left: 4px; }
+  /* Sub line wraps under the primary value so cells with extra detail
+     don't push the row taller than the others — primary values stay
+     aligned on a single baseline across the row. */
+  .pos-card .pcell .v .sub {
+    display: block;
+    color: var(--text-3); font-size: 10px;
+    line-height: 1.2;
+    margin-top: 1px;
+  }
   .pos-card .pcell.headline .v {
     font-family: var(--f-sans); font-size: 22px;
     font-weight: 500; letter-spacing: -0.02em;
+    line-height: 1.05;
   }
   @media (max-width: 1100px) {
     .pos-card .ph-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
@@ -1055,6 +1101,7 @@
         <div class="row"><div class="swatch" style="background:rgba(255,116,104,.3)"></div><div class="lbl">Risk zone</div><div class="v" id="lg-zone">—</div></div>
       </div>
       <div class="risk-zone" id="riskZone"><div class="zone-label">RISK ZONE</div></div>
+      <div class="chart-tip" id="chartTip"></div>
       <div class="chart-ohlc" id="chartOhlc">
         <span class="pair"><span class="k">O</span><span class="v" id="oh-o">—</span></span>
         <span class="pair"><span class="k">H</span><span class="v" id="oh-h">—</span></span>
@@ -1911,29 +1958,135 @@ function refreshTPLabel() {
   } catch {}
 }
 
-// ── Left-click on chart to place TP (only while in a position) ──
-// Uses click-vs-drag detection so chart pan still works.
+// ── Chart interaction layer: hover hint + drag TP + click-to-set-TP ──
+//   While in a position:
+//     • hovering the chart shows a cursor-following hint with the live
+//       $/% TP would represent at the cursor's price
+//     • clicking sets the TP at that price
+//     • clicking-and-dragging the existing TP line moves it; the hint and
+//       position card update in real time
+//   Click-vs-drag detection keeps native chart pan (5px / 400ms threshold).
 {
-  let _md = null;
+  const tipEl = document.getElementById('chartTip');
+  let _md = null;          // mousedown info for click-vs-drag
+  let _dragMode = null;    // null | 'tp' (dragging existing TP line)
+
+  function priceFromEvent(e) {
+    const rect = chartEl.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    return { y, px: candleSeries.coordinateToPrice(y), x: e.clientX - rect.left };
+  }
+  function tpYNear(y) {
+    if (tpPrice == null) return false;
+    const tpY = candleSeries.priceToCoordinate(tpPrice);
+    return tpY != null && Math.abs(y - tpY) <= 8;
+  }
+  function pnlAt(price) {
+    const p = state.position; if (!p) return null;
+    const dir = p.side === 'long' ? 1 : -1;
+    const movePct = ((price - p.entry) * dir / p.entry) * 100;
+    const pnlUsd = (movePct / 100) * p.notional;
+    return { movePct, pnlUsd };
+  }
+  function paintTip(x, y, price, dragging) {
+    if (!state.position || price == null) { tipEl.classList.remove('show'); return; }
+    const { movePct, pnlUsd } = pnlAt(price) || {};
+    const cls = pnlUsd >= 0 ? 'up' : 'down';
+    const sign = pnlUsd >= 0 ? '+' : '−';
+    const action = dragging ? 'Drag TP →' : (tpPrice != null ? 'Click to move TP' : 'Click to set TP');
+    tipEl.innerHTML = `
+      <span class="lbl">${action}</span>
+      <span class="px">$${formatPx(price)}</span>
+      <span class="pnl ${cls}">${sign}$${Math.abs(pnlUsd).toFixed(2)} ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%</span>
+    `;
+    tipEl.classList.toggle('dragging', !!dragging);
+    // Position next to cursor with viewport clamping inside chart
+    const rect = chartEl.getBoundingClientRect();
+    const tipW = tipEl.offsetWidth || 240;
+    const tipH = tipEl.offsetHeight || 28;
+    let nx = x + 14, ny = y + 14;
+    if (nx + tipW > rect.width - 8)  nx = x - tipW - 14;
+    if (ny + tipH > rect.height - 8) ny = y - tipH - 14;
+    tipEl.style.left = nx + 'px';
+    tipEl.style.top  = ny + 'px';
+    tipEl.classList.add('show');
+  }
+
+  chartEl.addEventListener('mousemove', (e) => {
+    if (!state.position) { tipEl.classList.remove('show'); chartEl.style.cursor = ''; return; }
+    if (e.target.closest('.legend, .chart-ohlc, .risk-zone, .chart-tip')) {
+      tipEl.classList.remove('show');
+      return;
+    }
+    const { y, px, x } = priceFromEvent(e);
+    if (px == null) { tipEl.classList.remove('show'); return; }
+    if (_dragMode === 'tp') {
+      // Live drag: update tpPrice, redraw line + label, repaint position card
+      tpPrice = px;
+      // Reuse setTP logic but skip toast (it sets the line)
+      if (tpLine) { try { candleSeries.removePriceLine(tpLine); } catch {} tpLine = null; }
+      const p = state.position;
+      const dir = p.side === 'long' ? 1 : -1;
+      const movePct = ((px - p.entry) * dir / p.entry) * 100;
+      const pnlUsd  = (movePct / 100) * p.notional;
+      const sign = pnlUsd >= 0 ? '+' : '−';
+      tpLine = candleSeries.createPriceLine({
+        price: px,
+        color: pnlUsd >= 0 ? '#a3f7bf' : '#ff7468',
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dotted,
+        axisLabelVisible: true,
+        title: `TP  ${sign}$${Math.abs(pnlUsd).toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`,
+      });
+      renderPosCard();
+      paintTip(x, y, px, true);
+      chartEl.style.cursor = 'grabbing';
+      return;
+    }
+    paintTip(x, y, px, false);
+    chartEl.style.cursor = tpYNear(y) ? 'grab' : 'crosshair';
+  });
+  chartEl.addEventListener('mouseleave', () => {
+    if (_dragMode) return;
+    tipEl.classList.remove('show');
+    chartEl.style.cursor = '';
+  });
+
   chartEl.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    if (e.target.closest('.legend, .chart-ohlc, .risk-zone, .chart-tip')) return;
+    if (!state.position) return;
+    const { y } = priceFromEvent(e);
+    if (tpYNear(y)) {
+      _dragMode = 'tp';
+      e.preventDefault();
+      return;
+    }
     _md = { x: e.clientX, y: e.clientY, t: Date.now() };
   });
-  chartEl.addEventListener('mouseup', (e) => {
+  // mouseup must be on window so a drag that ends outside the chart still resolves
+  window.addEventListener('mouseup', (e) => {
+    if (_dragMode === 'tp') {
+      _dragMode = null;
+      chartEl.style.cursor = '';
+      toast('Take profit moved', 'ok');
+      return;
+    }
     if (!_md) return;
     const dx = Math.abs(e.clientX - _md.x);
     const dy = Math.abs(e.clientY - _md.y);
     const dt = Date.now() - _md.t;
     _md = null;
-    if (dx > 5 || dy > 5 || dt > 400) return;          // was a drag/long-press
-    if (e.target.closest('.legend, .chart-ohlc, .risk-zone')) return;
-    if (!state.position) return;                        // no position → ignore
+    if (dx > 5 || dy > 5 || dt > 400) return;          // was a chart pan
+    if (e.target.closest('.legend, .chart-ohlc, .risk-zone, .chart-tip')) return;
+    if (!state.position) return;
     const rect = chartEl.getBoundingClientRect();
     const y = e.clientY - rect.top;
+    if (y < 0 || y > rect.height) return;
     const px = candleSeries.coordinateToPrice(y);
     if (px == null) return;
     setTP(px);
-    toast('Take profit set — click chart again to move, ✕ in card to clear', 'ok');
+    toast('Take profit set — drag the line to move, ✕ in card to clear', 'ok');
   });
 }
 function drawLines(entry, stop, liq) {
@@ -1964,8 +2117,18 @@ function paintRiskZone(stopPrice, liqPrice) {
     zoneEl.style.opacity = '0';
     return;
   }
-  const top = Math.min(yStop, yLiq);
-  const bot = Math.max(yStop, yLiq);
+  // Clamp to chart bounds — when the liq is far below visible price range,
+  // priceToCoordinate returns a value past the chart's height and the zone
+  // bleeds into whatever sits below the chart (e.g. position card).
+  const chartH = chartEl.clientHeight;
+  let top = Math.min(yStop, yLiq);
+  let bot = Math.max(yStop, yLiq);
+  top = Math.max(0, Math.min(chartH, top));
+  bot = Math.max(0, Math.min(chartH, bot));
+  if (bot - top < 1) {
+    zoneEl.style.opacity = '0';
+    return;
+  }
   zoneEl.style.top    = top + 'px';
   zoneEl.style.height = (bot - top) + 'px';
   zoneEl.style.opacity = state.position ? '1' : '0.85';
