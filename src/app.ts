@@ -986,10 +986,15 @@ function refreshTPLabel() {
   }
   function paintTip(x, y, price, dragging) {
     if (!state.position || price == null) { tipEl.classList.remove('show'); return; }
-    const { movePct, pnlUsd } = pnlAt(price) || {};
+    // Hide the hover tooltip once a TP is set — the TP price line on the
+    // right axis already shows the live $/%, so the floating tooltip is
+    // redundant and just blocks the chart. Still show it during an
+    // active drag so the user gets live feedback while moving the line.
+    if (tpPrice != null && !dragging) { tipEl.classList.remove('show'); return; }
+    const { movePct, pnlUsd } = pnlAt(price) || ({} as any);
     const cls = pnlUsd >= 0 ? 'up' : 'down';
     const sign = pnlUsd >= 0 ? '+' : '−';
-    const action = dragging ? 'Drag TP →' : (tpPrice != null ? 'Click to move TP' : 'Click to set TP');
+    const action = dragging ? 'Drag TP →' : 'Click to set TP';
     tipEl.innerHTML = `
       <span class="lbl">${action}</span>
       <span class="px">$${formatPx(price)}</span>

@@ -868,10 +868,14 @@ function refreshTPLabel() {
       tipEl.classList.remove("show");
       return;
     }
+    if (tpPrice != null && !dragging) {
+      tipEl.classList.remove("show");
+      return;
+    }
     const { movePct, pnlUsd } = pnlAt(price) || {};
     const cls = pnlUsd >= 0 ? "up" : "down";
     const sign = pnlUsd >= 0 ? "+" : "\u2212";
-    const action = dragging ? "Drag TP \u2192" : tpPrice != null ? "Click to move TP" : "Click to set TP";
+    const action = dragging ? "Drag TP \u2192" : "Click to set TP";
     tipEl.innerHTML = `
       <span class="lbl">${action}</span>
       <span class="px">$${formatPx(price)}</span>

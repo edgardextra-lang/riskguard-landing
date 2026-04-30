@@ -77,16 +77,12 @@
     color: var(--text);
   }
   .brand-mark {
-    width: 22px; height: 22px;
+    width: 24px; height: 24px;
+    background: url("favicon.svg") center/contain no-repeat;
     border-radius: var(--r-sm);
-    background: linear-gradient(135deg, var(--mint), #6fd49a);
-    position: relative;
-    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
+    box-shadow: 0 0 12px rgba(163,247,191,.18);
   }
-  .brand-mark::after {
-    content: ''; position: absolute; inset: 5px;
-    border-radius: 3px; background: var(--bg);
-  }
+  .brand-mark::after { display: none; }
   .app-nav { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
   .app-nav a {
     color: var(--text-3);
@@ -466,8 +462,8 @@
     <a href="referral.html">Referral</a>
   </nav>
   <div class="topbar-spacer"></div>
-  <div class="pill"><span class="lbl">Equity</span><span class="v">$10,000.00</span></div>
-  <div class="pill"><span class="lbl">Today</span><span class="v">+0.00%</span></div>
+  <div class="pill" id="topEquityPill" style="display:none;"><span class="lbl">Equity</span><span class="v" id="topEquity">$0.00</span></div>
+  <div class="pill" id="topTodayPill" style="display:none;"><span class="lbl">Today</span><span class="v" id="topToday">+0.00%</span></div>
   <div class="wallet-wrap">
     <button class="wallet-btn" id="walletBtn">Connect wallet</button>
     <div class="wallet-pop" id="walletPop">
@@ -664,6 +660,12 @@
           <div style="font-family: var(--f-mono); font-size: 11px;">Connect a wallet to view your assets</div>
         </td>
       </tr>`;
+    // Hide top-bar equity/today pills on disconnect — was hardcoded
+    // $10,000 before, which gave a misleading "you have funds" signal.
+    const tEq = document.getElementById('topEquityPill');
+    const tTd = document.getElementById('topTodayPill');
+    if (tEq) tEq.style.display = 'none';
+    if (tTd) tTd.style.display = 'none';
   }
 
   // Pull real HL account state for the connected wallet.
@@ -746,6 +748,29 @@
     set('b-avail',  fmtUsd2(withdrawable));
     set('b-spot',   fmtUsd2(spotTotal));
     set('b-usde',   fmtUsd2(usdeBal));
+
+    // Top-bar equity pill mirrors the real wallet balance (was hardcoded
+    // $10,000.00 — now reflects HL clearinghouse + spot total).
+    set('topEquity', fmtUsd2(grandTotal));
+    const tEq = document.getElementById('topEquityPill');
+    const tTd = document.getElementById('topTodayPill');
+    if (tEq) tEq.style.display = '';
+    if (tTd) tTd.style.display = '';
+    // Today % — derived from the day bucket of the portfolio history if present
+    let todayPct = 0;
+    if (_portfolioCache) {
+      const day = _portfolioCache.find(([k]) => k === 'day');
+      const series = day?.[1]?.accountValueHistory;
+      if (Array.isArray(series) && series.length >= 2) {
+        const first = +series[0][1], last = +series[series.length - 1][1];
+        if (first > 0) todayPct = ((last - first) / first) * 100;
+      }
+    }
+    const tToday = document.getElementById('topToday');
+    if (tToday) {
+      tToday.textContent = (todayPct >= 0 ? '+' : '') + todayPct.toFixed(2) + '%';
+      tToday.style.color = todayPct >= 0 ? 'var(--mint)' : 'var(--danger)';
+    }
 
     const d = document.getElementById('b-delta');
     if (d) {
