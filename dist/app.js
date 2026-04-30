@@ -270,20 +270,14 @@ if (window.ethereum && typeof window.ethereum.on === "function") {
       toast("Account changed", "ok");
     }
   });
-  let _lastChainId = null;
-  window.ethereum.on("chainChanged", (chainId) => {
-    if (_lastChainId != null && _lastChainId !== chainId) {
-      location.reload();
+  window.ethereum.on("chainChanged", () => {
+    if (state.walletAddress) {
+      try {
+        applyConnectedUI(state.walletAddress);
+      } catch {
+      }
     }
-    _lastChainId = chainId;
   });
-  try {
-    window.ethereum.request({ method: "eth_chainId" }).then((id) => {
-      _lastChainId = id;
-    }).catch(() => {
-    });
-  } catch {
-  }
 }
 var chartEl = document.getElementById("chart");
 var _tfHasSubday = () => /15m|1m|5m|30m|1h|2h|4h/.test(CURRENT_INTERVAL);
@@ -1543,7 +1537,10 @@ window.tryWidenStop = () => {
 };
 $("walletBtn").addEventListener("click", async () => {
   const btn = $("walletBtn");
-  if (state.walletAddress) return;
+  if (state.walletAddress) {
+    document.getElementById("walletPop")?.classList.toggle("open");
+    return;
+  }
   btn.textContent = "Connecting\u2026";
   try {
     const addr = await wallet.connect();
@@ -1561,13 +1558,26 @@ $("walletBtn").addEventListener("click", async () => {
     }
   } catch (err) {
     btn.textContent = "Connect wallet";
-    if (err.code === "NO_PROVIDER") {
+    if (err && err.code === "NO_PROVIDER") {
       toast("No wallet detected. Install MetaMask or Rabby.", "bad");
-    } else if (err.code === 4001 || /reject/i.test(err.message || "")) {
+    } else if (err && (err.code === 4001 || /reject/i.test(err.message || ""))) {
       toast("Connection rejected", "warn");
     } else {
-      toast("Connect failed: " + (err.message || err), "bad");
+      toast("Connect failed: " + (err && err.message || err), "bad");
     }
+  }
+});
+document.getElementById("walletDisconnect")?.addEventListener("click", () => {
+  wallet.disconnect();
+  applyDisconnectedUI();
+  document.getElementById("walletPop")?.classList.remove("open");
+  toast("Wallet disconnected", "warn");
+});
+document.addEventListener("click", (e) => {
+  const target = e.target;
+  if (!target) return;
+  if (!target.closest(".wallet-wrap")) {
+    document.getElementById("walletPop")?.classList.remove("open");
   }
 });
 (async () => {

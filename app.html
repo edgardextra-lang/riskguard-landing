@@ -159,6 +159,36 @@
     box-shadow: 0 0 0 1px var(--mint), 0 6px 18px rgba(163,247,191,.18);
   }
   .wallet-btn:hover { background: var(--mint-hi); }
+  /* Disconnect popover anchored to the wallet button */
+  .wallet-wrap { position: relative; display: inline-block; }
+  .wallet-pop {
+    position: absolute;
+    top: calc(100% + 6px); right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r);
+    box-shadow: 0 12px 32px rgba(0,0,0,.55);
+    z-index: 1000;
+    display: none;
+    min-width: 168px;
+    padding: 6px;
+  }
+  .wallet-pop.open { display: block; }
+  .wallet-pop button {
+    width: 100%;
+    background: transparent;
+    color: var(--text);
+    border: none;
+    padding: 9px 12px;
+    border-radius: var(--r-sm);
+    font-family: var(--f-sans); font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .wallet-pop button:hover { background: var(--surface-2); }
+  .wallet-pop button.disconnect { color: var(--danger); }
+  .wallet-pop button.disconnect:hover { background: var(--danger); color: var(--bg); }
   .wallet-btn.connected {
     background: var(--surface);
     color: var(--mint);
@@ -1075,7 +1105,12 @@
 
   <div class="pill" id="equityPill" style="display:none;"><span class="lbl">Equity</span><span class="v" id="equity">$0.00</span></div>
   <div class="pill" id="todayPill" style="display:none;"><span class="lbl">Today</span><span class="v" id="today-pnl">+0.00%</span></div>
-  <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+  <div class="wallet-wrap">
+    <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+    <div class="wallet-pop" id="walletPop">
+      <button class="disconnect" id="walletDisconnect">Disconnect</button>
+    </div>
+  </div>
 </div>
 
 <div class="app">

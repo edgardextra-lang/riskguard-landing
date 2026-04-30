@@ -346,22 +346,19 @@ if (window.ethereum && typeof window.ethereum.on === 'function') {
       toast('Account changed', 'ok');
     }
   });
-  // Track chain — only reload on a *real* change. Some wallets emit
-  // chainChanged on initial connect with the current chain, which would
-  // trigger an infinite reload loop.
-  let _lastChainId = null;
-  window.ethereum.on('chainChanged', (chainId) => {
-    if (_lastChainId != null && _lastChainId !== chainId) {
-      location.reload();
+  // Chain changed — DON'T reload the page. Reloading was causing a loop
+  // because ensureArbitrum() programmatically switches the chain via
+  // wallet_switchEthereumChain on every connect, and the wallet then
+  // emits chainChanged with the new id, which the seeded comparison
+  // saw as a "real change" and reloaded — which on next boot ran
+  // applyConnectedUI → ensureArbitrum → switch → chainChanged → reload.
+  // The HL Info API is chain-agnostic, so we just refresh the connected
+  // state instead of nuking the page.
+  window.ethereum.on('chainChanged', () => {
+    if (state.walletAddress) {
+      try { applyConnectedUI(state.walletAddress); } catch {}
     }
-    _lastChainId = chainId;
   });
-  // Seed the last chain id so the very first event isn't treated as a change
-  try {
-    window.ethereum.request({ method: 'eth_chainId' })
-      .then((id) => { _lastChainId = id; })
-      .catch(() => {});
-  } catch {}
 }
 
 // ─── chart wrapper ────────────────────────────────────────────
@@ -1752,35 +1749,52 @@ window.tryWidenStop = () => {
 // ─── wallet button ────────────────────────────────────────────
 $('walletBtn').addEventListener('click', async () => {
   const btn = $('walletBtn');
-  if (state.walletAddress) return;
+  // Connected → toggle the disconnect popover (instead of no-op)
+  if (state.walletAddress) {
+    document.getElementById('walletPop')?.classList.toggle('open');
+    return;
+  }
   btn.textContent = 'Connecting…';
   try {
     const addr = await wallet.connect();
     if (addr) {
       const provider = wallet.providerName() || 'Wallet';
       toast(`${provider} connected · no custody`, 'ok');
-      // Auto-switch to Arbitrum (adds the chain if missing). If the user
-      // rejects the prompt, the app still works in read-only mode but we
-      // surface a clear nudge to switch manually.
       const onArb = await ensureArbitrum();
       if (!onArb) {
         toast('Please switch to Arbitrum One to deposit / trade', 'warn');
       }
-      // Then load real HL balance and refresh the UI
       await applyConnectedUI(addr);
     } else {
       btn.textContent = 'Connect wallet';
       toast('No accounts returned', 'bad');
     }
-  } catch (err) {
+  } catch (err: any) {
     btn.textContent = 'Connect wallet';
-    if (err.code === 'NO_PROVIDER') {
+    if (err && err.code === 'NO_PROVIDER') {
       toast('No wallet detected. Install MetaMask or Rabby.', 'bad');
-    } else if (err.code === 4001 || /reject/i.test(err.message || '')) {
+    } else if (err && (err.code === 4001 || /reject/i.test(err.message || ''))) {
       toast('Connection rejected', 'warn');
     } else {
-      toast('Connect failed: ' + (err.message || err), 'bad');
+      toast('Connect failed: ' + ((err && err.message) || err), 'bad');
     }
+  }
+});
+
+// Disconnect button — clears wallet state + pills, closes popover.
+document.getElementById('walletDisconnect')?.addEventListener('click', () => {
+  wallet.disconnect();
+  applyDisconnectedUI();
+  document.getElementById('walletPop')?.classList.remove('open');
+  toast('Wallet disconnected', 'warn');
+});
+
+// Click outside the wallet wrap closes the popover.
+document.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement | null;
+  if (!target) return;
+  if (!target.closest('.wallet-wrap')) {
+    document.getElementById('walletPop')?.classList.remove('open');
   }
 });
 

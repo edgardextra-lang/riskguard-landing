@@ -121,6 +121,29 @@
     box-shadow: 0 0 0 1px var(--mint), 0 6px 18px rgba(163,247,191,.18);
   }
   .wallet-btn:hover { background: var(--mint-hi); }
+  .wallet-wrap { position: relative; display: inline-block; }
+  .wallet-pop {
+    position: absolute;
+    top: calc(100% + 6px); right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
+    border-radius: var(--r);
+    box-shadow: 0 12px 32px rgba(0,0,0,.55);
+    z-index: 1000;
+    display: none;
+    min-width: 168px;
+    padding: 6px;
+  }
+  .wallet-pop.open { display: block; }
+  .wallet-pop button {
+    width: 100%; background: transparent; color: var(--text);
+    border: none; padding: 9px 12px; border-radius: var(--r-sm);
+    font-family: var(--f-sans); font-size: 13px; text-align: left;
+    cursor: pointer; transition: background .15s ease, color .15s ease;
+  }
+  .wallet-pop button:hover { background: var(--surface-2); }
+  .wallet-pop button.disconnect { color: var(--danger); }
+  .wallet-pop button.disconnect:hover { background: var(--danger); color: var(--bg); }
   .wallet-btn.connected {
     background: var(--surface);
     color: var(--mint);
@@ -395,7 +418,12 @@
   <div class="topbar-spacer"></div>
   <div class="pill"><span class="lbl">Equity</span><span class="v">$10,000.00</span></div>
   <div class="pill"><span class="lbl">Today</span><span class="v">+0.00%</span></div>
-  <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+  <div class="wallet-wrap">
+    <button class="wallet-btn" id="walletBtn">Connect wallet</button>
+    <div class="wallet-pop" id="walletPop">
+      <button class="disconnect" id="walletDisconnect">Disconnect</button>
+    </div>
+  </div>
 </div>
 
 <div class="page">
@@ -521,7 +549,11 @@
     wbtn.textContent = 'Connect wallet';
   }
   wbtn.addEventListener('click', async () => {
-    if (wbtn.classList.contains('connected')) return;
+    // Connected → toggle disconnect popover instead of no-op
+    if (wbtn.classList.contains('connected')) {
+      document.getElementById('walletPop')?.classList.toggle('open');
+      return;
+    }
     wbtn.textContent = 'Connecting…';
     const eth = window.ethereum;
     if (!eth) {
@@ -539,6 +571,18 @@
       console.warn('[wallet] connect rejected', err);
     }
   });
+  // Disconnect handler — clears wallet state, closes popover.
+  document.getElementById('walletDisconnect')?.addEventListener('click', () => {
+    try { localStorage.removeItem(WALLET_KEY); } catch {}
+    setDisconnected();
+    document.getElementById('walletPop')?.classList.remove('open');
+  });
+  // Click outside the wallet wrap closes the popover.
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.wallet-wrap')) {
+      document.getElementById('walletPop')?.classList.remove('open');
+    }
+  });
   (async () => {
     const eth = window.ethereum;
     if (!eth) return;
@@ -551,13 +595,10 @@
         if (!accs || !accs.length) { try { localStorage.removeItem(WALLET_KEY); } catch {}; setDisconnected(); }
         else { try { localStorage.setItem(WALLET_KEY, accs[0]); } catch {}; setConnected(accs[0]); }
       });
-      // Only reload on a *real* chain change (avoid wallet-emit-on-connect reload loop)
-      let _lastChainId = null;
-      try { eth.request({ method: 'eth_chainId' }).then(id => { _lastChainId = id; }).catch(() => {}); } catch {}
-      eth.on('chainChanged', (id) => {
-        if (_lastChainId != null && _lastChainId !== id) location.reload();
-        _lastChainId = id;
-      });
+      // Don't reload on chainChanged — caused an infinite loop on app.html
+      // and dashboard.html where ensureArbitrum auto-switches the chain.
+      // No-op here since referral has no chain-dependent data.
+      eth.on('chainChanged', () => {});
     }
   })();
 
