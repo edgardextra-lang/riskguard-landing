@@ -1832,11 +1832,84 @@ function syntheticTick() {
 
 // price lines
 let entryLine = null, stopLine = null, liqLine = null;
+let tpLine = null, tpPrice = null;
+let _prevRiskBand = 'safe';   // tracks band changes for escalation animations
 function clearLines() {
   if (entryLine) candleSeries.removePriceLine(entryLine);
   if (stopLine)  candleSeries.removePriceLine(stopLine);
   if (liqLine)   candleSeries.removePriceLine(liqLine);
   entryLine = stopLine = liqLine = null;
+  clearTP();
+}
+function clearTP() {
+  if (tpLine) { try { candleSeries.removePriceLine(tpLine); } catch {} }
+  tpLine = null;
+  tpPrice = null;
+  if (state.position) renderPosCard();
+}
+window.clearTP = clearTP;
+function setTP(price) {
+  if (!state.position) return;
+  if (!isFinite(price)) return;
+  tpPrice = price;
+  if (tpLine) { try { candleSeries.removePriceLine(tpLine); } catch {} tpLine = null; }
+  const p = state.position;
+  const dir = p.side === 'long' ? 1 : -1;
+  const movePct = ((price - p.entry) * dir / p.entry) * 100;
+  const pnlUsd  = (movePct / 100) * p.notional;
+  const profitable = pnlUsd > 0;
+  const sign = pnlUsd >= 0 ? '+' : '−';
+  const title = `TP  ${sign}$${Math.abs(pnlUsd).toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`;
+  tpLine = candleSeries.createPriceLine({
+    price,
+    color: profitable ? '#a3f7bf' : '#ff7468',
+    lineWidth: 2,
+    lineStyle: LightweightCharts.LineStyle.Dotted,
+    axisLabelVisible: true,
+    title,
+  });
+  renderPosCard();
+}
+window.setTP = setTP;
+function refreshTPLabel() {
+  if (!tpLine || !state.position || tpPrice == null) return;
+  const p = state.position;
+  const dir = p.side === 'long' ? 1 : -1;
+  const movePct = ((tpPrice - p.entry) * dir / p.entry) * 100;
+  const pnlUsd  = (movePct / 100) * p.notional;
+  const sign = pnlUsd >= 0 ? '+' : '−';
+  try {
+    tpLine.applyOptions({
+      title: `TP  ${sign}$${Math.abs(pnlUsd).toFixed(2)}  ${pnlUsd >= 0 ? '+' : ''}${movePct.toFixed(2)}%`,
+      color: pnlUsd >= 0 ? '#a3f7bf' : '#ff7468',
+    });
+  } catch {}
+}
+
+// ── Left-click on chart to place TP (only while in a position) ──
+// Uses click-vs-drag detection so chart pan still works.
+{
+  let _md = null;
+  chartEl.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    _md = { x: e.clientX, y: e.clientY, t: Date.now() };
+  });
+  chartEl.addEventListener('mouseup', (e) => {
+    if (!_md) return;
+    const dx = Math.abs(e.clientX - _md.x);
+    const dy = Math.abs(e.clientY - _md.y);
+    const dt = Date.now() - _md.t;
+    _md = null;
+    if (dx > 5 || dy > 5 || dt > 400) return;          // was a drag/long-press
+    if (e.target.closest('.legend, .chart-ohlc, .risk-zone')) return;
+    if (!state.position) return;                        // no position → ignore
+    const rect = chartEl.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const px = candleSeries.coordinateToPrice(y);
+    if (px == null) return;
+    setTP(px);
+    toast('Take profit set — click chart again to move, ✕ in card to clear', 'ok');
+  });
 }
 function drawLines(entry, stop, liq) {
   clearLines();
@@ -1966,6 +2039,31 @@ function recompute() {
   $('rdot').style.background = color;
   $('rdot').style.boxShadow = `0 0 8px ${color}`;
   $('riskBadge').style.borderColor = color;
+  $('riskScore').style.color = color;
+
+  // Risk-band escalation animations — fire when crossing into a riskier band.
+  // Body classes drive slider thumb glow; badge flash + zone flash give a
+  // tactile "you just made this more dangerous" cue without being noisy.
+  const newBand = r.riskScore < 35 ? 'safe' : r.riskScore < 70 ? 'warn' : 'danger';
+  if (newBand !== _prevRiskBand) {
+    const escalating = (
+      (_prevRiskBand === 'safe' && newBand !== 'safe') ||
+      (_prevRiskBand === 'warn' && newBand === 'danger')
+    );
+    document.body.classList.toggle('risk-warn',   newBand === 'warn');
+    document.body.classList.toggle('risk-danger', newBand === 'danger');
+    if (escalating) {
+      const badge = $('riskBadge');
+      const zone  = $('riskZone');
+      badge.classList.remove('flash-warn', 'flash-danger');
+      zone.classList.remove('flash');
+      // Force reflow so re-adding the same class restarts the animation
+      void badge.offsetWidth; void zone.offsetWidth;
+      badge.classList.add(newBand === 'danger' ? 'flash-danger' : 'flash-warn');
+      zone.classList.add('flash');
+    }
+    _prevRiskBand = newBand;
+  }
 
   // legend
   $('lg-entry').textContent = '$' + r.entry.toLocaleString('en-US', { maximumFractionDigits: 1 });
@@ -2216,6 +2314,13 @@ function renderPosCard() {
         <div class="pcell"><span class="k">Gross PnL</span><span class="v ${pnlCls}">${fmtSigned$(grossPnl)}</span></div>
         <div class="pcell"><span class="k">Fees (round-trip)</span><span class="v down">−$${totalFee.toFixed(2)}</span></div>
         <div class="pcell"><span class="k">Funding · ${(hourlyRate*100).toFixed(4)}%/h</span><span class="v ${fundingAccrued >= 0 ? 'up' : 'down'}">${fmtSigned$(fundingAccrued)}</span></div>
+        ${tpPrice != null ? (() => {
+          const tpDir = p.side === 'long' ? 1 : -1;
+          const tpMove = ((tpPrice - p.entry) * tpDir / p.entry) * 100;
+          const tpUsd  = (tpMove / 100) * p.notional;
+          const tpCls = tpUsd >= 0 ? 'up' : 'down';
+          return `<div class="pcell"><span class="k">Take Profit @ $${tpPrice.toFixed(1)} <span style="color:var(--mint);cursor:pointer;margin-left:6px;" onclick="window.clearTP()">✕</span></span><span class="v ${tpCls}">${fmtSigned$(tpUsd)} <span class="sub">${tpMove >= 0 ? '+' : ''}${tpMove.toFixed(2)}%</span></span></div>`;
+        })() : `<div class="pcell"><span class="k" style="color:var(--mint);">💡 Click chart to set TP</span><span class="v" style="color:var(--text-3);">— not set</span></div>`}
         <div class="pactions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:200px;">
           <button onclick="window.moveToBE()" ${beDisabled ? 'disabled' : ''} title="${beTitle}" class="${!beDisabled ? 'be-btn' : ''}">${stopAtBE ? '✓ At BE' : 'Move to BE'}</button>
           <button onclick="window.tightenStop()">Tighten 25%</button>
@@ -2235,6 +2340,9 @@ function updatePositionUI() {
   const liqHit  = dir === 1 ? lastClose <= p.liqPrice  : lastClose >= p.liqPrice;
   if (liqHit)  { closePosition('liquidated'); return; }
   if (stopHit) { closePosition('stop'); return; }
+
+  // Refresh TP label so $/% tracks the live mark too
+  refreshTPLabel();
 
   // Entry badge becomes a live PnL readout while position is open
   if (entryLine) {
