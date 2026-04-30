@@ -1306,24 +1306,42 @@ const MODES = {
 
 // ─── pure risk math ───────────────────────────────────────────
 /** @param {RiskInputs} i @returns {RiskOutputs} */
+//
+// Standard perp sizing: notional = margin × leverage.
+//   • "Risk per trade" slider = % of equity put up as margin.
+//   • Sliding leverage visibly scales notional (matches every perp DEX).
+//   • Stop-loss distance defines where the bot exits; max-loss-at-stop
+//     is the ACTUAL dollars lost if stop fires (now leverage-dependent).
+//   • Risk score now weights leverage + liq/stop ratio + max-loss-as-%-
+//     of-equity. The harder you push leverage or the bigger the loss-
+//     at-stop relative to your equity, the redder the score gets.
 function computeRisk(i) {
   const dir = i.side === 'long' ? 1 : -1;
-  const dollarRisk = i.equity * (i.riskPct / 100);
-  const notional   = dollarRisk / (i.stopPct / 100);
-  const margin     = notional / i.leverage;
-  const liqBufferPct = (1 / i.leverage) * 100 * 0.95;
-  const liqStopRatio = liqBufferPct / i.stopPct;
+  const marginDollars = i.equity * (i.riskPct / 100);   // margin you're posting
+  const notional      = marginDollars * i.leverage;     // leverage drives size
+  const maxLossAtStop = notional * (i.stopPct / 100);   // real $ if stop hits
+  const liqBufferPct  = (1 / i.leverage) * 100 * 0.95;  // ~maint margin
+  const liqStopRatio  = liqBufferPct / i.stopPct;
   const entry = i.markPrice;
   const stopPrice = entry * (1 - dir * i.stopPct / 100);
   const liqPrice  = entry * (1 - dir * liqBufferPct / 100);
 
   const m = MODES[state.mode];
-  const levScore   = Math.min(50, Math.pow(i.leverage / m.maxLeverage, 1.4) * 35);
-  const ratioScore = liqStopRatio < 1 ? 40 : liqStopRatio < 2 ? 25 : liqStopRatio < 3 ? 12 : 4;
-  const riskScore  = Math.min(40, Math.pow(i.riskPct / m.maxRiskPct, 1.2) * 22);
-  const score = Math.max(0, Math.min(100, Math.round(levScore + ratioScore + riskScore)));
+  const levScore     = Math.min(40, Math.pow(i.leverage / m.maxLeverage, 1.4) * 30);
+  const ratioScore   = liqStopRatio < 1 ? 40 : liqStopRatio < 2 ? 25 : liqStopRatio < 3 ? 12 : 4;
+  const maxLossPctEq = i.equity > 0 ? (maxLossAtStop / i.equity) * 100 : 0;
+  // 5% loss-at-stop = mode-cap full. Anything over rapidly pushes score → danger.
+  const lossScore    = Math.min(40, Math.pow(Math.max(0, maxLossPctEq) / 5, 1.2) * 22);
+  const score = Math.max(0, Math.min(100, Math.round(levScore + ratioScore + lossScore)));
 
-  return { notional, margin, liqPrice, stopPrice, liqBufferPct, liqStopRatio, riskScore: score, dollarRisk, entry };
+  return {
+    notional,
+    margin: marginDollars,
+    liqPrice, stopPrice, liqBufferPct, liqStopRatio,
+    riskScore: score,
+    dollarRisk: maxLossAtStop,    // consumers (UI, post-trade modal) use this name
+    entry,
+  };
 }
 
 // ─── state ────────────────────────────────────────────────────
@@ -1574,11 +1592,46 @@ if (window.ethereum && typeof window.ethereum.on === 'function') {
 
 // ─── chart wrapper ────────────────────────────────────────────
 const chartEl = document.getElementById('chart');
+// Local-timezone formatters for the time scale + crosshair tooltip.
+// Lightweight-charts treats incoming `time` as UTC seconds by default,
+// so without these the axis ticks and crosshair both render in UTC.
+// We resolve `time` → user's local zone via Intl APIs (uses the browser's
+// resolved timezone — no manual offset needed).
+const _tfHasSubday = () => /15m|1m|5m|30m|1h|2h|4h/.test(CURRENT_INTERVAL);
+const _localDate = (t) => new Date(t * 1000);
+const _tickMarkFormatter = (time, tickMarkType /*, locale */) => {
+  const d = _localDate(time);
+  // 0=Year, 1=Month, 2=DayOfMonth, 3=Time, 4=TimeWithSeconds
+  switch (tickMarkType) {
+    case 0: return d.toLocaleDateString(undefined, { year: 'numeric' });
+    case 1: return d.toLocaleDateString(undefined, { month: 'short' });
+    case 2: return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+    case 3: return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    case 4: return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  return d.toLocaleString();
+};
+const _crosshairTimeFormatter = (time) => {
+  const d = _localDate(time);
+  const subday = _tfHasSubday();
+  return d.toLocaleString(undefined, subday
+    ? { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }
+    : { year: 'numeric', month: 'short', day: '2-digit' });
+};
+
 const chart = LightweightCharts.createChart(chartEl, {
   layout: { background: { color: '#07090c' }, textColor: '#6c7480', fontFamily: 'Geist Mono', fontSize: 11 },
   grid:   { vertLines: { color: '#11151c' }, horzLines: { color: '#11151c' } },
   rightPriceScale: { borderColor: '#1a2029' },
-  timeScale: { borderColor: '#1a2029', timeVisible: true, secondsVisible: false },
+  timeScale: {
+    borderColor: '#1a2029',
+    timeVisible: true,
+    secondsVisible: false,
+    tickMarkFormatter: _tickMarkFormatter,
+  },
+  localization: {
+    timeFormatter: _crosshairTimeFormatter,
+  },
   crosshair: { mode: 1 },
   autoSize: true,
 });
