@@ -517,7 +517,7 @@
   /* OHLC strip — sits to the right of the legend */
   .chart-ohlc {
     position: absolute;
-    top: 14px; left: 240px;
+    top: 14px; left: 14px;
     z-index: 5;
     display: inline-flex; align-items: center; gap: 14px;
     padding: 9px 14px;
@@ -1125,13 +1125,7 @@
 
   <div class="chart-pane">
     <div id="chart">
-      <div class="legend">
-        <div class="row"><div class="swatch" style="background:#a3f7bf"></div><div class="lbl">Entry</div><div class="v" id="lg-entry">—</div></div>
-        <div class="row"><div class="swatch" style="background:#ffce6b"></div><div class="lbl">Stop</div><div class="v" id="lg-stop">—</div></div>
-        <div class="row"><div class="swatch" style="background:#ff7468"></div><div class="lbl">Liquidation</div><div class="v" id="lg-liq">—</div></div>
-        <div class="row"><div class="swatch" style="background:rgba(255,116,104,.3)"></div><div class="lbl">Risk zone</div><div class="v" id="lg-zone">—</div></div>
-      </div>
-      <div class="risk-zone" id="riskZone"><div class="zone-label">RISK ZONE</div></div>
+<div class="risk-zone" id="riskZone"><div class="zone-label">RISK ZONE</div></div>
       <div class="chart-tf" id="chartTf">
         <button class="tf-btn active" data-tf="15m" onclick="window.switchInterval('15m')">15m</button>
         <button class="tf-btn" data-tf="4h"  onclick="window.switchInterval('4h')">4h</button>
@@ -2453,10 +2447,6 @@ function recompute() {
   }
 
   // legend
-  $('lg-entry').textContent = '$' + r.entry.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  $('lg-stop').textContent  = '$' + r.stopPrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  $('lg-liq').textContent   = '$' + r.liqPrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  $('lg-zone').textContent  = r.liqBufferPct.toFixed(2) + '%';
 
   // chart lines + zone (only when no live position)
   if (!state.position) {
