@@ -322,7 +322,10 @@ var chart = LightweightCharts.createChart(chartEl, {
   localization: {
     timeFormatter: _crosshairTimeFormatter
   },
-  crosshair: { mode: 1 },
+  // Mode 0 = Normal — both crosshair lines follow the cursor freely.
+  // Mode 1 (was) = Magnet — horizontal line snapped to nearest candle's
+  // high/low, which felt sticky and unrelated to the user's actual cursor.
+  crosshair: { mode: 0 },
   autoSize: true
 });
 var candleSeries = chart.addCandlestickSeries({
@@ -585,6 +588,15 @@ async function switchInterval(newInterval) {
     chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 });
   } catch {
   }
+  for (const ln of [entryLine, stopLine, liqLine, tpLine]) {
+    if (ln) {
+      try {
+        candleSeries.removePriceLine(ln);
+      } catch {
+      }
+    }
+  }
+  entryLine = stopLine = liqLine = tpLine = null;
   if (state.position) {
     drawLines(state.position.entry, state.position.stopPrice, state.position.liqPrice);
     paintRiskZone(state.position.stopPrice, state.position.liqPrice);
@@ -865,9 +877,15 @@ function refreshTPLabel() {
     if (tpPrice == null) return false;
     const tpY = candleSeries.priceToCoordinate(tpPrice);
     return tpY != null && Math.abs(y - tpY) <= 8;
+  }, currentStopPrice = function() {
+    if (state.position) return state.position.stopPrice;
+    const stopPct = +($("i-stop")?.value || 4);
+    const dir = state.side === "long" ? 1 : -1;
+    return lastClose * (1 - dir * stopPct / 100);
   }, stopYNear = function(y) {
-    if (!state.position) return false;
-    const sY = candleSeries.priceToCoordinate(state.position.stopPrice);
+    const sp = currentStopPrice();
+    if (!isFinite(sp)) return false;
+    const sY = candleSeries.priceToCoordinate(sp);
     return sY != null && Math.abs(y - sY) <= 8;
   }, pnlAt = function(price) {
     const p = state.position;
@@ -938,15 +956,29 @@ function refreshTPLabel() {
       chartEl.style.cursor = "grabbing";
       return;
     }
-    if (_dragMode === "stop" && state.position) {
-      const newStop = clampStopTightening(px);
-      state.position.stopPrice = newStop;
-      drawLines(state.position.entry, newStop, state.position.liqPrice);
-      paintRiskZone(newStop, state.position.liqPrice);
-      renderPosCard();
-      tipEl.classList.add("show", "dragging");
-      const saved = (newStop - _dragStartStop) * (state.position.side === "long" ? 1 : -1) / state.position.entry * 100 * state.position.notional / 100;
-      tipEl.innerHTML = `<span class="lbl">Drag stop closer to entry</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+    if (_dragMode === "stop") {
+      if (state.position) {
+        const newStop = clampStopTightening(px);
+        state.position.stopPrice = newStop;
+        const label = fmtStopBadge(newStop, state.position.entry, state.position.notional, state.position.side);
+        drawLines(state.position.entry, newStop, state.position.liqPrice, label);
+        paintRiskZone(newStop, state.position.liqPrice);
+        renderPosCard();
+        const saved = (newStop - _dragStartStop) * (state.position.side === "long" ? 1 : -1) / state.position.entry * state.position.notional;
+        tipEl.classList.add("show", "dragging");
+        tipEl.innerHTML = `<span class="lbl">Tighten stop</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+      } else {
+        const dir = state.side === "long" ? 1 : -1;
+        const entry = lastClose;
+        const stopPctRaw = (entry - px) * dir / entry * 100;
+        const stopPctClamped = Math.max(0.25, Math.min(15, stopPctRaw));
+        const stopInput = $("i-stop");
+        stopInput.value = stopPctClamped.toFixed(2);
+        $("i-stop-v").textContent = stopInput.value;
+        recompute();
+        tipEl.classList.add("show", "dragging");
+        tipEl.innerHTML = `<span class="lbl">Stop loss</span><span class="px">$${formatPx(px)}</span><span class="pnl down">\u2212${stopPctClamped.toFixed(2)}%</span>`;
+      }
       const rect = chartEl.getBoundingClientRect();
       const tipW = tipEl.offsetWidth || 240;
       let nx = x + 14, ny = y + 14;
@@ -967,19 +999,19 @@ function refreshTPLabel() {
   chartEl.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     if (e.target.closest(".legend, .chart-ohlc, .risk-zone, .chart-tip")) return;
-    if (!state.position) return;
     const { y } = priceFromEvent(e);
     if (stopYNear(y)) {
       _dragMode = "stop";
-      _dragStartStop = state.position.stopPrice;
+      _dragStartStop = state.position ? state.position.stopPrice : currentStopPrice();
       e.preventDefault();
       return;
     }
-    if (tpYNear(y)) {
+    if (state.position && tpYNear(y)) {
       _dragMode = "tp";
       e.preventDefault();
       return;
     }
+    if (!state.position) return;
     _md = { x: e.clientX, y: e.clientY, t: Date.now() };
   });
   window.addEventListener("mouseup", (e) => {
@@ -1015,7 +1047,8 @@ function refreshTPLabel() {
     toast("Take profit set \u2014 drag the line to move, \u2715 in card to clear", "ok");
   });
 }
-function drawLines(entry, stop, liq) {
+function drawLines(entry, stop, liq, stopLabel) {
+  const label = stopLabel ?? computeStopLabel(stop);
   if (entryLine) entryLine.applyOptions({ price: entry });
   else entryLine = candleSeries.createPriceLine({
     price: entry,
@@ -1025,14 +1058,14 @@ function drawLines(entry, stop, liq) {
     axisLabelVisible: true,
     title: "ENTRY"
   });
-  if (stopLine) stopLine.applyOptions({ price: stop });
+  if (stopLine) stopLine.applyOptions({ price: stop, title: label });
   else stopLine = candleSeries.createPriceLine({
     price: stop,
     color: "#ffce6b",
     lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Dashed,
     axisLabelVisible: true,
-    title: "STOP"
+    title: label
   });
   if (liqLine) liqLine.applyOptions({ price: liq });
   else liqLine = candleSeries.createPriceLine({
@@ -1043,6 +1076,16 @@ function drawLines(entry, stop, liq) {
     axisLabelVisible: true,
     title: "LIQ"
   });
+}
+function computeStopLabel(stop) {
+  if (state.position) {
+    return fmtStopBadge(stop, state.position.entry, state.position.notional, state.position.side);
+  }
+  const riskPct = +($("i-risk")?.value || 2);
+  const lev = +($("i-lev")?.value || 5);
+  const margin = state.equity * (riskPct / 100);
+  const notional = margin * lev;
+  return fmtStopBadge(stop, lastClose, notional, state.side);
 }
 var zoneEl = document.getElementById("riskZone");
 function paintRiskZone(stopPrice, liqPrice) {
@@ -1061,6 +1104,8 @@ function paintRiskZone(stopPrice, liqPrice) {
     zoneEl.style.opacity = "0";
     return;
   }
+  const isShort = (state.position ? state.position.side : state.side) === "short";
+  zoneEl.classList.toggle("short", isShort);
   zoneEl.style.top = top + "px";
   zoneEl.style.height = bot - top + "px";
   zoneEl.style.opacity = state.position ? "1" : "0.85";
@@ -1172,39 +1217,14 @@ function recompute() {
     drawLines(r.entry, r.stopPrice, r.liqPrice);
     paintRiskZone(r.stopPrice, r.liqPrice);
   }
-  updateProbe(r);
   return r;
 }
-function updateProbe(r) {
-  const probePct = +$("probe").value;
-  const probePrice = r.entry * (1 + probePct / 100);
-  const dir = state.side === "long" ? 1 : -1;
-  const moveSignedPct = (probePrice - r.entry) / r.entry * 100 * dir;
-  const pnlUsd = moveSignedPct / 100 * r.notional;
-  const liqHit = dir === 1 ? probePrice <= r.liqPrice : probePrice >= r.liqPrice;
-  const stopHit = dir === 1 ? probePrice <= r.stopPrice : probePrice >= r.stopPrice;
-  $("probe-price").textContent = "$" + probePrice.toLocaleString("en-US", { maximumFractionDigits: 1 });
-  const pnlEl = $("probe-pnl");
-  pnlEl.textContent = (pnlUsd >= 0 ? "+" : "") + fmt$(pnlUsd);
-  pnlEl.className = "v " + (pnlUsd >= 0 ? "up" : "down");
-  const out = $("probe-out");
-  const stEl = $("probe-state");
-  if (liqHit) {
-    out.textContent = "\u2620 Liquidated";
-    out.className = "v down";
-    stEl.textContent = "LIQUIDATED";
-    stEl.className = "probe-state dead";
-  } else if (stopHit) {
-    out.textContent = `Stopped at ${fmt$(-r.dollarRisk)}`;
-    out.className = "v down";
-    stEl.textContent = "STOP HIT";
-    stEl.className = "probe-state stop";
-  } else {
-    out.textContent = pnlUsd >= 0 ? "Position alive" : "Underwater, in budget";
-    out.className = "v " + (pnlUsd >= 0 ? "up" : "");
-    stEl.textContent = "ALIVE";
-    stEl.className = "probe-state ok";
-  }
+function fmtStopBadge(stop, entry, notional, side) {
+  if (!isFinite(stop) || !isFinite(entry) || !isFinite(notional) || notional <= 0) return "STOP";
+  const dir = side === "long" ? 1 : -1;
+  const movePct = (stop - entry) * dir / entry * 100;
+  const lossUsd = movePct / 100 * notional;
+  return `STOP  \u2212$${Math.abs(lossUsd).toFixed(2)}  ${movePct.toFixed(2)}%`;
 }
 function pollRules() {
   const dailyPct = state.todayPnL / state.startOfDayEquity * 100;
@@ -1280,7 +1300,7 @@ document.querySelectorAll(".side-tab").forEach((b) => {
     recompute();
   });
 });
-["i-risk", "i-stop", "i-lev", "probe"].forEach((id) => $(id).addEventListener("input", () => {
+["i-risk", "i-stop", "i-lev"].forEach((id) => $(id).addEventListener("input", () => {
   const r = recompute();
   if (!state.position) {
     drawLines(r.entry, r.stopPrice, r.liqPrice);

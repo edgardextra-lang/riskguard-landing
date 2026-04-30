@@ -73,12 +73,16 @@
     color: var(--text);
   }
   .brand-mark {
-    width: 24px; height: 24px;
-    background: url("favicon.svg") center/contain no-repeat;
+    width: 22px; height: 22px;
     border-radius: var(--r-sm);
-    box-shadow: 0 0 12px rgba(163,247,191,.18);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
   }
-  .brand-mark::after { display: none; }
+  .brand-mark::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 3px; background: var(--bg);
+  }
 
   .app-nav {
     display: flex; align-items: center;
@@ -470,6 +474,12 @@
     background: rgba(7,9,12,0.7);
     padding: 2px 6px;
     border-radius: 3px;
+  }
+  /* SHORT: stop sits at the bottom of the zone, so anchor the label to
+     the bottom-left so it stays adjacent to the stop line. */
+  .risk-zone.short .zone-label {
+    top: auto;
+    bottom: 4px;
   }
 
   .legend {
@@ -1239,31 +1249,6 @@
         <div class="input-static">
           <span id="i-size">—</span>
           <span class="suffix">notional</span>
-        </div>
-      </div>
-
-      <!-- ── "What kills me?" probe ── -->
-      <div class="probe">
-        <div class="probe-head">
-          <div class="probe-title"><span class="icn">▾</span>What kills me?</div>
-          <div class="probe-state ok" id="probe-state">ALIVE</div>
-        </div>
-        <div>
-          <div class="field-label">
-            <span>Probe price</span>
-            <span class="field-val" id="probe-price">—</span>
-          </div>
-          <input id="probe" class="slider" type="range" min="-15" max="15" step="0.1" value="0" />
-        </div>
-        <div class="probe-readout">
-          <div class="probe-cell">
-            <div class="k">PnL at this price</div>
-            <div class="v" id="probe-pnl">—</div>
-          </div>
-          <div class="probe-cell">
-            <div class="k">Outcome</div>
-            <div class="v" id="probe-out">—</div>
-          </div>
         </div>
       </div>
 

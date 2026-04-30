@@ -77,12 +77,16 @@
     color: var(--text);
   }
   .brand-mark {
-    width: 24px; height: 24px;
-    background: url("favicon.svg") center/contain no-repeat;
+    width: 22px; height: 22px;
     border-radius: var(--r-sm);
-    box-shadow: 0 0 12px rgba(163,247,191,.18);
+    background: linear-gradient(135deg, var(--mint), #6fd49a);
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(163,247,191,.3), 0 0 12px rgba(163,247,191,.2);
   }
-  .brand-mark::after { display: none; }
+  .brand-mark::after {
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 3px; background: var(--bg);
+  }
   .app-nav { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
   .app-nav a {
     color: var(--text-3);

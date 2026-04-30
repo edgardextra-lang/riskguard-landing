@@ -409,7 +409,10 @@ const chart = LightweightCharts.createChart(chartEl, {
   localization: {
     timeFormatter: _crosshairTimeFormatter,
   },
-  crosshair: { mode: 1 },
+  // Mode 0 = Normal — both crosshair lines follow the cursor freely.
+  // Mode 1 (was) = Magnet — horizontal line snapped to nearest candle's
+  // high/low, which felt sticky and unrelated to the user's actual cursor.
+  crosshair: { mode: 0 },
   autoSize: true,
 });
 const candleSeries = chart.addCandlestickSeries({
@@ -690,7 +693,7 @@ async function switchInterval(newInterval) {
   document.querySelectorAll('.tf-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tf === newInterval);
   });
-  // Snapshot lines that should survive the timeframe switch
+  // Snapshot what should survive the candle reload
   const savedTp = tpPrice;
   try {
     await loadHyperliquidHistory(currentCoin);
@@ -701,8 +704,16 @@ async function switchInterval(newInterval) {
     seedSynthetic();
   }
   try { chart.timeScale().applyOptions({ rightOffset: 6, barSpacing: 8 }); } catch {}
-  // Re-apply position lines + TP after the candle data reload — setData
-  // can drop price-line references in some lightweight-charts versions.
+
+  // Force-recreate every priceLine after setData. lightweight-charts
+  // can silently detach lines on data reload; applyOptions on a stale
+  // ref then becomes a no-op and the line vanishes. Tear down refs and
+  // let drawLines/setTP take the create-new branch.
+  for (const ln of [entryLine, stopLine, liqLine, tpLine]) {
+    if (ln) { try { candleSeries.removePriceLine(ln); } catch {} }
+  }
+  entryLine = stopLine = liqLine = tpLine = null;
+
   if (state.position) {
     drawLines(state.position.entry, state.position.stopPrice, state.position.liqPrice);
     paintRiskZone(state.position.stopPrice, state.position.liqPrice);
@@ -993,9 +1004,17 @@ function refreshTPLabel() {
     const tpY = candleSeries.priceToCoordinate(tpPrice);
     return tpY != null && Math.abs(y - tpY) <= 8;
   }
+  function currentStopPrice() {
+    if (state.position) return state.position.stopPrice;
+    // Pre-trade preview — derive from the slider relative to live mark.
+    const stopPct = +(($('i-stop') as HTMLInputElement)?.value || 4);
+    const dir = state.side === 'long' ? 1 : -1;
+    return lastClose * (1 - dir * stopPct / 100);
+  }
   function stopYNear(y) {
-    if (!state.position) return false;
-    const sY = candleSeries.priceToCoordinate(state.position.stopPrice);
+    const sp = currentStopPrice();
+    if (!isFinite(sp)) return false;
+    const sY = candleSeries.priceToCoordinate(sp);
     return sY != null && Math.abs(y - sY) <= 8;
   }
   function pnlAt(price) {
@@ -1061,18 +1080,31 @@ function refreshTPLabel() {
       chartEl.style.cursor = 'grabbing';
       return;
     }
-    if (_dragMode === 'stop' && state.position) {
-      // Tighten-only clamp — user can drag the stop closer to entry but
-      // not back away from it (Rule 04 enforced live during the gesture).
-      const newStop = clampStopTightening(px);
-      state.position.stopPrice = newStop;
-      drawLines(state.position.entry, newStop, state.position.liqPrice);
-      paintRiskZone(newStop, state.position.liqPrice);
-      renderPosCard();
-      // Show a hint with live $-saved if the stop now hits inside profit
-      tipEl.classList.add('show', 'dragging');
-      const saved = (newStop - _dragStartStop) * (state.position.side === 'long' ? 1 : -1) / state.position.entry * 100 * state.position.notional / 100;
-      tipEl.innerHTML = `<span class="lbl">Drag stop closer to entry</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+    if (_dragMode === 'stop') {
+      if (state.position) {
+        // In a trade: tighten-only clamp (Rule 04).
+        const newStop = clampStopTightening(px);
+        state.position.stopPrice = newStop;
+        const label = fmtStopBadge(newStop, state.position.entry, state.position.notional, state.position.side);
+        drawLines(state.position.entry, newStop, state.position.liqPrice, label);
+        paintRiskZone(newStop, state.position.liqPrice);
+        renderPosCard();
+        const saved = (newStop - _dragStartStop) * (state.position.side === 'long' ? 1 : -1) / state.position.entry * state.position.notional;
+        tipEl.classList.add('show', 'dragging');
+        tipEl.innerHTML = `<span class="lbl">Tighten stop</span><span class="px">$${formatPx(newStop)}</span><span class="pnl up">+$${Math.abs(saved).toFixed(2)} less risk</span>`;
+      } else {
+        // Pre/post trade: drag the preview stop line — drives the slider.
+        const dir = state.side === 'long' ? 1 : -1;
+        const entry = lastClose;
+        const stopPctRaw = ((entry - px) * dir / entry) * 100;
+        const stopPctClamped = Math.max(0.25, Math.min(15, stopPctRaw));
+        const stopInput = $('i-stop') as HTMLInputElement;
+        stopInput.value = stopPctClamped.toFixed(2);
+        ($('i-stop-v') as HTMLElement).textContent = stopInput.value;
+        recompute();
+        tipEl.classList.add('show', 'dragging');
+        tipEl.innerHTML = `<span class="lbl">Stop loss</span><span class="px">$${formatPx(px)}</span><span class="pnl down">−${stopPctClamped.toFixed(2)}%</span>`;
+      }
       const rect = chartEl.getBoundingClientRect();
       const tipW = tipEl.offsetWidth || 240;
       let nx = x + 14, ny = y + 14;
@@ -1095,20 +1127,24 @@ function refreshTPLabel() {
   chartEl.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     if (e.target.closest('.legend, .chart-ohlc, .risk-zone, .chart-tip')) return;
-    if (!state.position) return;
     const { y } = priceFromEvent(e);
-    // Stop has priority over TP if both happen to be at the same y (rare)
+    // Stop drag works pre/post trade too — without a position it drives
+    // the i-stop slider preview; in a trade it tightens the live stop.
+    // Rule 04 (no widening) only applies in a trade.
     if (stopYNear(y)) {
       _dragMode = 'stop';
-      _dragStartStop = state.position.stopPrice;
+      _dragStartStop = state.position ? state.position.stopPrice : currentStopPrice();
       e.preventDefault();
       return;
     }
-    if (tpYNear(y)) {
+    // TP drag still requires a position.
+    if (state.position && tpYNear(y)) {
       _dragMode = 'tp';
       e.preventDefault();
       return;
     }
+    // Click-to-set-TP still requires a position.
+    if (!state.position) return;
     _md = { x: e.clientX, y: e.clientY, t: Date.now() };
   });
   // mouseup must be on window so a drag that ends outside the chart still resolves
@@ -1147,23 +1183,22 @@ function refreshTPLabel() {
     toast('Take profit set — drag the line to move, ✕ in card to clear', 'ok');
   });
 }
-function drawLines(entry, stop, liq) {
-  // In-place price updates — was destroying + recreating the three
-  // PriceLine objects via removePriceLine/createPriceLine on every
-  // WS tick. At real-BTC trade rates (10-20+/sec), the right-axis
-  // labels (ENTRY/STOP/LIQ badges) flickered visibly. applyOptions
-  // mutates the existing line — no DOM thrash.
+function drawLines(entry, stop, liq, stopLabel?: string) {
+  // In-place price + title updates via applyOptions to avoid DOM thrash.
+  // stopLabel defaults to "STOP X% / -$Y" computed from current state /
+  // slider preview if not provided.
+  const label = stopLabel ?? computeStopLabel(stop);
   if (entryLine) entryLine.applyOptions({ price: entry });
   else entryLine = candleSeries.createPriceLine({
     price: entry, color: '#a3f7bf', lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Dashed,
     axisLabelVisible: true, title: 'ENTRY',
   });
-  if (stopLine) stopLine.applyOptions({ price: stop });
+  if (stopLine) stopLine.applyOptions({ price: stop, title: label });
   else stopLine = candleSeries.createPriceLine({
     price: stop, color: '#ffce6b', lineWidth: 2,
     lineStyle: LightweightCharts.LineStyle.Dashed,
-    axisLabelVisible: true, title: 'STOP',
+    axisLabelVisible: true, title: label,
   });
   if (liqLine) liqLine.applyOptions({ price: liq });
   else liqLine = candleSeries.createPriceLine({
@@ -1171,6 +1206,18 @@ function drawLines(entry, stop, liq) {
     lineStyle: LightweightCharts.LineStyle.Solid,
     axisLabelVisible: true, title: 'LIQ',
   });
+}
+// Auto-compute the stop badge label from current state OR slider preview.
+function computeStopLabel(stop) {
+  if (state.position) {
+    return fmtStopBadge(stop, state.position.entry, state.position.notional, state.position.side);
+  }
+  // Pre-trade preview — derive notional from current sliders + equity.
+  const riskPct = +(($('i-risk') as HTMLInputElement)?.value || 2);
+  const lev     = +(($('i-lev')  as HTMLInputElement)?.value || 5);
+  const margin  = state.equity * (riskPct / 100);
+  const notional = margin * lev;
+  return fmtStopBadge(stop, lastClose, notional, state.side);
 }
 
 // risk-zone overlay (CSS box positioned via priceToCoordinate)
@@ -1194,6 +1241,11 @@ function paintRiskZone(stopPrice, liqPrice) {
     zoneEl.style.opacity = '0';
     return;
   }
+  // For SHORT, stop sits at the bottom of the zone (yStop > yLiq), so move
+  // the "RISK ZONE" label to the bottom edge so it stays adjacent to the
+  // stop line. For LONG, default top placement keeps it next to the stop.
+  const isShort = (state.position ? state.position.side : state.side) === 'short';
+  zoneEl.classList.toggle('short', isShort);
   zoneEl.style.top    = top + 'px';
   zoneEl.style.height = (bot - top) + 'px';
   zoneEl.style.opacity = state.position ? '1' : '0.85';
@@ -1335,47 +1387,20 @@ function recompute() {
     paintRiskZone(r.stopPrice, r.liqPrice);
   }
 
-  // refresh probe (depends on current sizing)
-  updateProbe(r);
-
   return r;
 }
 
-// ─── "What kills me?" probe ───────────────────────────────────
-function updateProbe(r) {
-  const probePct = +$('probe').value;     // -15 → +15 % vs mark
-  const probePrice = r.entry * (1 + probePct / 100);
-  const dir = state.side === 'long' ? 1 : -1;
-  const moveSignedPct = ((probePrice - r.entry) / r.entry) * 100 * dir;
-  const pnlUsd = (moveSignedPct / 100) * r.notional;
+// "What kills me?" probe was removed — markup gone from app.html, the
+// equivalent info is shown live on the chart via the cursor tooltip.
 
-  // outcome
-  const liqHit = dir === 1 ? probePrice <= r.liqPrice : probePrice >= r.liqPrice;
-  const stopHit = dir === 1 ? probePrice <= r.stopPrice : probePrice >= r.stopPrice;
-
-  $('probe-price').textContent = '$' + probePrice.toLocaleString('en-US', { maximumFractionDigits: 1 });
-  const pnlEl = $('probe-pnl');
-  pnlEl.textContent = (pnlUsd >= 0 ? '+' : '') + fmt$(pnlUsd);
-  pnlEl.className = 'v ' + (pnlUsd >= 0 ? 'up' : 'down');
-
-  const out = $('probe-out');
-  const stEl = $('probe-state');
-  if (liqHit) {
-    out.textContent = '☠ Liquidated';
-    out.className = 'v down';
-    stEl.textContent = 'LIQUIDATED';
-    stEl.className = 'probe-state dead';
-  } else if (stopHit) {
-    out.textContent = `Stopped at ${fmt$(-r.dollarRisk)}`;
-    out.className = 'v down';
-    stEl.textContent = 'STOP HIT';
-    stEl.className = 'probe-state stop';
-  } else {
-    out.textContent = pnlUsd >= 0 ? 'Position alive' : 'Underwater, in budget';
-    out.className = 'v ' + (pnlUsd >= 0 ? 'up' : '');
-    stEl.textContent = 'ALIVE';
-    stEl.className = 'probe-state ok';
-  }
+// Format the stop price-line badge with the live $/% loss-at-stop,
+// so the right-axis "STOP" label reads like the TP one.
+function fmtStopBadge(stop, entry, notional, side) {
+  if (!isFinite(stop) || !isFinite(entry) || !isFinite(notional) || notional <= 0) return 'STOP';
+  const dir = side === 'long' ? 1 : -1;
+  const movePct = ((stop - entry) * dir / entry) * 100;
+  const lossUsd = (movePct / 100) * notional;
+  return `STOP  −$${Math.abs(lossUsd).toFixed(2)}  ${movePct.toFixed(2)}%`;
 }
 
 // ─── rules HUD updater ────────────────────────────────────────
@@ -1465,7 +1490,7 @@ document.querySelectorAll('.side-tab').forEach(b => {
     recompute();
   });
 });
-['i-risk', 'i-stop', 'i-lev', 'probe'].forEach(id => $(id).addEventListener('input', () => {
+['i-risk', 'i-stop', 'i-lev'].forEach(id => $(id).addEventListener('input', () => {
   const r = recompute();
   // Defensive: ensure chart visuals always reflect current sliders.
   // (recompute() already does this, but slider-drag is the fast path

@@ -1,20 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Dark navy canvas matching the source logo background -->
-  <rect width="32" height="32" rx="5" fill="#1c2331"/>
-  <g fill="#3CE693">
-    <!-- Top-left "P" module: top bar + left vertical + right inner + middle horizontal.
-         The 4x4 empty area at (6,6)-(10,10) is the notch hole. -->
-    <rect x="2"  y="2"  width="12" height="4"/>
-    <rect x="2"  y="2"  width="4"  height="16"/>
-    <rect x="10" y="2"  width="4"  height="12"/>
-    <rect x="2"  y="10" width="12" height="4"/>
-    <!-- Top-right "F" module: top bar + left vertical (forms the right inner stroke of #) -->
-    <rect x="18" y="2"  width="12" height="4"/>
-    <rect x="18" y="2"  width="4"  height="16"/>
-    <!-- Full-width middle cross-bar -->
-    <rect x="2"  y="18" width="28" height="4"/>
-    <!-- Two vertical legs descending below the cross-bar -->
-    <rect x="10" y="22" width="4"  height="8"/>
-    <rect x="22" y="22" width="4"  height="8"/>
-  </g>
+  <defs>
+    <linearGradient id="hg-mint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3f7bf"/>
+      <stop offset="100%" stop-color="#6fd49a"/>
+    </linearGradient>
+    <filter id="hg-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.6"/>
+    </filter>
+  </defs>
+  <!-- Dark canvas, rounded -->
+  <rect width="32" height="32" rx="7" fill="#07090c"/>
+  <!-- Subtle outer glow halo -->
+  <rect x="5" y="5" width="22" height="22" rx="5.5" fill="url(#hg-mint)" filter="url(#hg-glow)" opacity="0.55"/>
+  <!-- Mint gradient frame -->
+  <rect x="5" y="5" width="22" height="22" rx="5" fill="url(#hg-mint)"/>
+  <!-- Dark center -->
+  <rect x="10.5" y="10.5" width="11" height="11" rx="2.5" fill="#07090c"/>
 </svg>
