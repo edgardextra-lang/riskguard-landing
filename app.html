@@ -1095,7 +1095,7 @@
     </div>
     <div class="pair-stat">
       <span class="k">24h Change</span>
-      <span class="v" id="ps-change">—</span>
+      <span class="v" id="ps-change"><span class="delta">—</span><span class="pct">—</span></span>
     </div>
     <div class="pair-stat">
       <span class="k">24h Vol</span>
@@ -1107,7 +1107,7 @@
     </div>
     <div class="pair-stat">
       <span class="k">Funding / Countdown</span>
-      <span class="v" id="ps-funding">—</span>
+      <span class="v" id="ps-funding"><span class="rate">—</span><span class="cd"> / —</span></span>
     </div>
     <div class="pair-bar-spacer"></div>
     <div class="risk-badge" id="riskBadge">
@@ -1847,16 +1847,28 @@ function renderPairBar() {
   document.getElementById('ps-oracle').textContent = formatPx(oracle);
 
   const cEl = document.getElementById('ps-change');
-  cEl.innerHTML = `<span class="delta">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</span>${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
-  cEl.className = 'v ' + (pct >= 0 ? 'up' : 'down');
+  if (cEl && cEl.children.length === 2) {
+    // Patch persistent children — was rebuilding innerHTML which
+    // destroys/recreates the inner spans on every paint → flicker.
+    cEl.children[0].textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} `;
+    cEl.children[1].textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+    const cls = pct >= 0 ? 'up' : 'down';
+    if (cEl._lastCls !== cls) { cEl.className = 'v ' + cls; cEl._lastCls = cls; }
+  }
 
   document.getElementById('ps-vol').textContent = formatUsdShort(vol);
   document.getElementById('ps-oi').textContent  = formatUsdShort(oiUsd);
 
   const fEl = document.getElementById('ps-funding');
-  const fundCls = fundingPct >= 0 ? 'up' : 'down';
-  fEl.innerHTML = `<span class="${fundCls === 'up' ? 'up' : 'down'}">${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%</span> <span class="cd">/ ${fundingCountdown()}</span>`;
-  fEl.className = 'v';
+  if (fEl && fEl.children.length === 2) {
+    fEl.children[0].textContent = `${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%`;
+    fEl.children[1].textContent = ` / ${fundingCountdown()}`;
+    const cls = fundingPct >= 0 ? 'up' : 'down';
+    if (fEl.children[0]._cls !== cls) {
+      fEl.children[0].className = cls;
+      fEl.children[0]._cls = cls;
+    }
+  }
 }
 
 async function pollMarkets() {
@@ -1876,10 +1888,17 @@ setInterval(() => {
   const ctx = marketsCache.byCoin[currentCoin];
   if (!ctx) return;
   const fEl = document.getElementById('ps-funding');
-  if (!fEl) return;
+  if (!fEl || fEl.children.length !== 2) return;
   const fundingPct = (+ctx.funding) * 100;
+  // Patch only the countdown text — the rate didn't change at 1Hz.
+  // (Was rebuilding innerHTML every second → DOM thrash → flicker.)
+  fEl.children[0].textContent = `${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%`;
+  fEl.children[1].textContent = ` / ${fundingCountdown()}`;
   const cls = fundingPct >= 0 ? 'up' : 'down';
-  fEl.innerHTML = `<span class="${cls}">${fundingPct >= 0 ? '+' : ''}${fundingPct.toFixed(4)}%</span> <span class="cd">/ ${fundingCountdown()}</span>`;
+  if (fEl.children[0]._cls !== cls) {
+    fEl.children[0].className = cls;
+    fEl.children[0]._cls = cls;
+  }
 }, 1000);
 
 // default timeframe — 15m bars, 200 of them = ~50 hours of context
@@ -2379,9 +2398,14 @@ function updatePriceUI() {
   const delta = lastClose - prev;
   const pct = (delta / prev) * 100;
   const cEl = document.getElementById('ps-change');
-  if (cEl) {
-    cEl.innerHTML = `<span class="delta">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}</span>${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
-    cEl.className = 'v ' + (pct >= 0 ? 'up' : 'down');
+  if (cEl && cEl.children.length === 2) {
+    // Hot path — runs on every WS trade tick. Patch persistent children
+    // via textContent instead of innerHTML rebuild (was the flicker
+    // source for the 24h-change cell).
+    cEl.children[0].textContent = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} `;
+    cEl.children[1].textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+    const cls = pct >= 0 ? 'up' : 'down';
+    if (cEl._lastCls !== cls) { cEl.className = 'v ' + cls; cEl._lastCls = cls; }
   }
 }
 
@@ -2669,12 +2693,12 @@ function mountPosCard(p) {
       <div class="ph-grid">
         <div class="pcell headline">
           <div class="k">${(p.coin || currentCoin)}-USDC · ${p.side.toUpperCase()} · ${p.leverage}× · ${fmt0(p.notional)}</div>
-          <div class="v" id="pc-net">—</div>
+          <div class="v" id="pc-net"><span class="primary">—</span><span class="sub"></span></div>
         </div>
         <div class="pcell"><span class="k">Entry</span><span class="v" id="pc-entry">—</span></div>
-        <div class="pcell"><span class="k">Mark</span><span class="v" id="pc-mark">—</span></div>
+        <div class="pcell"><span class="k">Mark</span><span class="v" id="pc-mark"><span class="primary">—</span><span class="sub"></span></span></div>
         <div class="pcell"><span class="k" id="pc-stop-k">Stop</span><span class="v" id="pc-stop">—</span></div>
-        <div class="pcell"><span class="k">Liq</span><span class="v down" id="pc-liq">—</span></div>
+        <div class="pcell"><span class="k">Liq</span><span class="v down" id="pc-liq"><span class="primary">—</span><span class="sub"></span></span></div>
         <div class="pcell"><span class="k">Gross PnL</span><span class="v" id="pc-gross">—</span></div>
         <div class="pcell"><span class="k">Fees (round-trip)</span><span class="v down" id="pc-fees">—</span></div>
         <div class="pcell"><span class="k" id="pc-fund-k">Funding</span><span class="v" id="pc-fund">—</span></div>
@@ -2729,21 +2753,36 @@ function renderPosCard() {
   const stopAtBE = Math.abs(p.stopPrice - p.entry) / p.entry < 0.0005;
   const beDisabled = !inProfit || stopAtBE;
 
-  // Patch only the dynamic spans — no innerHTML on the card root
+  // Patch persistent child spans via textContent — was rebuilding
+  // innerHTML on every WS tick, which destroys+recreates the .sub
+  // span every paint. At 10-20Hz × 4 cells = 40-80 DOM rebuilds/sec
+  // → visible flicker on the position card text. textContent updates
+  // are CPU-cheap and don't trigger layout/style recalc on siblings.
   const net = $('pc-net');
-  net.innerHTML = `${fmtSigned$(netPnl)} <span class="sub">${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}% net</span>`;
-  net.className = 'v ' + netCls;
+  if (net.children.length === 2) {
+    net.children[0].textContent = fmtSigned$(netPnl) + ' ';
+    net.children[1].textContent = `${netPct >= 0 ? '+' : ''}${netPct.toFixed(2)}% net`;
+  }
+  if (net._cls !== netCls) { net.className = 'v ' + netCls; net._cls = netCls; }
 
   const mark = $('pc-mark');
-  mark.innerHTML = `$${lastClose.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${movePct >= 0 ? '+' : ''}${movePct.toFixed(2)}%</span>`;
-  mark.className = 'v ' + pnlCls;
+  if (mark.children.length === 2) {
+    mark.children[0].textContent = '$' + lastClose.toLocaleString('en-US',{maximumFractionDigits:1}) + ' ';
+    mark.children[1].textContent = `${movePct >= 0 ? '+' : ''}${movePct.toFixed(2)}%`;
+  }
+  if (mark._cls !== pnlCls) { mark.className = 'v ' + pnlCls; mark._cls = pnlCls; }
 
   $('pc-stop-k').textContent = stopAtBE ? 'Stop · BE' : 'Stop';
   const stopEl = $('pc-stop');
   stopEl.textContent = '$' + p.stopPrice.toLocaleString('en-US',{maximumFractionDigits:1});
-  stopEl.className = 'v ' + (stopAtBE ? 'up' : '');
+  const stopCls = stopAtBE ? 'up' : '';
+  if (stopEl._cls !== stopCls) { stopEl.className = 'v ' + stopCls; stopEl._cls = stopCls; }
 
-  $('pc-liq').innerHTML = `$${p.liqPrice.toLocaleString('en-US',{maximumFractionDigits:1})} <span class="sub">${liqDist.toFixed(2)}% away</span>`;
+  const liqEl = $('pc-liq');
+  if (liqEl.children.length === 2) {
+    liqEl.children[0].textContent = '$' + p.liqPrice.toLocaleString('en-US',{maximumFractionDigits:1}) + ' ';
+    liqEl.children[1].textContent = `${liqDist.toFixed(2)}% away`;
+  }
 
   const gross = $('pc-gross');
   gross.textContent = fmtSigned$(grossPnl);
@@ -2773,9 +2812,11 @@ function renderPosCard() {
   const wantState = tpPrice != null ? 'set' : 'unset';
   if (wantState !== _pcLastTpState) {
     if (wantState === 'set') {
+      // Build with persistent child spans inside pc-tp-v so the per-tick
+      // update path can use textContent (no DOM thrash).
       tpCell.innerHTML = `
         <span class="k">Take Profit @ <span id="pc-tp-px">—</span> <span style="color:var(--mint);cursor:pointer;margin-left:6px;" onclick="window.clearTP()">✕</span></span>
-        <span class="v" id="pc-tp-v">—</span>`;
+        <span class="v" id="pc-tp-v"><span class="primary">—</span><span class="sub"></span></span>`;
     } else {
       tpCell.innerHTML = `
         <span class="k" style="color:var(--mint);">💡 Click chart to set TP</span>
@@ -2790,9 +2831,10 @@ function renderPosCard() {
     const pxEl = $('pc-tp-px');
     if (pxEl) pxEl.textContent = '$' + tpPrice.toFixed(1);
     const vEl = $('pc-tp-v');
-    if (vEl) {
-      vEl.innerHTML = `${fmtSigned$(tpUsd)} <span class="sub">${tpMove >= 0 ? '+' : ''}${tpMove.toFixed(2)}%</span>`;
-      vEl.className = 'v ' + tpCls;
+    if (vEl && vEl.children.length === 2) {
+      vEl.children[0].textContent = fmtSigned$(tpUsd) + ' ';
+      vEl.children[1].textContent = `${tpMove >= 0 ? '+' : ''}${tpMove.toFixed(2)}%`;
+      if (vEl._cls !== tpCls) { vEl.className = 'v ' + tpCls; vEl._cls = tpCls; }
     }
   }
 }
