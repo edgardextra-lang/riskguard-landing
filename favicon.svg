@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Dark canvas, rounded corners — matches site --bg-2 -->
-  <rect width="32" height="32" rx="5" fill="#0c1015"/>
-  <g fill="#a3f7bf">
-    <!-- Top-left chunky module with internal square notch (the "P" half) -->
-    <path fill-rule="evenodd" d="M6 7H14V14H6V7ZM9 9H11V11H9V9Z"/>
-    <!-- Top-right chunky F-shape (mirror partner) -->
-    <path d="M17 7H26V9H20V14H17V7Z"/>
-    <!-- Middle horizontal connector -->
-    <rect x="6" y="14" width="20" height="2"/>
-    <!-- Two vertical legs descending below -->
-    <rect x="10" y="16" width="3" height="9"/>
-    <rect x="20" y="16" width="3" height="9"/>
+  <!-- Dark navy canvas matching the source logo background -->
+  <rect width="32" height="32" rx="5" fill="#1c2331"/>
+  <g fill="#3CE693">
+    <!-- Top-left "P" module: top bar + left vertical + right inner + middle horizontal.
+         The 4x4 empty area at (6,6)-(10,10) is the notch hole. -->
+    <rect x="2"  y="2"  width="12" height="4"/>
+    <rect x="2"  y="2"  width="4"  height="16"/>
+    <rect x="10" y="2"  width="4"  height="12"/>
+    <rect x="2"  y="10" width="12" height="4"/>
+    <!-- Top-right "F" module: top bar + left vertical (forms the right inner stroke of #) -->
+    <rect x="18" y="2"  width="12" height="4"/>
+    <rect x="18" y="2"  width="4"  height="16"/>
+    <!-- Full-width middle cross-bar -->
+    <rect x="2"  y="18" width="28" height="4"/>
+    <!-- Two vertical legs descending below the cross-bar -->
+    <rect x="10" y="22" width="4"  height="8"/>
+    <rect x="22" y="22" width="4"  height="8"/>
   </g>
 </svg>
