@@ -457,6 +457,37 @@
     z-index: 5;
     min-width: 200px;
   }
+  /* Timeframe toggle — sits top-right of chart */
+  .chart-tf {
+    position: absolute;
+    top: 14px; right: 76px;
+    z-index: 5;
+    display: inline-flex;
+    background: rgba(15,19,25,.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 3px;
+    gap: 2px;
+    font-family: var(--f-mono);
+  }
+  .chart-tf .tf-btn {
+    background: transparent;
+    color: var(--text-3);
+    font-size: 11px; font-weight: 500;
+    padding: 5px 9px;
+    border: none; border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: all .15s ease;
+    letter-spacing: 0.04em;
+    min-width: 28px;
+  }
+  .chart-tf .tf-btn:hover { color: var(--text); }
+  .chart-tf .tf-btn.active { background: var(--surface-3); color: var(--mint); }
+  @media (max-width: 720px) {
+    .chart-tf { right: 14px; top: auto; bottom: 14px; }
+  }
+
   /* Cursor-following hint when a position is open */
   .chart-tip {
     position: absolute;
@@ -1101,6 +1132,12 @@
         <div class="row"><div class="swatch" style="background:rgba(255,116,104,.3)"></div><div class="lbl">Risk zone</div><div class="v" id="lg-zone">—</div></div>
       </div>
       <div class="risk-zone" id="riskZone"><div class="zone-label">RISK ZONE</div></div>
+      <div class="chart-tf" id="chartTf">
+        <button class="tf-btn active" data-tf="15m" onclick="window.switchInterval('15m')">15m</button>
+        <button class="tf-btn" data-tf="4h"  onclick="window.switchInterval('4h')">4h</button>
+        <button class="tf-btn" data-tf="1d"  onclick="window.switchInterval('1d')">D</button>
+        <button class="tf-btn" data-tf="1w"  onclick="window.switchInterval('1w')">W</button>
+      </div>
       <div class="chart-tip" id="chartTip"></div>
       <div class="chart-ohlc" id="chartOhlc">
         <span class="pair"><span class="k">O</span><span class="v" id="oh-o">—</span></span>
@@ -1340,10 +1377,76 @@ function checkRules(action) {
 
 // ─── wallet (real EIP-1193 connect, no custody) ──────────────
 //   • Detects window.ethereum (MetaMask, Rabby, Brave Wallet, Coinbase, ...)
+//   • Auto-switches the wallet to Arbitrum One; adds it if unknown
 //   • Persists to localStorage so refreshes don't drop the connection
 //   • Listens for accountsChanged / chainChanged
 //   • Silent restore on boot via eth_accounts (no popup)
+//   • Pulls real HL account value from clearinghouseState after connect
 const WALLET_KEY = 'hyperguard:wallet';
+
+// Arbitrum One — chain ID 42161 (0xa4b1)
+const ARBITRUM = {
+  chainId: '0xa4b1',
+  chainName: 'Arbitrum One',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+  blockExplorerUrls: ['https://arbiscan.io/'],
+};
+
+async function ensureArbitrum() {
+  const eth = window.ethereum;
+  if (!eth) return false;
+  try {
+    const current = await eth.request({ method: 'eth_chainId' });
+    if ((current || '').toLowerCase() === ARBITRUM.chainId) return true;
+  } catch {}
+  try {
+    await eth.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: ARBITRUM.chainId }],
+    });
+    return true;
+  } catch (err) {
+    // 4902 = unrecognized chain → try adding it
+    if (err && (err.code === 4902 || /unrecognized|not.*added/i.test(err.message || ''))) {
+      try {
+        await eth.request({
+          method: 'wallet_addEthereumChain',
+          params: [ARBITRUM],
+        });
+        return true;
+      } catch (addErr) {
+        console.warn('[wallet] add Arbitrum rejected', addErr);
+        return false;
+      }
+    }
+    console.warn('[wallet] switch rejected', err);
+    return false;
+  }
+}
+window.ensureArbitrum = ensureArbitrum;
+
+// Pull real HL account value (USD) for the connected wallet.
+// Returns { accountValue, withdrawable, totalMarginUsed } or null on failure.
+async function fetchHlAccount(addr) {
+  try {
+    const res = await fetch('https://api.hyperliquid.xyz/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'clearinghouseState', user: addr }),
+    });
+    if (!res.ok) throw new Error(`HL clearinghouseState ${res.status}`);
+    const data = await res.json();
+    return {
+      accountValue:    +(data?.marginSummary?.accountValue || 0),
+      withdrawable:    +(data?.withdrawable || 0),
+      totalMarginUsed: +(data?.marginSummary?.totalMarginUsed || 0),
+    };
+  } catch (e) {
+    console.warn('[HyperGuard] fetchHlAccount failed:', e.message || e);
+    return null;
+  }
+}
 const wallet = {
   async connect() {
     const eth = window.ethereum;
@@ -1390,26 +1493,39 @@ const wallet = {
   },
 };
 
-function applyConnectedUI(addr) {
+async function applyConnectedUI(addr) {
   const btn = document.getElementById('walletBtn');
   if (!btn) return;
-  // Idempotent — same address → no-op. Was a flicker source: every
-  // accountsChanged tick was zeroing equity → NaN cascade in pollRules
-  // (NaN%) and recompute (notional=0), and re-rendering the whole UI.
+  // Idempotent — same address → no-op (avoids flicker on duplicate events)
   if (btn.dataset.connectedAddr === addr) return;
   btn.dataset.connectedAddr = addr;
   btn.classList.add('connected');
   btn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
-  // Keep equity at its existing demo baseline so risk math doesn't divide
-  // by zero. Real-mode would fetch HL clearinghouseState here.
-  document.getElementById('equity').textContent = fmt$(state.equity);
-  const dailyPct = state.startOfDayEquity > 0
-    ? (state.todayPnL / state.startOfDayEquity) * 100
-    : 0;
-  document.getElementById('today-pnl').textContent =
-    (dailyPct >= 0 ? '+' : '') + dailyPct.toFixed(2) + '%';
   document.getElementById('equityPill').style.display = '';
   document.getElementById('todayPill').style.display  = '';
+
+  // Pull real HL account value — drives position sizing, the equity pill,
+  // and today PnL math. Replaces the $10K demo baseline with the actual
+  // wallet's deposited capital.
+  const account = await fetchHlAccount(addr);
+  if (account && account.accountValue > 0) {
+    state.equity = account.accountValue;
+    state.startOfDayEquity = account.accountValue;
+    state.todayPnL = 0;
+    document.getElementById('equity').textContent = fmt$(state.equity);
+    document.getElementById('today-pnl').textContent = '+0.00%';
+  } else {
+    // Wallet has no HL deposit yet — show $0 and surface the gap clearly.
+    state.equity = 0;
+    state.startOfDayEquity = 0;
+    state.todayPnL = 0;
+    document.getElementById('equity').textContent = '$0.00';
+    document.getElementById('today-pnl').textContent = '+0.00%';
+    toast('No HL deposit detected — deposit USDC on Arbitrum to start trading', 'warn');
+  }
+  // recompute uses state.equity in the sizing formula → refresh the form
+  recompute();
+  pollRules();
 }
 function applyDisconnectedUI() {
   const btn = document.getElementById('walletBtn');
@@ -1712,8 +1828,30 @@ setInterval(() => {
 }, 1000);
 
 // default timeframe — 15m bars, 200 of them = ~50 hours of context
-const CURRENT_INTERVAL = '15m';
-const INTERVAL_SECONDS = 15 * 60;
+const INTERVAL_SECONDS_BY_KEY = { '15m': 15 * 60, '4h': 4 * 3600, '1d': 86400, '1w': 7 * 86400 };
+let CURRENT_INTERVAL = '15m';
+let INTERVAL_SECONDS = INTERVAL_SECONDS_BY_KEY[CURRENT_INTERVAL];
+
+async function switchInterval(newInterval) {
+  if (!INTERVAL_SECONDS_BY_KEY[newInterval]) return;
+  if (newInterval === CURRENT_INTERVAL) return;
+  CURRENT_INTERVAL = newInterval;
+  INTERVAL_SECONDS = INTERVAL_SECONDS_BY_KEY[newInterval];
+  // refresh active button states
+  document.querySelectorAll('.tf-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tf === newInterval);
+  });
+  try {
+    await loadHyperliquidHistory(currentCoin);
+    openHyperliquidStream(currentCoin);
+    liveSource = 'hl';
+  } catch (e) {
+    console.warn('[HyperGuard] switchInterval failed', e);
+    seedSynthetic();
+  }
+  recompute();
+}
+window.switchInterval = switchInterval;
 
 async function loadHyperliquidHistory(coin = currentCoin) {
   const endTime = Date.now();
@@ -2738,9 +2876,17 @@ $('walletBtn').addEventListener('click', async () => {
   try {
     const addr = await wallet.connect();
     if (addr) {
-      applyConnectedUI(addr);
       const provider = wallet.providerName() || 'Wallet';
       toast(`${provider} connected · no custody`, 'ok');
+      // Auto-switch to Arbitrum (adds the chain if missing). If the user
+      // rejects the prompt, the app still works in read-only mode but we
+      // surface a clear nudge to switch manually.
+      const onArb = await ensureArbitrum();
+      if (!onArb) {
+        toast('Please switch to Arbitrum One to deposit / trade', 'warn');
+      }
+      // Then load real HL balance and refresh the UI
+      await applyConnectedUI(addr);
     } else {
       btn.textContent = 'Connect wallet';
       toast('No accounts returned', 'bad');
@@ -2760,7 +2906,7 @@ $('walletBtn').addEventListener('click', async () => {
 // Silent restore on page load — uses eth_accounts (no popup)
 (async () => {
   const addr = await wallet.silentRestore();
-  if (addr) applyConnectedUI(addr);
+  if (addr) await applyConnectedUI(addr);
 })();
 
 // ─── toast ────────────────────────────────────────────────────

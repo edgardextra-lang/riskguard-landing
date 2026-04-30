@@ -646,42 +646,197 @@
       </tr>`;
   }
 
-  function paintConnectedBalance(addr) {
-    // Demo state for a connected wallet — zeros, not fake balances.
-    // When wired to HL, replace with real clearinghouseState fetch.
+  // Pull real HL account state for the connected wallet.
+  // Returns {accountValue, withdrawable, totalMarginUsed, assetPositions} or null.
+  async function fetchHlAccount(addr) {
+    try {
+      const res = await fetch('https://api.hyperliquid.xyz/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'clearinghouseState', user: addr }),
+      });
+      if (!res.ok) throw new Error(`HL ${res.status}`);
+      const data = await res.json();
+      return {
+        accountValue:    +(data?.marginSummary?.accountValue || 0),
+        withdrawable:    +(data?.withdrawable || 0),
+        totalMarginUsed: +(data?.marginSummary?.totalMarginUsed || 0),
+        assetPositions:  data?.assetPositions || [],
+      };
+    } catch (e) {
+      console.warn('[HyperGuard] HL clearinghouseState failed:', e.message || e);
+      return null;
+    }
+  }
+  // Spot balances on HL (USDC, HYPE, etc.)
+  async function fetchHlSpot(addr) {
+    try {
+      const res = await fetch('https://api.hyperliquid.xyz/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'spotClearinghouseState', user: addr }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  }
+
+  const fmtUsd2 = (n) => '$' + (Math.abs(+n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  async function paintConnectedBalance(addr) {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('b-total', '$0.00');
-    set('b-rewards', '$0.00');
-    set('b-avail', '$0.00');
+
+    // Loading state while we fetch
+    set('b-total', '…');
+    set('b-avail', '…');
+    set('b-spot', '…');
     set('b-usde', '$0.00');
-    set('b-spot', '$0.00');
+    set('b-rewards', '$0.00');
     set('b-evm', '$0.00');
+
+    const [perp, spot] = await Promise.all([fetchHlAccount(addr), fetchHlSpot(addr)]);
+
+    const accountValue = perp ? perp.accountValue : 0;
+    const withdrawable = perp ? perp.withdrawable : 0;
+    const lockedMargin = perp ? perp.totalMarginUsed : 0;
+
+    // Spot total = sum of (token.balance × markPx) where available.
+    // For USDC (price = 1), the holding shows up as USD directly.
+    let spotTotal = 0;
+    let usdeBal = 0;
+    if (spot && Array.isArray(spot.balances)) {
+      for (const b of spot.balances) {
+        const t = (b.coin || '').toUpperCase();
+        const total = +b.total || 0;
+        if (t === 'USDC') spotTotal += total;
+        else if (t === 'USDE' || t === 'USDe') usdeBal += total;
+        // Other spot tokens would need their mark price to USD-convert;
+        // we omit them from the spot total to avoid mis-reporting.
+      }
+    }
+
+    const grandTotal = accountValue + spotTotal + usdeBal;
+
+    set('b-total',  fmtUsd2(grandTotal));
+    set('b-avail',  fmtUsd2(withdrawable));
+    set('b-spot',   fmtUsd2(spotTotal));
+    set('b-usde',   fmtUsd2(usdeBal));
+
     const d = document.getElementById('b-delta');
-    if (d) { d.innerHTML = '<span style="color:var(--text-3)">No 24h change yet</span>'; d.className = 'delta'; }
+    if (d) {
+      if (lockedMargin > 0) {
+        d.innerHTML = `<span style="color:var(--text-3)">${fmtUsd2(lockedMargin)} locked in positions</span>`;
+      } else {
+        d.innerHTML = '<span style="color:var(--text-3)">No 24h change yet</span>';
+      }
+      d.className = 'delta';
+    }
+
     const fundsBtn = document.getElementById('addFundsBtn');
     if (fundsBtn) {
       fundsBtn.disabled = false;
       fundsBtn.style.opacity = '1';
       fundsBtn.style.cursor = 'pointer';
-      fundsBtn.innerHTML = '<span class="plus">+</span>Add funds';
+      fundsBtn.innerHTML = '<span class="plus">+</span>' + (grandTotal > 0 ? 'Add funds' : 'Deposit USDC');
     }
-    document.getElementById('assetsTbody').innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; padding: 40px 24px; color: var(--text-3);">
-          <div style="font-size:13px; color: var(--text-2); margin-bottom: 4px;">No assets yet</div>
-          <div style="font-family: var(--f-mono); font-size: 11px;">Deposit USDC to start trading</div>
-        </td>
-      </tr>`;
+
+    // Assets table
+    const tbody = document.getElementById('assetsTbody');
+    const rows = [];
+    if (accountValue > 0) {
+      rows.push(`
+        <tr>
+          <td>
+            <div class="asset-cell">
+              <div class="asset-icon usdc">$</div>
+              <div class="asset-name"><span class="a">USDC (Perps)</span><span class="b">Hyperliquid</span></div>
+            </div>
+          </td>
+          <td class="num">${(+accountValue).toFixed(2)}</td>
+          <td class="num">${(+withdrawable).toFixed(2)}</td>
+          <td class="num">${(+lockedMargin).toFixed(2)}</td>
+          <td class="num">${fmtUsd2(accountValue)}</td>
+          <td>
+            <div class="asset-actions">
+              <button>Transfer</button>
+              <button>Deposit</button>
+              <button>Withdraw</button>
+            </div>
+          </td>
+        </tr>`);
+    }
+    if (spot && Array.isArray(spot.balances)) {
+      for (const b of spot.balances) {
+        const total = +b.total || 0;
+        if (total <= 0) continue;
+        const sym = (b.coin || '').toUpperCase();
+        const cls = sym === 'USDC' ? 'usdc' : sym === 'HYPE' ? 'hype' : sym === 'BTC' ? 'btc' : sym === 'ETH' ? 'eth' : 'usdc';
+        const usdEst = (sym === 'USDC' || sym === 'USDE') ? total : 0;
+        rows.push(`
+          <tr>
+            <td>
+              <div class="asset-cell">
+                <div class="asset-icon ${cls}">${sym[0] || '?'}</div>
+                <div class="asset-name"><span class="a">${sym} (Spot)</span><span class="b">Hyperliquid</span></div>
+              </div>
+            </td>
+            <td class="num">${total.toFixed(4)}</td>
+            <td class="num">${total.toFixed(4)}</td>
+            <td class="num">0.00</td>
+            <td class="num">${fmtUsd2(usdEst)}</td>
+            <td><div class="asset-actions"><button>Transfer</button></div></td>
+          </tr>`);
+      }
+    }
+    if (!rows.length) {
+      rows.push(`
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 40px 24px; color: var(--text-3);">
+            <div style="font-size:13px; color: var(--text-2); margin-bottom: 4px;">No assets yet</div>
+            <div style="font-family: var(--f-mono); font-size: 11px;">Deposit USDC on Arbitrum to start trading</div>
+          </td>
+        </tr>`);
+    }
+    tbody.innerHTML = rows.join('');
+  }
+
+  // Arbitrum One — chainId 0xa4b1 (42161). Auto-switch / add on connect.
+  const ARBITRUM = {
+    chainId: '0xa4b1',
+    chainName: 'Arbitrum One',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+    blockExplorerUrls: ['https://arbiscan.io/'],
+  };
+  async function ensureArbitrum() {
+    const eth = window.ethereum;
+    if (!eth) return false;
+    try {
+      const cur = await eth.request({ method: 'eth_chainId' });
+      if ((cur || '').toLowerCase() === ARBITRUM.chainId) return true;
+    } catch {}
+    try {
+      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARBITRUM.chainId }] });
+      return true;
+    } catch (err) {
+      if (err && (err.code === 4902 || /unrecognized|not.*added/i.test(err.message || ''))) {
+        try {
+          await eth.request({ method: 'wallet_addEthereumChain', params: [ARBITRUM] });
+          return true;
+        } catch { return false; }
+      }
+      return false;
+    }
   }
 
   // Real EIP-1193 wallet integration with silent restore + listeners
   const WALLET_KEY = 'hyperguard:wallet';
   const btn = document.getElementById('walletBtn');
 
-  function applyConnected(addr) {
+  async function applyConnected(addr) {
     btn.classList.add('connected');
     btn.textContent = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
-    paintConnectedBalance(addr);
+    await paintConnectedBalance(addr);
   }
   function applyDisconnected() {
     btn.classList.remove('connected');
@@ -703,7 +858,9 @@
       const addr = accs && accs[0];
       if (addr) {
         try { localStorage.setItem(WALLET_KEY, addr); } catch {}
-        applyConnected(addr);
+        const onArb = await ensureArbitrum();
+        if (!onArb) console.warn('[wallet] not on Arbitrum — read-only data');
+        await applyConnected(addr);
       } else {
         btn.textContent = 'Connect wallet';
       }
